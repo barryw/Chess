@@ -1,0 +1,12 @@
+parsing
+flex pass 1
+Output pass
+Writing prg file: /Users/barry/Projects/6502/Chess/bin/sprites_Compiled.prg
+
+Memory Map
+----------
+Default-segment:
+  $2000-$21be Sprites
+
+Writing Vice symbol file: /Users/barry/Projects/6502/Chess/bin/sprites.vs
+Writing Symbol file: bin/sprites.sym
