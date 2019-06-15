@@ -25,3 +25,13 @@ The gameplay of chess lines up nicely with some of the limitations of the Commod
 One of the biggest limitations of the 64 is that it only has 8 hardware sprites. For a lot of games, this is enough, but for a chess game this poses a problem. Each side starts with 16 pieces, and so at the start of the game there are 32 pieces on the board - well beyond the 8 sprites the machine has.
 
 To get around this, a technique called "sprite multiplexing" is used whereby the 8 sprites can be reused by changing them during a raster interrupt. In this case, each row on the chess board can contain up to 8 sprites and during the raster interrupt for each row, the sprites are moved and changed to represent the pieces on that row. It's pretty complex and challenging and requires precise timing to make it appear as though there are 32 sprites on the screen at once.
+
+#### How do I build it?
+
+There's a docker image containing KickAssembler that you can use. You will need to have `Make` and `docker` installed to run this.
+
+```bash
+make build
+```
+
+This will output a file called `C64Chess.d64` that you can load into VICE.

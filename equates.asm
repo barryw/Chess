@@ -1,5 +1,11 @@
 .label SPRPTR = $07f8
 
+// The location in memory for our sprites
+.label SPRITE_MEMORY = $2000
+
+// The location in memory for our characters
+.label CHARACTER_MEMORY = $3000
+
 // These are markers for the board's state. Each piece has its own signature
 // The MSB identifies the piece's color. A value of 1 means the piece is BLACK
 .label EMPTY_PIECE  = %00000000
@@ -32,3 +38,8 @@
 .label PIECE_WIDTH = PIECE_HEIGHT
 .label NUM_ROWS = 8
 .label NUM_COLS = NUM_ROWS
+
+// Addresses used for memcopy operations
+.label copy_from = $02
+.label copy_to = $04
+.label copy_size = $06

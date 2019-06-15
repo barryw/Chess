@@ -67,4 +67,33 @@ NextIRQ:
   .if(DEBUG == true) {
     dec vic.EXTCOL
   }
+
+  jsr ColorCycleTitle
+
   rti
+
+ColorCycleTitle:
+  inc colorcycletiming
+  bne return
+
+  ldx #$00
+  ldy colorcycleposition
+  iny
+  sty colorcycleposition
+  cpy #$07
+  bne painttitle
+  ldy #$00
+  sty colorcycleposition
+painttitle:
+  lda titlecolors, y
+  sta vic.CLRRAM + 29, x
+  inx
+  cpx #$09
+  beq return
+  iny
+  cpy #$07
+  bne painttitle
+  ldy #$00
+  jmp painttitle
+return:
+  rts

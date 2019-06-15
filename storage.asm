@@ -10,11 +10,11 @@ num2:
 
 // Temp storage for 16 bit addition
 word1:
-  .word $00
+  .word $0000
 word2:
-  .word $00
+  .word $0000
 result:
-  .word $00
+  .word $0000
 
 // Bit mask to turn a single sprite off
 spritesoff:
@@ -31,3 +31,12 @@ irqypos:
 // Store the lines where we should display our chess pieces
 spriteypos:
   .byte $34, $4c, $64, $7c, $94, $ac, $c4, $dc
+
+titlecolors:
+  .byte $02, $08, $07, $0d, $0e, $06, $04
+
+colorcycletiming:
+  .word $0000
+
+colorcycleposition:
+  .byte $00

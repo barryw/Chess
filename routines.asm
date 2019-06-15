@@ -15,6 +15,10 @@ storex:
   inx
   cpx #$10
   bne storex
+
+  // Copy the sprite data to the right place
+  CopyMemory(SpriteStart, SPRITE_MEMORY, SpriteEnd - SpriteStart)
+
   rts
 
 // Clear the screen by storing space directly to screen memory
@@ -86,14 +90,20 @@ drawcolumns:
   sta $0788
 
   ldx #$00
+  ldy #$00
 title:
   lda Title, x
   cmp #$00
   beq finishtitle
   sta $041d, x
-  lda #$01
+  lda titlecolors, y
   sta vic.CLRRAM + 29,x
   inx
+  iny
+  cpy #$07
+  bne nextletter
+  ldy #$00
+nextletter:
   jmp title
 finishtitle:
   ldx #$00
@@ -122,12 +132,16 @@ finishbarry:
 
 // Bring in the custom characters
 SetupCharacters:
+  // Copy character data to the right place
+  CopyMemory(CharacterStart, CHARACTER_MEMORY, CharacterEnd - CharacterStart)
+
   lda vic.VMCSB
   and #$f0
   ora #$0d
   sta vic.VMCSB
   lda #$35
   sta $01
+
   rts
 
 .macro PushStack() {
@@ -260,4 +274,46 @@ Add16Bit:
   lda >word1
   adc >word2
   sta >result
+  rts
+
+// Perform a memory copy
+// Each parameter is a 16 bit number
+.macro CopyMemory(from_address, to_address, size) {
+  lda #<from_address
+  sta copy_from
+  lda #>from_address
+  sta copy_from + 1
+  lda #<to_address
+  sta copy_to
+  lda #>to_address
+  sta copy_to + 1
+  lda #<size
+  sta copy_size
+  lda #>size
+  sta copy_size + 1
+
+  jsr CopyMemory
+}
+
+CopyMemory:
+  ldy #0
+  ldx copy_size + 1
+  beq frag
+page:
+  lda (copy_from), y
+  sta (copy_to), y
+  iny
+  bne page
+  inc copy_from + 1
+  inc copy_to + 1
+  dex
+  bne page
+frag:
+  cpy copy_size
+  beq copydone
+  lda (copy_from), y
+  sta (copy_to), y
+  iny
+  bne frag
+copydone:
   rts

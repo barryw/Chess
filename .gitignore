@@ -1,1 +1,4 @@
 bin/*
+*.d64
+main.prg
+main.sym
