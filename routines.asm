@@ -101,12 +101,23 @@ copyright:
   lda Copyright, x
   cmp #$00
   beq finishcopyright
-  sta $0442, x
+  sta $07b2, x
   lda #$01
-  sta vic.CLRRAM + 66, x
+  sta vic.CLRRAM + 946, x
   inx
   jmp copyright
 finishcopyright:
+  ldx #$00
+barry:
+  lda Barry, x
+  cmp #$00
+  beq finishbarry
+  sta $7db, x
+  lda #$01
+  sta vic.CLRRAM + 987, x
+  inx
+  jmp barry
+finishbarry:
   rts
 
 // Bring in the custom characters
