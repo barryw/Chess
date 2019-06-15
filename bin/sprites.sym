@@ -1,7 +1,0 @@
-.label Bishop=$20c0
-.label Empty=$2000
-.label King=$2180
-.label Queen=$2140
-.label Knight=$2080
-.label Pawn=$2040
-.label Rook=$2100
