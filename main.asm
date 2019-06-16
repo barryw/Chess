@@ -24,6 +24,7 @@ start:
 
   jmp *
 
+#import "keyboard.asm"
 #import "board.asm"
 #import "routines.asm"
 #import "raster.asm"

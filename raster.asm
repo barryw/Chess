@@ -70,15 +70,31 @@ NextIRQ:
 
   jsr ColorCycleTitle
   jsr PlayMusic
+  jsr ReadKeyboard
 
   PopStack()
 
   rti
 
+// Read the keyboard and respond
+ReadKeyboard:
+  jsr Keyboard
+  bcs NoValidInput
+  cmp #$0d // M key
+  bne NextKey1
+  jsr ToggleMusic
+NextKey1:
+
+NoValidInput:
+  rts
+
 // Play the background music
 PlayMusic:
   lda counter
   cmp #$00
+  bne return2
+  lda playmusic
+  cmp #$01
   bne return2
   jsr music_play
 return2:

@@ -6,6 +6,18 @@ SetupMusic:
   jsr music.init
   rts
 
+ToggleMusic:
+  lda playmusic
+  eor #$01
+  sta playmusic
+  cmp #$00
+  bne return
+  lda $d418
+  and #$f0
+  sta $d418
+!return:
+  rts
+
 *=music.location "Music"
 .fill music.size, music.getData(i)
 

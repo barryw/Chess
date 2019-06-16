@@ -44,3 +44,7 @@ colorcycleposition:
 // Keep track of the current player. 1 = black, 0 = white
 currentplayer:
   .byte $00
+
+// Whether to play music or not. 1 = play, 0 = mute
+playmusic:
+  .byte $01
