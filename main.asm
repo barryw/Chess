@@ -24,13 +24,13 @@ start:
 
   jmp *
 
-#import "vic.asm"
-#import "equates.asm"
 #import "board.asm"
-#import "sprites.asm"
 #import "routines.asm"
 #import "raster.asm"
+#import "music.asm"
+#import "sprites.asm"
+#import "vic.asm"
+#import "equates.asm"
 #import "storage.asm"
 #import "strings.asm"
 #import "characters.asm"
-#import "music.asm"

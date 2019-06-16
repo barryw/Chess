@@ -1,6 +1,7 @@
 #import "vic.asm"
 #import "routines.asm"
 
+*=* "Raster Routine"
 .macro InitRasterInterrupt(address) {
   sei
 
@@ -63,7 +64,6 @@ NextIRQ:
   lda irqypos, x
   sta vic.RASTER
 
-  PopStack()
   .if(DEBUG == true) {
     dec vic.EXTCOL
   }
@@ -71,13 +71,16 @@ NextIRQ:
   jsr ColorCycleTitle
   jsr PlayMusic
 
+  PopStack()
+
   rti
 
+// Play the background music
 PlayMusic:
-  //lda vic.RASTER
-  //cmp #$cc
-  //bne return2
-  jsr DoPlayMusic
+  lda counter
+  cmp #$00
+  bne return2
+  jsr music_play
 return2:
   rts
 

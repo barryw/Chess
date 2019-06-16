@@ -1,5 +1,6 @@
 #importonce
 
+*=* "Board Storage"
 // Keeps track of the complete state of the board throughout play. It starts in the initial configuration.
 // During the raster interrupts, the board is constantly redrawn using multiplexed sprites. This allows us
 // to show up to 32 sprites at once.

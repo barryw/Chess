@@ -31,7 +31,7 @@
 .label QUEEN_SPR  = $85
 .label KING_SPR   = $86
 
-.label CURRENT_PIECE = $fc
+.label CURRENT_PIECE = $08
 
 .label RASTER_START = 39
 .label PIECE_HEIGHT = 24

@@ -1,12 +1,9 @@
 .var music = LoadSid("strings_test.sid")
+.label music_play = music.play
 
 SetupMusic:
   lda #$00
   jsr music.init
-  rts
-
-DoPlayMusic:
-  jsr music.play
   rts
 
 *=music.location "Music"

@@ -1,6 +1,7 @@
 #importonce
-
 #import "board.asm"
+
+*=* "Routines"
 
 // Set the initial positions of the 8 sprites
 SetupSprites:
@@ -15,9 +16,6 @@ storex:
   inx
   cpx #$10
   bne storex
-
-  // Copy the sprite data to the right place
-  CopyMemory(SpriteStart, SPRITE_MEMORY, SpriteEnd - SpriteStart)
 
   rts
 
@@ -121,9 +119,6 @@ finishcopyright:
 
 // Bring in the custom characters
 SetupCharacters:
-  // Copy character data to the right place
-  CopyMemory(CharacterStart, CHARACTER_MEMORY, CharacterEnd - CharacterStart)
-
   lda vic.VMCSB
   and #$f0
   ora #$0d
