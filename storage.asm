@@ -1,3 +1,4 @@
+*=* "Variable Storage"
 // Which chess board row are we working on right now?
 counter:
   .byte $00
@@ -48,3 +49,7 @@ currentplayer:
 // Whether to play music or not. 1 = play, 0 = mute
 playmusic:
   .byte $01
+
+// A flag to indicate that the user has pressed Q
+isquitting:
+  .byte $00

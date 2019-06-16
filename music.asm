@@ -11,11 +11,27 @@ ToggleMusic:
   eor #$01
   sta playmusic
   cmp #$00
-  bne return
+  bne togglemusicreturn
   lda $d418
   and #$f0
   sta $d418
-!return:
+togglemusicreturn:
+  rts
+
+DisplayMuteMenu:
+  lda playmusic
+  cmp #$00
+  beq ShowUnmute
+  jmp ShowMute
+
+ShowMute:
+  CopyMemory(MuteStart, ScreenAddress(MusicTogglePos), MuteEnd - MuteStart)
+  CopyMemory(MuteColorStart, ColorAddress(MusicTogglePos), MuteColorEnd - MuteColorStart)
+  rts
+
+ShowUnmute:
+  CopyMemory(UnmuteStart, ScreenAddress(MusicTogglePos), UnmuteEnd - UnmuteStart)
+  CopyMemory(UnmuteColorStart, ColorAddress(MusicTogglePos), UnmuteColorEnd - UnmuteColorStart)
   rts
 
 *=music.location "Music"

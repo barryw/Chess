@@ -84,6 +84,10 @@ ReadKeyboard:
   bne NextKey1
   jsr ToggleMusic
 NextKey1:
+  cmp #$11 // Q key
+  bne NextKey2
+  jsr HandleQuit
+NextKey2:
 
 NoValidInput:
   rts
@@ -93,6 +97,7 @@ PlayMusic:
   lda counter
   cmp #$00
   bne return2
+  jsr DisplayMuteMenu
   lda playmusic
   cmp #$01
   bne return2

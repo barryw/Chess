@@ -6,6 +6,21 @@
 // The location in memory for our characters
 .label CHARACTER_MEMORY = $3000
 
+// The location of screen memory (bank 0)
+.const SCREEN_MEMORY = $0400
+
+.const COLOR_MEMORY = $d800
+
+// The offset between color memory and screen memory (in bank 0)
+.const COLOR_MEMORY_OFFSET = COLOR_MEMORY - SCREEN_MEMORY
+
+// Struct for describing positions on a screen
+.struct ScreenPos{x,y}
+.var TitlePos = ScreenPos($1c,$00) // x=28,y=0
+.var CopyrightPos = ScreenPos($1a, $01) // x=26,y=1
+.var MusicTogglePos = ScreenPos($1a, $16) // x=26,y=22
+.var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
+
 // These are markers for the board's state. Each piece has its own signature
 // The MSB identifies the piece's color. A value of 1 means the piece is BLACK
 .label EMPTY_PIECE  = %00000000

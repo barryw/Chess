@@ -19,17 +19,15 @@ storex:
 
   rts
 
-// Clear the screen by storing space directly to screen memory
-ClearScreen:
-  ldx #$ff
-  lda #$20
-clrloop:
-  sta $0400,x
-  sta $0500,x
-  sta $0600,x
-  sta $0700,x
-  dex
-  bne clrloop
+// Bring in the custom characters
+SetupCharacters:
+  lda vic.VMCSB
+  and #$f0
+  ora #$0d
+  sta vic.VMCSB
+  lda #$35
+  sta $01
+
   rts
 
 SetupScreen:
@@ -87,45 +85,31 @@ drawcolumns:
   lda #'1'
   sta $0788
 
-  ldx #$00
-  ldy #$00
-title:
-  lda Title, x
-  cmp #$00
-  beq finishtitle
-  sta $041c, x
-  lda titlecolors, y
-  sta vic.CLRRAM + 28, x
-  inx
-  iny
-  cpy #$07
-  bne nextletter
-  ldy #$00
-nextletter:
-  jmp title
-finishtitle:
-  ldx #$00
-copyright:
-  lda Copyright, x
-  cmp #$00
-  beq finishcopyright
-  sta $0442, x
-  lda #$01
-  sta vic.CLRRAM + 66, x
-  inx
-  jmp copyright
-finishcopyright:
+  // Display the title
+  CopyMemory(TitleStart, ScreenAddress(TitlePos), TitleEnd - TitleStart)
+  CopyMemory(TitleColorStart, ColorAddress(TitlePos), TitleColorEnd - TitleColorStart)
+
+  // Display the copyright
+  CopyMemory(CopyrightStart, ScreenAddress(CopyrightPos), CopyrightEnd - CopyrightStart)
+  CopyMemory(CopyrightColorStart, ColorAddress(CopyrightPos), CopyrightColorEnd - CopyrightColorStart)
+
+  // Display the Quit Game menu option
+  CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
+  CopyMemory(QuitColorStart, ColorAddress(QuitGamePos), QuitColorEnd - QuitColorStart)
+
   rts
 
-// Bring in the custom characters
-SetupCharacters:
-  lda vic.VMCSB
-  and #$f0
-  ora #$0d
-  sta vic.VMCSB
-  lda #$35
-  sta $01
-
+// Clear the screen by storing space directly to screen memory
+ClearScreen:
+  ldx #$ff
+  lda #$20
+clrloop:
+  sta $0400,x
+  sta $0500,x
+  sta $0600,x
+  sta $0700,x
+  dex
+  bne clrloop
   rts
 
 .macro PushStack() {
@@ -241,7 +225,6 @@ Multiply8Bit:
 doAdd:
   clc
   adc num1
-
 loop:
   asl num1
 enterLoop:
@@ -252,13 +235,30 @@ enterLoop:
 
 Add16Bit:
   clc
-  lda <word1
-  adc <word2
-  sta <result
-  lda >word1
-  adc >word2
-  sta >result
+  lda word1
+  adc word2
+  sta result
+  lda word1 + 1
+  adc word2 + 1
+  sta result + 1
   rts
+
+Sub16Bit:
+  sec
+  lda word2
+  sbc word1
+  sta result
+  lda word2 + 1
+  sbc word1 + 1
+  sta result + 1
+  rts
+
+.macro Write16(word, location) {
+  lda #<word
+  sta location
+  lda #>word
+  sta location + 1
+}
 
 // Perform a memory copy
 // Each parameter is a 16 bit number
@@ -300,4 +300,14 @@ frag:
   iny
   bne frag
 copydone:
+  rts
+
+HandleQuit:
+  lda isquitting
+  cmp #$00
+  bne alreadyquitting
+  lda #$01
+  sta isquitting
+alreadyquitting:
+
   rts
