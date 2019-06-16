@@ -95,9 +95,9 @@ title:
   lda Title, x
   cmp #$00
   beq finishtitle
-  sta $041d, x
+  sta $041c, x
   lda titlecolors, y
-  sta vic.CLRRAM + 29,x
+  sta vic.CLRRAM + 28, x
   inx
   iny
   cpy #$07
@@ -111,23 +111,12 @@ copyright:
   lda Copyright, x
   cmp #$00
   beq finishcopyright
-  sta $07b2, x
+  sta $0442, x
   lda #$01
-  sta vic.CLRRAM + 946, x
+  sta vic.CLRRAM + 66, x
   inx
   jmp copyright
 finishcopyright:
-  ldx #$00
-barry:
-  lda Barry, x
-  cmp #$00
-  beq finishbarry
-  sta $7db, x
-  lda #$01
-  sta vic.CLRRAM + 987, x
-  inx
-  jmp barry
-finishbarry:
   rts
 
 // Bring in the custom characters

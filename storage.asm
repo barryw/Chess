@@ -36,7 +36,11 @@ titlecolors:
   .byte $02, $08, $07, $0d, $0e, $06, $04
 
 colorcycletiming:
-  .word $0000
+  .byte $00
 
 colorcycleposition:
+  .byte $00
+
+// Keep track of the current player. 1 = black, 0 = white
+currentplayer:
   .byte $00

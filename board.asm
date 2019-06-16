@@ -15,11 +15,11 @@ BoardState:
 
 // Shows the columns along the bottom of the board
 Columns:
-  .byte 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
+  .text "ABCDEFGH"
 
 // Shows the rows along the right side of the board
 Rows:
-  .byte '8', '7', '6', '5', '4', '3', '2', '1'
+  .text "87654321"
 
 // This draws the checkerboard using 2 different shades of gray
 Board:

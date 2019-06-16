@@ -4,11 +4,4 @@ Title:
   .byte $00
 
 Copyright:
-  .text "Copyright"
-  .byte $db
-  .text "2019"
-  .byte $00
-
-Barry:
-  .text "Barry Walker"
-  .byte $00
+  .byte $dd, $de, $df, $e4, $e1, $db, $e2, $e3, $ea, $e5, $e6, $e7, $e8, $e9, $00

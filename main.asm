@@ -18,6 +18,7 @@ start:
   jsr SetupSprites
   jsr SetupScreen
   jsr SetupCharacters
+  jsr SetupMusic
 
   InitRasterInterrupt(irq)
 
@@ -32,3 +33,4 @@ start:
 #import "storage.asm"
 #import "strings.asm"
 #import "characters.asm"
+#import "music.asm"

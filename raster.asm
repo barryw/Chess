@@ -69,12 +69,28 @@ NextIRQ:
   }
 
   jsr ColorCycleTitle
+  jsr PlayMusic
 
   rti
 
+PlayMusic:
+  //lda vic.RASTER
+  //cmp #$cc
+  //bne return2
+  jsr DoPlayMusic
+return2:
+  rts
+
 ColorCycleTitle:
   inc colorcycletiming
+  lda colorcycletiming
+  cmp #$80
+  beq begin
   bne return
+
+begin:
+  lda #$00
+  sta colorcycletiming
 
   ldx #$00
   ldy colorcycleposition
@@ -86,7 +102,7 @@ ColorCycleTitle:
   sty colorcycleposition
 painttitle:
   lda titlecolors, y
-  sta vic.CLRRAM + 29, x
+  sta vic.CLRRAM + 28, x
   inx
   cpx #$09
   beq return
