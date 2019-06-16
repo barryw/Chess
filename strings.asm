@@ -35,9 +35,16 @@ QuitColorStart:
   .fill QuitEnd - QuitStart, $01
 QuitColorEnd:
 
-QuitConfirmation:
+QuitConfirmationStart:
   .text "Quit (Y/N)?"
-  .byte $00
+QuitConfirmationEnd:
+QuitConfirmationColorStart:
+  .fill QuitConfirmationEnd - QuitConfirmationStart, $01
+QuitConfirmationColorEnd:
+
+EmptyRowStart:
+  .fill $0e, $20
+EmptyRowEnd:
 
 PlayerSelect:
   .text "1 or 2 players?"

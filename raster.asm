@@ -88,7 +88,14 @@ NextKey1:
   bne NextKey2
   jsr HandleQuit
 NextKey2:
-
+  cmp #$19 // Y key
+  bne NextKey3
+  jsr ConfirmQuit
+NextKey3:
+  cmp #$0e // N key
+  bne NextKey4
+  jsr QuitAbort
+NextKey4:
 NoValidInput:
   rts
 

@@ -20,6 +20,7 @@
 .var CopyrightPos = ScreenPos($1a, $01) // x=26,y=1
 .var MusicTogglePos = ScreenPos($1a, $16) // x=26,y=22
 .var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
+.var QuitConfirmPos = ScreenPos($1b, $0a) // x=27,y=10
 
 // These are markers for the board's state. Each piece has its own signature
 // The MSB identifies the piece's color. A value of 1 means the piece is BLACK

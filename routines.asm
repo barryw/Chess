@@ -308,6 +308,18 @@ HandleQuit:
   bne alreadyquitting
   lda #$01
   sta isquitting
+  CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
+  CopyMemory(QuitConfirmationColorStart, ColorAddress(QuitConfirmPos), QuitConfirmationColorEnd - QuitConfirmationColorStart)
 alreadyquitting:
+  rts
 
+ConfirmQuit:
+  lda #$37
+  sta $01
+  jsr $fce2
+
+QuitAbort:
+  lda #$00
+  sta isquitting
+  CopyMemory(EmptyRowStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
   rts
