@@ -249,11 +249,10 @@ Characters:
   .byte  $7c,$60,$60,$60,$60,$7e,$7e,$00
   .byte  $00,$3c,$7e,$66,$60,$60,$60,$3c
   .byte  $3c,$06,$06,$06,$66,$7e,$3c,$00
-  .byte  $ff,$ff,$ff,$ff,$ff,$00,$00,$00
-  .byte  $fe,$fc,$f9,$93,$87,$8f,$9f,$ff
+  .byte  $00,$3c,$7e,$66,$66,$60,$60,$60
+  .byte  $60,$60,$66,$66,$66,$7e,$3c,$00
   .byte  $ff,$ff,$ff,$ff,$0f,$0f,$0f,$0f
   .byte  $f0,$f0,$f0,$f0,$ff,$ff,$ff,$ff
   .byte  $e7,$e7,$e7,$07,$07,$ff,$ff,$ff
   .byte  $0f,$0f,$0f,$0f,$ff,$ff,$ff,$ff
   .byte  $0f,$0f,$0f,$0f,$f0,$f0,$f0,$f0
-

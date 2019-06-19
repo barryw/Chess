@@ -1,19 +1,19 @@
 *=* "String Storage"
 
 TitleRow1Start:
-  .byte $eb, $ed, $ef, $f1, $20, $eb, $f3, $f5, $f7, $f7
+  .byte $eb, $ed, $ef, $f1, $20, $f9, $f3, $f5, $f7, $f7
 TitleRow1End:
 
 TitleRow1ColorStart:
-  .byte BLUE, BLUE, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE, RED, ORANGE
+  .byte LIGHT_BLUE, LIGHT_BLUE, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE, RED, ORANGE
 TitleRow1ColorEnd:
 
 TitleRow2Start:
-  .byte $ec, $ee, $f0, $f2, $20, $ec, $f4, $f6, $f8, $f8
+  .byte $ec, $ee, $f0, $f2, $20, $fa, $f4, $f6, $f8, $f8
 TitleRow2End:
 
 TitleRow2ColorStart:
-  .byte BLUE, RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE, RED, ORANGE
+  .byte LIGHT_BLUE, RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE, RED, ORANGE
 TitleRow2ColorEnd:
 
 CopyrightStart:
@@ -22,6 +22,27 @@ CopyrightEnd:
 CopyrightColorStart:
   .fill CopyrightEnd - CopyrightStart, $01
 CopyrightColorEnd:
+
+PlayStart:
+  .text "[P] Play Game"
+PlayEnd:
+PlayColorStart:
+  .fill PlayEnd - PlayStart, $01
+PlayColorEnd:
+
+YesStart:
+  .text "[Y] Yes"
+YesEnd:
+YesColorStart:
+  .fill YesEnd - YesStart, $01
+YesColorEnd:
+
+NoStart:
+  .text "[N] No"
+NoEnd:
+NoColorStart:
+  .fill NoEnd - NoStart, $01
+NoColorEnd:
 
 MuteStart:
   .text "[M] Stop Music"
@@ -36,13 +57,6 @@ UnmuteEnd:
 UnmuteColorStart:
   .fill UnmuteEnd - UnmuteStart, $01
 UnmuteColorEnd:
-
-PlayStart:
-  .text "[P] Play Game"
-PlayEnd:
-PlayColorStart:
-  .fill PlayEnd - PlayStart, $01
-PlayColorEnd:
 
 ForfeitStart:
   .text "[Z] Forfeit"
@@ -59,7 +73,7 @@ QuitColorStart:
 QuitColorEnd:
 
 QuitConfirmationStart:
-  .text "Quit (Y/N)?"
+  .text "Quit?"
 QuitConfirmationEnd:
 QuitConfirmationColorStart:
   .fill QuitConfirmationEnd - QuitConfirmationStart, $01
@@ -84,11 +98,13 @@ BlackColorStart:
 BlackColorEnd:
 
 PlayerSelectStart:
-  .text "1/2 players?"
+  .text "[1]/[2] players?"
 PlayerSelectEnd:
 PlayerSelectColorStart:
   .fill PlayerSelectEnd - PlayerSelectStart, $01
 PlayerSelectColorEnd:
+
+WhiteOrBlackStart:
 
 BlacksTurnStart:
   .text "Black's Turn"

@@ -18,10 +18,6 @@ BoardState:
 Columns:
   .text "ABCDEFGH"
 
-// Shows the rows along the right side of the board
-Rows:
-  .text "87654321"
-
 // This draws the checkerboard using 2 different shades of gray
 Board:
   .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f

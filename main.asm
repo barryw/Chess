@@ -26,6 +26,8 @@ start:
 
 #import "vic.asm"
 #import "equates.asm"
+#import "math.asm"
+#import "memory.asm"
 #import "functions.asm"
 #import "keyboard.asm"
 #import "board.asm"

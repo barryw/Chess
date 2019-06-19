@@ -25,7 +25,7 @@
 .var MusicTogglePos = ScreenPos($1a, $16) // x=26,y=22
 
 .var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
-.var QuitConfirmPos = ScreenPos($1b, $0a) // x=27,y=10
+.var QuitConfirmPos = ScreenPos($1e, $0a) // x=26,y=10
 .var PlayerSelectPos = ScreenPos($1b, $0a) // x=26,y=10
 
 .var WhiteTimerLabelPos = ScreenPos($1b, $03) // x=27,y=3
@@ -67,3 +67,8 @@
 .label copy_from = $02
 .label copy_to = $04
 .label copy_size = $06
+
+// Addresses used for math operations
+.const num1 = $08
+.const num2 = $0a
+.const result = $0c

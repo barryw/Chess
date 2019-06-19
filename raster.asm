@@ -157,3 +157,81 @@ painttitle:
   jmp painttitle
 return:
   rts
+
+// Display a single row of pieces
+.macro ShowRow() {
+  lda counter
+  asl
+  asl
+  asl
+  tax
+  ldy #0
+loop:
+  lda BoardState, x
+  sta CURRENT_PIECE
+  and #$7f
+
+  // Which piece do we have at this location?
+  cmp #WHITE_PAWN
+  beq ShowPawn
+  cmp #WHITE_KNIGHT
+  beq ShowKnight
+  cmp #WHITE_BISHOP
+  beq ShowBishop
+  cmp #WHITE_ROOK
+  beq ShowRook
+  cmp #WHITE_KING
+  beq ShowKing
+  cmp #WHITE_QUEEN
+  beq ShowQueen
+
+ShowEmpty:
+  // Turn the sprite off
+  lda vic.SPENA
+  and spritesoff, y
+  sta vic.SPENA
+  jmp continue2
+
+ShowPawn:
+  lda #PAWN_SPR
+  jmp continue
+ShowKnight:
+  lda #KNIGHT_SPR
+  jmp continue
+ShowBishop:
+  lda #BISHOP_SPR
+  jmp continue
+ShowRook:
+  lda #ROOK_SPR
+  jmp continue
+ShowKing:
+  lda #KING_SPR
+  jmp continue
+ShowQueen:
+  lda #QUEEN_SPR
+
+continue:
+  // Turn the sprite on
+  sta SPRPTR, y
+  lda vic.SPENA
+  ora spriteson, y
+  sta vic.SPENA
+
+  // Is it white or black?
+  lda CURRENT_PIECE
+  and #$80
+  cmp #$80
+  beq black
+
+  lda #$01
+  sta vic.SP0COL, y
+  jmp continue2
+black:
+  lda #$00
+  sta vic.SP0COL, y
+continue2:
+  inx
+  iny
+  cpy #NUM_COLS
+  bne loop
+}

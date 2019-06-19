@@ -3,20 +3,6 @@
 counter:
   .byte $00
 
-// Temp storage for 8 bit multiply
-num1:
-  .byte $00
-num2:
-  .byte $00
-
-// Temp storage for 16 bit addition
-word1:
-  .word $0000
-word2:
-  .word $0000
-result:
-  .word $0000
-
 // Bit mask to turn a single sprite off
 spritesoff:
   .byte $fe, $fd, $fb, $f7, $ef, $df, $bf, $7f
