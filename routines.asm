@@ -86,12 +86,18 @@ drawcolumns:
   sta $0788
 
   // Display the title
-  CopyMemory(TitleStart, ScreenAddress(TitlePos), TitleEnd - TitleStart)
-  CopyMemory(TitleColorStart, ColorAddress(TitlePos), TitleColorEnd - TitleColorStart)
+  CopyMemory(TitleRow1Start, ScreenAddress(Title1Pos), TitleRow1End - TitleRow1Start)
+  CopyMemory(TitleRow1ColorStart, ColorAddress(Title1Pos), TitleRow1ColorEnd - TitleRow1ColorStart)
+  CopyMemory(TitleRow2Start, ScreenAddress(Title2Pos), TitleRow2End - TitleRow2Start)
+  CopyMemory(TitleRow2ColorStart, ColorAddress(Title2Pos), TitleRow2ColorEnd - TitleRow2ColorStart)
 
   // Display the copyright
   CopyMemory(CopyrightStart, ScreenAddress(CopyrightPos), CopyrightEnd - CopyrightStart)
   CopyMemory(CopyrightColorStart, ColorAddress(CopyrightPos), CopyrightColorEnd - CopyrightColorStart)
+
+  // Display the Play Game menu option
+  CopyMemory(PlayStart, ScreenAddress(PlayGamePos), PlayEnd - PlayStart)
+  CopyMemory(PlayColorStart, ColorAddress(PlayGamePos), PlayColorEnd - PlayColorStart)
 
   // Display the Quit Game menu option
   CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
@@ -313,13 +319,35 @@ HandleQuit:
 alreadyquitting:
   rts
 
+// Reset the C64
 ConfirmQuit:
-  lda #$37
+  lda #$37 // Swap the kernal back in
   sta $01
-  jsr $fce2
+  jsr $fce2 // call the reset vector
 
+// The user has decided that they don't want to quit
 QuitAbort:
   lda #$00
   sta isquitting
   CopyMemory(EmptyRowStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
+  rts
+
+// Let's Rock!
+StartGame:
+  CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
+  CopyMemory(PlayerSelectColorStart, ColorAddress(PlayerSelectPos), PlayerSelectColorEnd - PlayerSelectColorStart)
+  rts
+
+OnePlayer:
+
+TwoPlayer:
+  rts
+
+// Depending on who's playing, show their game clock
+DisplayGameClock:
+  lda currentplayer
+  cmp #$00
+  beq ShowWhiteClock
+
+ShowWhiteClock:
   rts

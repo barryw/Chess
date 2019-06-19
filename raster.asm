@@ -96,6 +96,18 @@ NextKey3:
   bne NextKey4
   jsr QuitAbort
 NextKey4:
+  cmp #$10
+  bne NextKey5
+  jsr StartGame
+NextKey5:
+  cmp #$31
+  bne NextKey6
+  jsr OnePlayer
+NextKey6:
+  cmp #$32
+  bne NextKey7
+  jsr TwoPlayer
+NextKey7:
 NoValidInput:
   rts
 
@@ -115,7 +127,7 @@ return2:
 ColorCycleTitle:
   inc colorcycletiming
   lda colorcycletiming
-  cmp #$80
+  cmp #$10
   beq begin
   bne return
 
@@ -133,9 +145,10 @@ begin:
   sty colorcycleposition
 painttitle:
   lda titlecolors, y
-  sta vic.CLRRAM + 28, x
+  sta vic.CLRRAM + 30, x
+  sta vic.CLRRAM + 70, x
   inx
-  cpx #$09
+  cpx #$08
   beq return
   iny
   cpy #$07

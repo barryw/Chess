@@ -1,11 +1,20 @@
 *=* "String Storage"
-TitleStart:
-  .byte $dc
-  .text "64 Chess"
-TitleEnd:
-TitleColorStart:
-  .byte $02, $08, $07, $0d, $0e, $06, $04, $02, $08
-TitleColorEnd:
+
+TitleRow1Start:
+  .byte $eb, $ed, $ef, $f1, $20, $eb, $f3, $f5, $f7, $f7
+TitleRow1End:
+
+TitleRow1ColorStart:
+  .byte BLUE, BLUE, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE, RED, ORANGE
+TitleRow1ColorEnd:
+
+TitleRow2Start:
+  .byte $ec, $ee, $f0, $f2, $20, $ec, $f4, $f6, $f8, $f8
+TitleRow2End:
+
+TitleRow2ColorStart:
+  .byte BLUE, RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE, RED, ORANGE
+TitleRow2ColorEnd:
 
 CopyrightStart:
   .byte $dd, $de, $df, $e4, $e1, $db, $e2, $e3, $ea, $e5, $e6, $e7, $e8, $e9
@@ -28,6 +37,20 @@ UnmuteColorStart:
   .fill UnmuteEnd - UnmuteStart, $01
 UnmuteColorEnd:
 
+PlayStart:
+  .text "[P] Play Game"
+PlayEnd:
+PlayColorStart:
+  .fill PlayEnd - PlayStart, $01
+PlayColorEnd:
+
+ForfeitStart:
+  .text "[Z] Forfeit"
+ForfeitEnd:
+ForfeitColorStart:
+  .fill ForfeitEnd - ForfeitStart, $01
+ForfeitColorEnd:
+
 QuitStart:
   .text "[Q] Quit Game"
 QuitEnd:
@@ -46,18 +69,35 @@ EmptyRowStart:
   .fill $0e, $20
 EmptyRowEnd:
 
-PlayerSelect:
-  .text "1 or 2 players?"
-  .byte $00
+WhiteStart:
+  .text "WHITE"
+WhiteEnd:
+WhiteColorStart:
+  .fill WhiteEnd - WhiteStart, $01
+WhiteColorEnd:
 
-BlacksTurn:
+BlackStart:
+  .text "BLACK"
+BlackEnd:
+BlackColorStart:
+  .fill BlackEnd - BlackStart, $01
+BlackColorEnd:
+
+PlayerSelectStart:
+  .text "1/2 players?"
+PlayerSelectEnd:
+PlayerSelectColorStart:
+  .fill PlayerSelectEnd - PlayerSelectStart, $01
+PlayerSelectColorEnd:
+
+BlacksTurnStart:
   .text "Black's Turn"
-  .byte $00
+BlacksTurnEnd:
 
-WhitesTurn:
+WhitesTurnStart:
   .text "White's Turn"
-  .byte $00
+WhitesTurnEnd:
 
-InvalidMove:
+InvalidMoveStart:
   .text "Invalid Move"
-  .byte $00
+InvalidMoveEnd:

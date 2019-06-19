@@ -34,7 +34,7 @@ spriteypos:
   .byte $34, $4c, $64, $7c, $94, $ac, $c4, $dc
 
 titlecolors:
-  .byte $02, $08, $07, $0d, $0e, $06, $04
+  .byte RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE
 
 colorcycletiming:
   .byte $00
@@ -46,10 +46,28 @@ colorcycleposition:
 currentplayer:
   .byte $00
 
+// Number of players
+numplayers:
+  .byte $00
+
 // Whether to play music or not. 1 = play, 0 = mute
 playmusic:
-  .byte $01
+  .byte $00
 
 // A flag to indicate that the user has pressed Q
 isquitting:
+  .byte $00
+
+whiteseconds:
+  .byte $00
+whiteminutes:
+  .byte $00
+whitehours:
+  .byte $00
+
+blackseconds:
+  .byte $00
+blackminutes:
+  .byte $00
+blackhours:
   .byte $00

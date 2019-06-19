@@ -16,11 +16,20 @@
 
 // Struct for describing positions on a screen
 .struct ScreenPos{x,y}
-.var TitlePos = ScreenPos($1c,$00) // x=28,y=0
-.var CopyrightPos = ScreenPos($1a, $01) // x=26,y=1
+
+// Positions for various text strings
+.var Title1Pos = ScreenPos($1c, $00) // x=28, y=0
+.var Title2Pos = ScreenPos($1c, $01) // x=28, y=1
+.var CopyrightPos = ScreenPos($1a, $02) // x=26,y=1
+.var PlayGamePos = ScreenPos($1a, $15) // x=26,y=21
 .var MusicTogglePos = ScreenPos($1a, $16) // x=26,y=22
+
 .var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
 .var QuitConfirmPos = ScreenPos($1b, $0a) // x=27,y=10
+.var PlayerSelectPos = ScreenPos($1b, $0a) // x=26,y=10
+
+.var WhiteTimerLabelPos = ScreenPos($1b, $03) // x=27,y=3
+.var BlackTimerLabelPos = ScreenPos($22, $03) // x=34,y=3
 
 // These are markers for the board's state. Each piece has its own signature
 // The MSB identifies the piece's color. A value of 1 means the piece is BLACK
@@ -39,13 +48,12 @@
 .label BLACK_QUEEN  = %10100000
 
 // Sprite pointers for the 6 pieces
-.label EMPTY_SPR  = $80
-.label PAWN_SPR   = $81
-.label KNIGHT_SPR = $82
-.label BISHOP_SPR = $83
-.label ROOK_SPR   = $84
-.label QUEEN_SPR  = $85
-.label KING_SPR   = $86
+.label PAWN_SPR   = $80
+.label KNIGHT_SPR = $81
+.label BISHOP_SPR = $82
+.label ROOK_SPR   = $83
+.label QUEEN_SPR  = $84
+.label KING_SPR   = $85
 
 .label CURRENT_PIECE = $08
 
