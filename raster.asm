@@ -100,11 +100,11 @@ NextKey4:
   bne NextKey5
   jsr StartGame
 NextKey5:
-  cmp #$31
+  cmp #$31 // 1 key
   bne NextKey6
   jsr OnePlayer
 NextKey6:
-  cmp #$32
+  cmp #$32 // 2 key
   bne NextKey7
   jsr TwoPlayer
 NextKey7:
@@ -124,6 +124,7 @@ PlayMusic:
 return2:
   rts
 
+// Color cycle the title to give it a nice rainbow effect
 ColorCycleTitle:
   inc colorcycletiming
   lda colorcycletiming
@@ -161,15 +162,15 @@ return:
 // Display a single row of pieces
 .macro ShowRow() {
   lda counter
-  asl
-  asl
-  asl
+  asl // multiply the counter by 8
+  asl // this gives us the position
+  asl // inside the BoardState for each row
   tax
   ldy #0
 loop:
-  lda BoardState, x
+  lda BoardState, x // get the BoardState for the current location
   sta CURRENT_PIECE
-  and #$7f
+  and #$7f // strip the piece's color information
 
   // Which piece do we have at this location?
   cmp #WHITE_PAWN
@@ -186,7 +187,7 @@ loop:
   beq ShowQueen
 
 ShowEmpty:
-  // Turn the sprite off
+  // Turn the sprite off for an empty square
   lda vic.SPENA
   and spritesoff, y
   sta vic.SPENA
@@ -220,8 +221,7 @@ continue:
   // Is it white or black?
   lda CURRENT_PIECE
   and #$80
-  cmp #$80
-  beq black
+  bne black
 
   lda #$01
   sta vic.SP0COL, y
