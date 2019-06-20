@@ -30,6 +30,19 @@ SetupCharacters:
 
   rts
 
+// Clear the screen by storing space directly to screen memory
+ClearScreen:
+  ldx #$ff
+  lda #$20
+clrloop:
+  sta $0400,x
+  sta $0500,x
+  sta $0600,x
+  sta $0700,x
+  dex
+  bne clrloop
+  rts
+
 SetupScreen:
   jsr ClearScreen
   lda #$00
@@ -48,7 +61,7 @@ drawloop:
   sta vic.CLRRAM+$0200,x
   lda Board+$0300,x
   sta vic.CLRRAM+$0300,x
-  lda #224
+  lda #$e0
   sta $0400,x
   sta $0500,x
   sta $0600,x
@@ -85,6 +98,12 @@ drawcolumns:
   lda #'1'
   sta $0788
 
+  jsr DisplayTitleAndCopyright
+  jsr StartMenu
+
+  rts
+
+DisplayTitleAndCopyright:
   // Display the title
   CopyMemory(TitleRow1Start, ScreenAddress(Title1Pos), TitleRow1End - TitleRow1Start)
   CopyMemory(TitleRow1ColorStart, ColorAddress(Title1Pos), TitleRow1ColorEnd - TitleRow1ColorStart)
@@ -95,27 +114,6 @@ drawcolumns:
   CopyMemory(CopyrightStart, ScreenAddress(CopyrightPos), CopyrightEnd - CopyrightStart)
   CopyMemory(CopyrightColorStart, ColorAddress(CopyrightPos), CopyrightColorEnd - CopyrightColorStart)
 
-  // Display the Play Game menu option
-  CopyMemory(PlayStart, ScreenAddress(PlayGamePos), PlayEnd - PlayStart)
-  CopyMemory(PlayColorStart, ColorAddress(PlayGamePos), PlayColorEnd - PlayColorStart)
-
-  // Display the Quit Game menu option
-  CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
-  CopyMemory(QuitColorStart, ColorAddress(QuitGamePos), QuitColorEnd - QuitColorStart)
-
-  rts
-
-// Clear the screen by storing space directly to screen memory
-ClearScreen:
-  ldx #$ff
-  lda #$20
-clrloop:
-  sta $0400,x
-  sta $0500,x
-  sta $0600,x
-  sta $0700,x
-  dex
-  bne clrloop
   rts
 
 HandleQuit:
@@ -126,6 +124,7 @@ HandleQuit:
   sta isquitting
   CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
   CopyMemory(QuitConfirmationColorStart, ColorAddress(QuitConfirmPos), QuitConfirmationColorEnd - QuitConfirmationColorStart)
+  jsr QuitMenu
 alreadyquitting:
   rts
 
@@ -144,6 +143,7 @@ DoQuit:
 QuitAbort:
   lda #$00
   sta isquitting
+  jsr StartMenu
   CopyMemory(EmptyRowStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
   rts
 
@@ -151,6 +151,8 @@ QuitAbort:
 StartGame:
   CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
   CopyMemory(PlayerSelectColorStart, ColorAddress(PlayerSelectPos), PlayerSelectColorEnd - PlayerSelectColorStart)
+
+  jsr PlayerSelectMenu
   rts
 
 OnePlayer:

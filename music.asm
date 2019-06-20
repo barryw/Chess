@@ -16,6 +16,7 @@ ToggleMusic:
   and #$f0
   sta $d418
 togglemusicreturn:
+  jsr DisplayMuteMenu
   rts
 
 DisplayMuteMenu:

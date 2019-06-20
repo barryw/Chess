@@ -44,6 +44,11 @@ playmusic:
 isquitting:
   .byte $00
 
+// Which menu is currently being displayed?
+currentmenu:
+  .byte $00
+
+// Game clocks
 whiteseconds:
   .byte $00
 whiteminutes:

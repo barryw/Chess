@@ -98,11 +98,25 @@ BlackColorStart:
 BlackColorEnd:
 
 PlayerSelectStart:
-  .text "[1]/[2] players?"
+  .text "Player Count"
 PlayerSelectEnd:
 PlayerSelectColorStart:
   .fill PlayerSelectEnd - PlayerSelectStart, $01
 PlayerSelectColorEnd:
+
+OnePlayerStart:
+  .text "[1] 1 Player"
+OnePlayerEnd:
+OnePlayerColorStart:
+  .fill OnePlayerEnd - OnePlayerStart, $01
+OnePlayerColorEnd:
+
+TwoPlayerStart:
+  .text "[2] 2 Players"
+TwoPlayerEnd:
+TwoPlayerColorStart:
+  .fill TwoPlayerEnd - TwoPlayerStart, $01
+TwoPlayerColorEnd:
 
 WhiteOrBlackStart:
 

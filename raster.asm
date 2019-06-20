@@ -116,7 +116,6 @@ PlayMusic:
   lda counter
   cmp #$00
   bne return2
-  jsr DisplayMuteMenu
   lda playmusic
   cmp #$01
   bne return2
