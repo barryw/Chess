@@ -1,3 +1,4 @@
+*=* "Menus"
 // Clears the menu area
 ClearMenus:
   CopyMemory(EmptyRowStart, ScreenAddress(Empty1Pos), EmptyRowEnd - EmptyRowStart)

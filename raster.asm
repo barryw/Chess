@@ -158,7 +158,22 @@ painttitle:
 return:
   rts
 
-// Display a single row of pieces
+/*
+
+This will show a single row of 8 pieces based on the value of 'counter'. The 'counter' variable is updated at each raster interrupt.
+The raster triggers at 8 different scan lines, and the lines it triggers on is stored in 'irqypos'. The pieces are stored on the lines
+represented in 'spriteypos'. The raster will always trigger at least a few scan lines before the line we want the sprites to appear on.
+This allows time for the raster routine to get the sprites into position before they're shown.
+
+If a square has a piece, the sprite at that column is turned on and the shape data pointer is updated to reflect the piece at that location.
+If a square is empty, the sprite at that column is turned off to save a few cycles.
+
+The color data is also updated to reflect whether the piece is black or white. The color information is stored in the low bit for the piece
+with black being a 0 and white being a 1.
+
+The in-memory representation of the board is stored at 'BoardState' and is updated as moves are made.
+
+*/
 .macro ShowRow() {
   lda counter
   asl // multiply the counter by 8
@@ -169,20 +184,20 @@ return:
 loop:
   lda BoardState, x // get the BoardState for the current location
   sta CURRENT_PIECE
-  and #$7f // strip the piece's color information
+  and #$fe // strip the piece's color information
 
   // Which piece do we have at this location?
-  cmp #WHITE_PAWN
+  cmp #BLACK_PAWN
   beq ShowPawn
-  cmp #WHITE_KNIGHT
+  cmp #BLACK_KNIGHT
   beq ShowKnight
-  cmp #WHITE_BISHOP
+  cmp #BLACK_BISHOP
   beq ShowBishop
-  cmp #WHITE_ROOK
+  cmp #BLACK_ROOK
   beq ShowRook
-  cmp #WHITE_KING
+  cmp #BLACK_KING
   beq ShowKing
-  cmp #WHITE_QUEEN
+  cmp #BLACK_QUEEN
   beq ShowQueen
 
 ShowEmpty:
@@ -217,16 +232,9 @@ continue:
   ora spriteson, y
   sta vic.SPENA
 
-  // Is it white or black?
+  // Color the piece correctly
   lda CURRENT_PIECE
-  and #$80
-  bne black
-
-  lda #$01
-  sta vic.SP0COL, y
-  jmp continue2
-black:
-  lda #$00
+  and #$01
   sta vic.SP0COL, y
 continue2:
   inx

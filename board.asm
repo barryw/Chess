@@ -1,9 +1,14 @@
 #importonce
 
 *=* "Board Storage"
-// Keeps track of the complete state of the board throughout play. It starts in the initial configuration.
-// During the raster interrupts, the board is constantly redrawn using multiplexed sprites. This allows us
-// to show up to 32 sprites at once.
+/*
+
+Keeps track of the complete state of the board throughout play. It starts in this initial configuration.
+
+During the raster interrupts, the board is constantly redrawn using multiplexed sprites. This allows us
+to show up to 32 sprites at once.
+
+*/
 BoardState:
   .byte BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_QUEEN, BLACK_KING, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK
   .byte BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN
@@ -19,6 +24,7 @@ Columns:
   .text "ABCDEFGH"
 
 // This draws the checkerboard using 2 different shades of gray
+// TODO: Render the board with code instead of using 1k of data
 Board:
   .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
   .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00

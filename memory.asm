@@ -1,3 +1,4 @@
+*=* "Memory"
 .macro PushStack() {
   pha
   txa

@@ -1,3 +1,4 @@
+*=* "Math"
 // Perform an 8-bit multiply. The numbers to multiply need to be stored
 // in num1 and num2. The result is stored in A
 Multiply8Bit:
