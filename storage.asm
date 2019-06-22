@@ -3,6 +3,14 @@
 counter:
   .byte $00
 
+// Table of sprite pointers on the current row
+spritepointers:
+  .fill $08, $00
+
+// Table of pieces on the current row
+spritepieces:
+  .fill $08, $00
+
 // Bit mask to turn a single sprite off
 spritesoff:
   .byte $fe, $fd, $fb, $f7, $ef, $df, $bf, $7f
@@ -13,7 +21,7 @@ spriteson:
 
 // Store the lines where we want to trigger our raster interrupt
 irqypos:
-  .byte $24, $3c, $54, $6c, $84, $9c, $b4, $cc
+  .byte $30, $48, $60, $78, $90, $a8, $c0, $d8
 
 // Store the lines where we should display our chess pieces
 spriteypos:

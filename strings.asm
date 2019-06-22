@@ -1,7 +1,7 @@
 *=* "String Storage"
 
 TitleRow1Start:
-  .byte $eb, $ed, $ef, $f1, $20, $f9, $f3, $f5, $f7, $f7
+  .byte $eb, $ed, $fb, $fd, $20, $f9, $f3, $f5, $f7, $f7
 TitleRow1End:
 
 TitleRow1ColorStart:
@@ -9,7 +9,7 @@ TitleRow1ColorStart:
 TitleRow1ColorEnd:
 
 TitleRow2Start:
-  .byte $ec, $ee, $f0, $f2, $20, $fa, $f4, $f6, $f8, $f8
+  .byte $ec, $ee, $fc, $fe, $20, $fa, $f4, $f6, $f8, $f8
 TitleRow2End:
 
 TitleRow2ColorStart:

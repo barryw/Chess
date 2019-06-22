@@ -62,20 +62,22 @@
 .label BLACK_QUEEN  = %01000000
 
 // Sprite pointers for the 6 pieces
-.label PAWN_SPR   = $80
-.label KNIGHT_SPR = $81
-.label BISHOP_SPR = $82
-.label ROOK_SPR   = $83
-.label QUEEN_SPR  = $84
-.label KING_SPR   = $85
+.const EMPTY_SPR  = $80
+.const PAWN_SPR   = $81
+.const KNIGHT_SPR = $82
+.const BISHOP_SPR = $83
+.const ROOK_SPR   = $84
+.const QUEEN_SPR  = $85
+.const KING_SPR   = $86
 
 .label CURRENT_PIECE = $08
 
-.label RASTER_START = 39
-.label PIECE_HEIGHT = 24
-.label PIECE_WIDTH  = PIECE_HEIGHT
-.label NUM_ROWS     = 8
-.label NUM_COLS     = NUM_ROWS
+// Constants for raster interrupts
+.const RASTER_START = $27
+.const PIECE_HEIGHT = $18
+.const PIECE_WIDTH  = PIECE_HEIGHT
+.const NUM_ROWS     = $08
+.const NUM_COLS     = NUM_ROWS
 
 // Constants for the menus that can be displayed
 .const MENU_NONE          = $00

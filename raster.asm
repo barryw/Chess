@@ -19,6 +19,9 @@
   lda irqypos
   sta vic.RASTER
 
+  lda #$ff
+  sta vic.SPENA
+
   lda #$1b
   sta vic.SCROLY
 
@@ -27,21 +30,30 @@
   cli
 }
 
-// Raster interrupt handler. This is the meat of generating all 32 chess
-// pieces. We have 8 rows of 8 sprites, so our raster triggers every 24
-// lines.
+SetupInterrupt:
+  InitRasterInterrupt(irq)
+  rts
+
+/*
+
+Main raster IRQ handler. The raster is chained such that when the interrupt fires, it does its processing
+and as its last step sets the next raster to fire 24 lines lower. It also maintains a variable called
+'counter' which keeps track of what row we're on. When counter reaches 8, it gets reset to 0.
+
+*/
 irq:
   .if(DEBUG == true) {
     inc vic.EXTCOL
   }
-  PushStack()
 
   dec vic.VICIRQ
 
-  ldx counter
-  lda spriteypos, x
+  PushStack()
 
-  sta vic.SP0Y
+  ldx counter
+  lda spriteypos, x     // Get the sprite Y positions for this row
+
+  sta vic.SP0Y          // and set them
   sta vic.SP1Y
   sta vic.SP2Y
   sta vic.SP3Y
@@ -50,10 +62,34 @@ irq:
   sta vic.SP6Y
   sta vic.SP7Y
 
-  ShowRow()
-
-  ldx counter
+  // Update sprite colors & pointers
+  txa
+  asl                   // Multiply the row by 8 to get the correct position
+  asl                   // inside our 64 byte data structures
+  asl
+  tax
+  ldy #$00
+updatesprites:
+  lda BoardSprites, x   // Set the sprite pointer
+  sta SPRPTR, y
+  lda BoardColors, x    // Set the sprite color
+  sta vic.SP0COL, y
   inx
+  iny
+  cpy #NUM_COLS
+  bne updatesprites
+
+  // Handle our routines during the interrupt, but only once per frame
+  lda counter
+  cmp #NUM_ROWS - 1
+  bne SkipServiceRoutines
+  jsr ComputeBoard
+  jsr ColorCycleTitle
+  jsr PlayMusic
+  jsr ReadKeyboard
+
+SkipServiceRoutines:
+  ldx counter
   inx
   cpx #NUM_ROWS
   bne NextIRQ
@@ -67,10 +103,6 @@ NextIRQ:
   .if(DEBUG == true) {
     dec vic.EXTCOL
   }
-
-  jsr ColorCycleTitle
-  jsr PlayMusic
-  jsr ReadKeyboard
 
   PopStack()
 
@@ -111,19 +143,26 @@ NextKey7:
 NoValidInput:
   rts
 
-// Play the background music
+/*
+
+If the music is unmuted, play it. This will get called on every raster interrupt (8 times per frame),
+but will only call the SID play routine once per frame. It checks to see if counter == 0 (first row)
+and if so, calls the SID play routine.
+
+*/
 PlayMusic:
-  lda counter
-  cmp #$00
-  bne return2
-  lda playmusic
+  lda playmusic         // Is music enabled?
   cmp #$01
   bne return2
-  jsr music_play
+  jsr music_play        // Play it
 return2:
   rts
 
-// Color cycle the title to give it a nice rainbow effect
+/*
+
+Color cycle the title
+
+*/
 ColorCycleTitle:
   inc colorcycletiming
   lda colorcycletiming
@@ -160,33 +199,27 @@ return:
 
 /*
 
-This will show a single row of 8 pieces based on the value of 'counter'. The 'counter' variable is updated at each raster interrupt.
-The raster triggers at 8 different scan lines, and the lines it triggers on is stored in 'irqypos'. The pieces are stored on the lines
-represented in 'spriteypos'. The raster will always trigger at least a few scan lines before the line we want the sprites to appear on.
-This allows time for the raster routine to get the sprites into position before they're shown.
+This will compute the entire board based on the internal representation of it in 'BoardState'. This gets called once per frame on
+the last interrupt of the screen.
 
-If a square has a piece, the sprite at that column is turned on and the shape data pointer is updated to reflect the piece at that location.
-If a square is empty, the sprite at that column is turned off to save a few cycles.
+BoardState contains an 8x8 grid of pieces stored as a contiguous 64 bytes. Each byte represents a single square on the board.
+The pieces identify the type as well as the color, but they do NOT have sprite pointer or color data. That's what this routine does.
 
-The color data is also updated to reflect whether the piece is black or white. The color information is stored in the low bit for the piece
-with black being a 0 and white being a 1.
+This routine iterates over the 64 pieces and calculates which sprite and color lives in each square. Once that's computed, it stores
+this information in 2 separate 64 byte blocks of memory called BoardSprites and BoardColors.
 
-The in-memory representation of the board is stored at 'BoardState' and is updated as moves are made.
+During the raster IRQ, we quickly calculate the pieces for the row based on the variable 'current' by looking through BoardSprites and
+BoardColors. This way we only do the heavy computation once per frame, but can quickly display the sprites for each row.
 
 */
-.macro ShowRow() {
-  lda counter
-  asl // multiply the counter by 8
-  asl // this gives us the position
-  asl // inside the BoardState for each row
-  tax
-  ldy #0
-loop:
-  lda BoardState, x // get the BoardState for the current location
-  sta CURRENT_PIECE
-  and #$fe // strip the piece's color information
+ComputeBoard:
+  ldx #$00
 
-  // Which piece do we have at this location?
+keepcomputing:
+  lda BoardState, x
+  sta CURRENT_PIECE
+  and #$fe              // Strip bit 0 to remove color information
+
   cmp #BLACK_PAWN
   beq ShowPawn
   cmp #BLACK_KNIGHT
@@ -199,13 +232,7 @@ loop:
   beq ShowKing
   cmp #BLACK_QUEEN
   beq ShowQueen
-
-ShowEmpty:
-  // Turn the sprite off for an empty square
-  lda vic.SPENA
-  and spritesoff, y
-  sta vic.SPENA
-  jmp continue2
+  jmp ShowEmpty
 
 ShowPawn:
   lda #PAWN_SPR
@@ -224,21 +251,16 @@ ShowKing:
   jmp continue
 ShowQueen:
   lda #QUEEN_SPR
+  jmp continue
+ShowEmpty:
+  lda #EMPTY_SPR
 
 continue:
-  // Turn the sprite on
-  sta SPRPTR, y
-  lda vic.SPENA
-  ora spriteson, y
-  sta vic.SPENA
-
-  // Color the piece correctly
+  sta BoardSprites, x     // Store the sprite pointers
   lda CURRENT_PIECE
-  and #$01
-  sta vic.SP0COL, y
-continue2:
+  and #$01                // Strip all bits but color information
+  sta BoardColors, x      // Store the sprite colors
   inx
-  iny
-  cpy #NUM_COLS
-  bne loop
-}
+  cpx #$40                // Have we processed all 64 squares?
+  bne keepcomputing
+  rts

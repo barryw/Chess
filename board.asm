@@ -19,6 +19,18 @@ BoardState:
   .byte WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN
   .byte WHITE_ROOK, WHITE_KNIGHT, WHITE_BISHOP, WHITE_QUEEN, WHITE_KING, WHITE_BISHOP, WHITE_KNIGHT, WHITE_ROOK
 
+/*
+Matrix of sprite pointers to match the state above
+*/
+BoardSprites:
+  .fill $40, $00
+
+/*
+Matrix of sprite colors to match the state above
+*/
+BoardColors:
+  .fill $40, $00
+
 // Shows the columns along the bottom of the board
 Columns:
   .text "ABCDEFGH"

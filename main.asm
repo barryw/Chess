@@ -19,8 +19,7 @@ start:
   jsr SetupScreen
   jsr SetupCharacters
   jsr SetupMusic
-
-  InitRasterInterrupt(irq)
+  jsr SetupInterrupt
 
   jmp *
 
