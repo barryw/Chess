@@ -118,7 +118,40 @@ TwoPlayerColorStart:
   .fill TwoPlayerEnd - TwoPlayerStart, $01
 TwoPlayerColorEnd:
 
-WhiteOrBlackStart:
+BackMenuStart:
+  .text "[B] Back"
+BackMenuEnd:
+BackMenuColorStart:
+  .fill BackMenuEnd - BackMenuStart, $01
+BackMenuColorEnd:
+
+LevelSelectStart:
+  .text "Level Select"
+LevelSelectEnd:
+LevelSelectColorStart:
+  .fill LevelSelectEnd - LevelSelectStart, $01
+LevelSelectColorEnd:
+
+LevelEasyStart:
+  .text "[E] Easy"
+LevelEasyEnd:
+LevelEasyColorStart:
+  .fill LevelEasyEnd - LevelEasyStart, $01
+LevelEasyColorEnd:
+
+LevelMediumStart:
+  .text "[M] Medium"
+LevelMediumEnd:
+LevelMediumColorStart:
+  .fill LevelMediumEnd - LevelMediumStart, $01
+LevelMediumColorEnd:
+
+LevelHardStart:
+  .text "[H] Hard"
+LevelHardEnd:
+LevelHardColorStart:
+  .fill LevelHardEnd - LevelHardStart, $01
+LevelHardColorEnd:
 
 BlacksTurnStart:
   .text "Black's Turn"
@@ -131,3 +164,11 @@ WhitesTurnEnd:
 InvalidMoveStart:
   .text "Invalid Move"
 InvalidMoveEnd:
+
+CheckStart:
+  .text "Check!"
+CheckEnd:
+
+MateStart:
+  .text "Mate!"
+MateEnd:

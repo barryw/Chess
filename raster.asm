@@ -83,10 +83,10 @@ updatesprites:
   lda counter
   cmp #NUM_ROWS - 1
   bne SkipServiceRoutines
+  jsr ReadKeyboard
   jsr ComputeBoard
   jsr ColorCycleTitle
   jsr PlayMusic
-  jsr ReadKeyboard
 
 SkipServiceRoutines:
   ldx counter
@@ -107,41 +107,6 @@ NextIRQ:
   PopStack()
 
   rti
-
-// Read the keyboard and respond
-ReadKeyboard:
-  jsr Keyboard
-  bcs NoValidInput
-  cmp #$0d // M key
-  bne NextKey1
-  jsr ToggleMusic
-NextKey1:
-  cmp #$11 // Q key
-  bne NextKey2
-  jsr HandleQuit
-NextKey2:
-  cmp #$19 // Y key
-  bne NextKey3
-  jsr ConfirmQuit
-NextKey3:
-  cmp #$0e // N key
-  bne NextKey4
-  jsr QuitAbort
-NextKey4:
-  cmp #$10
-  bne NextKey5
-  jsr StartGame
-NextKey5:
-  cmp #$31 // 1 key
-  bne NextKey6
-  jsr OnePlayer
-NextKey6:
-  cmp #$32 // 2 key
-  bne NextKey7
-  jsr TwoPlayer
-NextKey7:
-NoValidInput:
-  rts
 
 /*
 

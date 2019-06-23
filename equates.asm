@@ -35,12 +35,22 @@
 .var OnePlayerPos = ScreenPos($1a, $15)
 .var TwoPlayerPos = ScreenPos($1a, $16)
 
-.var Empty1Pos = ScreenPos($1a, $15)
-.var Empty2Pos = ScreenPos($1a, $16)
-.var Empty3Pos = ScreenPos($1a, $17)
+// Positions for level select menu items
+.var EasyPos = ScreenPos($1a, $14)
+.var MediumPos = ScreenPos($1a, $15)
+.var HardPos = ScreenPos($1a, $16)
+
+.var EmptyQuestionPos = ScreenPos($1a, $0a)
+.var Empty1Pos = ScreenPos($1a, $14)
+.var Empty2Pos = ScreenPos($1a, $15)
+.var Empty3Pos = ScreenPos($1a, $16)
+.var Empty4Pos = ScreenPos($1a, $17)
+
+.var BackMenuPos = ScreenPos($1a, $17)
 
 .var QuitConfirmPos = ScreenPos($1e, $0a) // x=26,y=10
 .var PlayerSelectPos = ScreenPos($1b, $0a) // x=26,y=10
+.var LevelSelectPos = ScreenPos($1b, $0a) // x=26,y=10
 
 .var WhiteTimerLabelPos = ScreenPos($1b, $03) // x=27,y=3
 .var BlackTimerLabelPos = ScreenPos($22, $03) // x=34,y=3
@@ -80,11 +90,12 @@
 .const NUM_COLS     = NUM_ROWS
 
 // Constants for the menus that can be displayed
-.const MENU_NONE          = $00
+.const MENU_GAME          = $00
 .const MENU_MAIN          = $01
 .const MENU_QUIT          = $02
 .const MENU_PLAYER_SELECT = $03
 .const MENU_COLOR_SELECT  = $04
+.const MENU_LEVEL_SELECT  = $05
 
 // Addresses used for memcopy operations
 .label copy_from  = $02
@@ -95,3 +106,39 @@
 .const num1   = $08
 .const num2   = $0a
 .const result = $0c
+
+.const KEY_A = $01
+.const KEY_B = $02
+.const KEY_C = $03
+.const KEY_D = $04
+.const KEY_E = $05
+.const KEY_F = $06
+.const KEY_G = $07
+.const KEY_H = $08
+.const KEY_I = $09
+.const KEY_J = $0a
+.const KEY_K = $0b
+.const KEY_L = $0c
+.const KEY_M = $0d
+.const KEY_N = $0e
+.const KEY_O = $0f
+.const KEY_P = $10
+.const KEY_Q = $11
+.const KEY_R = $12
+.const KEY_S = $13
+.const KEY_T = $14
+.const KEY_U = $15
+.const KEY_V = $16
+.const KEY_W = $17
+.const KEY_X = $18
+.const KEY_Y = $19
+.const KEY_Z = $1a
+
+.const KEY_1 = $31
+.const KEY_2 = $32
+.const KEY_3 = $33
+.const KEY_4 = $34
+.const KEY_5 = $35
+.const KEY_6 = $36
+.const KEY_7 = $37
+.const KEY_8 = $38

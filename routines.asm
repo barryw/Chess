@@ -52,7 +52,7 @@ SetupScreen:
   sta vic.VMCSB
 
   ldx #$00
-drawloop:
+!loop:
   lda Board,x
   sta vic.CLRRAM,x
   lda Board+$0100,x
@@ -67,11 +67,11 @@ drawloop:
   sta $0600,x
   sta $0700,x
   inx
-  bne drawloop
+  bne !loop-
 
   ldx #$00
   ldy #$00
-drawcolumns:
+!loop:
   lda Columns, y
   sta $07c1,x
   inx
@@ -79,7 +79,7 @@ drawcolumns:
   inx
   iny
   cpy #$09
-  bne drawcolumns
+  bne !loop-
 
   lda #'8'
   sta $0440
@@ -98,12 +98,6 @@ drawcolumns:
   lda #'1'
   sta $0788
 
-  jsr DisplayTitleAndCopyright
-  jsr StartMenu
-
-  rts
-
-DisplayTitleAndCopyright:
   // Display the title
   CopyMemory(TitleRow1Start, ScreenAddress(Title1Pos), TitleRow1End - TitleRow1Start)
   CopyMemory(TitleRow1ColorStart, ColorAddress(Title1Pos), TitleRow1ColorEnd - TitleRow1ColorStart)
@@ -114,57 +108,4 @@ DisplayTitleAndCopyright:
   CopyMemory(CopyrightStart, ScreenAddress(CopyrightPos), CopyrightEnd - CopyrightStart)
   CopyMemory(CopyrightColorStart, ColorAddress(CopyrightPos), CopyrightColorEnd - CopyrightColorStart)
 
-  rts
-
-HandleQuit:
-  lda isquitting
-  cmp #$00
-  bne alreadyquitting
-  lda #$01
-  sta isquitting
-  CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
-  CopyMemory(QuitConfirmationColorStart, ColorAddress(QuitConfirmPos), QuitConfirmationColorEnd - QuitConfirmationColorStart)
-  jsr QuitMenu
-alreadyquitting:
-  rts
-
-// Reset the C64
-ConfirmQuit:
-  lda isquitting
-  cmp #$01
-  beq DoQuit
-  rts
-DoQuit:
-  lda #$37 // Swap the kernal back in
-  sta $01
-  jsr $fce2 // call the reset vector
-
-// The user has decided that they don't want to quit
-QuitAbort:
-  lda #$00
-  sta isquitting
-  jsr StartMenu
-  CopyMemory(EmptyRowStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
-  rts
-
-// Let's Rock!
-StartGame:
-  CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
-  CopyMemory(PlayerSelectColorStart, ColorAddress(PlayerSelectPos), PlayerSelectColorEnd - PlayerSelectColorStart)
-
-  jsr PlayerSelectMenu
-  rts
-
-OnePlayer:
-
-TwoPlayer:
-  rts
-
-// Depending on who's playing, show their game clock
-DisplayGameClock:
-  lda currentplayer
-  cmp #$00
-  beq ShowWhiteClock
-
-ShowWhiteClock:
-  rts
+  jmp StartMenu

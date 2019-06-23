@@ -48,10 +48,6 @@ numplayers:
 playmusic:
   .byte $00
 
-// A flag to indicate that the user has pressed Q
-isquitting:
-  .byte $00
-
 // Which menu is currently being displayed?
 currentmenu:
   .byte $00
