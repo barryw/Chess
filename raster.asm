@@ -83,10 +83,10 @@ updatesprites:
   lda counter
   cmp #NUM_ROWS - 1
   bne SkipServiceRoutines
+  jsr PlayMusic
   jsr ReadKeyboard
   jsr ComputeBoard
   jsr ColorCycleTitle
-  jsr PlayMusic
 
 SkipServiceRoutines:
   ldx counter
