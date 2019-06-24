@@ -23,8 +23,9 @@
 .var CopyrightPos = ScreenPos($1a, $02) // x=26,y=1
 
 // Positions for main menu items
-.var PlayGamePos = ScreenPos($1a, $15) // x=26,y=21
-.var MusicTogglePos = ScreenPos($1a, $16) // x=26,y=22
+.var PlayGamePos = ScreenPos($1a, $14) // x=26,y=20
+.var MusicTogglePos = ScreenPos($1a, $15) // x=26,y=21
+.var AboutPos = ScreenPos($1a, $16) // x=26,y=22
 .var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
 
 // Positions for quit menu items
@@ -40,6 +41,10 @@
 .var MediumPos = ScreenPos($1a, $15)
 .var HardPos = ScreenPos($1a, $16)
 
+// Positions for color select menu items
+.var BlackPos = ScreenPos($1a, $15)
+.var WhitePos = ScreenPos($1a, $16)
+
 .var EmptyQuestionPos = ScreenPos($1a, $0a)
 .var Empty1Pos = ScreenPos($1a, $14)
 .var Empty2Pos = ScreenPos($1a, $15)
@@ -51,6 +56,7 @@
 .var QuitConfirmPos = ScreenPos($1e, $0a) // x=26,y=10
 .var PlayerSelectPos = ScreenPos($1b, $0a) // x=26,y=10
 .var LevelSelectPos = ScreenPos($1b, $0a) // x=26,y=10
+.var ColorSelectPos = ScreenPos($1a, $0a) // x=26,y=10
 
 .var WhiteTimerLabelPos = ScreenPos($1b, $03) // x=27,y=3
 .var BlackTimerLabelPos = ScreenPos($22, $03) // x=34,y=3
@@ -82,12 +88,20 @@
 
 .label CURRENT_PIECE = $08
 
+.const ONE_PLAYER = $01
+.const TWO_PLAYERS = $02
+
 // Constants for raster interrupts
 .const RASTER_START = $27
 .const PIECE_HEIGHT = $18
 .const PIECE_WIDTH  = PIECE_HEIGHT
 .const NUM_ROWS     = $08
 .const NUM_COLS     = NUM_ROWS
+
+// Constants for difficulty levels
+.const LEVEL_EASY   = $00
+.const LEVEL_MEDIUM = $01
+.const LEVEL_HARD   = $02
 
 // Constants for the menus that can be displayed
 .const MENU_GAME          = $00

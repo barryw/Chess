@@ -30,6 +30,34 @@ PlayColorStart:
   .fill PlayEnd - PlayStart, $01
 PlayColorEnd:
 
+UnmuteStart:
+  .text "[M] Play Music"
+UnmuteEnd:
+UnmuteColorStart:
+  .fill UnmuteEnd - UnmuteStart, $01
+UnmuteColorEnd:
+
+MuteStart:
+  .text "[M] Stop Music"
+MuteEnd:
+MuteColorStart:
+  .fill MuteEnd - MuteStart, $01
+MuteColorEnd:
+
+AboutStart:
+  .text "[A] About"
+AboutEnd:
+AboutColorStart:
+  .fill AboutEnd - AboutStart, $01
+AboutColorEnd:
+
+QuitStart:
+  .text "[Q] Quit Game"
+QuitEnd:
+QuitColorStart:
+  .fill QuitEnd - QuitStart, $01
+QuitColorEnd:
+
 YesStart:
   .text "[Y] Yes"
 YesEnd:
@@ -44,20 +72,6 @@ NoColorStart:
   .fill NoEnd - NoStart, $01
 NoColorEnd:
 
-MuteStart:
-  .text "[M] Stop Music"
-MuteEnd:
-MuteColorStart:
-  .fill MuteEnd - MuteStart, $01
-MuteColorEnd:
-
-UnmuteStart:
-  .text "[M] Play Music"
-UnmuteEnd:
-UnmuteColorStart:
-  .fill UnmuteEnd - UnmuteStart, $01
-UnmuteColorEnd:
-
 ForfeitStart:
   .text "[Z] Forfeit"
 ForfeitEnd:
@@ -65,19 +79,33 @@ ForfeitColorStart:
   .fill ForfeitEnd - ForfeitStart, $01
 ForfeitColorEnd:
 
-QuitStart:
-  .text "[Q] Quit Game"
-QuitEnd:
-QuitColorStart:
-  .fill QuitEnd - QuitStart, $01
-QuitColorEnd:
-
 QuitConfirmationStart:
   .text "Quit?"
 QuitConfirmationEnd:
 QuitConfirmationColorStart:
   .fill QuitConfirmationEnd - QuitConfirmationStart, $01
 QuitConfirmationColorEnd:
+
+PlayerSelectStart:
+  .text "Player Count"
+PlayerSelectEnd:
+PlayerSelectColorStart:
+  .fill PlayerSelectEnd - PlayerSelectStart, $01
+PlayerSelectColorEnd:
+
+LevelSelectStart:
+  .text "Level Select"
+LevelSelectEnd:
+LevelSelectColorStart:
+  .fill LevelSelectEnd - LevelSelectStart, $01
+LevelSelectColorEnd:
+
+Player1ColorStart:
+  .text "Player 1 Color"
+Player1ColorEnd:
+P1ColorStart:
+  .fill Player1ColorEnd - Player1ColorStart, $01
+P1ColorEnd:
 
 EmptyRowStart:
   .fill $0e, $20
@@ -96,13 +124,6 @@ BlackEnd:
 BlackColorStart:
   .fill BlackEnd - BlackStart, $01
 BlackColorEnd:
-
-PlayerSelectStart:
-  .text "Player Count"
-PlayerSelectEnd:
-PlayerSelectColorStart:
-  .fill PlayerSelectEnd - PlayerSelectStart, $01
-PlayerSelectColorEnd:
 
 OnePlayerStart:
   .text "[1] 1 Player"
@@ -125,13 +146,6 @@ BackMenuColorStart:
   .fill BackMenuEnd - BackMenuStart, $01
 BackMenuColorEnd:
 
-LevelSelectStart:
-  .text "Level Select"
-LevelSelectEnd:
-LevelSelectColorStart:
-  .fill LevelSelectEnd - LevelSelectStart, $01
-LevelSelectColorEnd:
-
 LevelEasyStart:
   .text "[E] Easy"
 LevelEasyEnd:
@@ -153,6 +167,20 @@ LevelHardColorStart:
   .fill LevelHardEnd - LevelHardStart, $01
 LevelHardColorEnd:
 
+BlackMenuStart:
+  .text "[1] Black"
+BlackMenuEnd:
+BlackMenuColorStart:
+  .fill BlackMenuEnd - BlackMenuStart, $01
+BlackMenuColorEnd:
+
+WhiteMenuStart:
+  .text "[2] White"
+WhiteMenuEnd:
+WhiteMenuColorStart:
+  .fill WhiteMenuEnd - WhiteMenuStart, $01
+WhiteMenuColorEnd:
+
 BlacksTurnStart:
   .text "Black's Turn"
 BlacksTurnEnd:
@@ -172,3 +200,7 @@ CheckEnd:
 MateStart:
   .text "Mate!"
 MateEnd:
+
+AboutScreenStart:
+
+AboutScreenEnd:

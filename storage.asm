@@ -36,12 +36,20 @@ colorcycletiming:
 colorcycleposition:
   .byte $00
 
+// The difficulty level for the game when in 1player mode
+difficulty:
+  .byte $00
+
 // Keep track of the current player. 1 = black, 0 = white
 currentplayer:
   .byte $00
 
 // Number of players
 numplayers:
+  .byte $00
+
+// Which color is player 1? 0 = black, 1 = white
+player1color:
   .byte $00
 
 // Whether to play music or not. 1 = play, 0 = mute

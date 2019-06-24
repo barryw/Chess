@@ -45,22 +45,22 @@
 CopyMemory:
   ldy #0
   ldx copy_size + 1
-  beq frag
-page:
+  beq !frag+
+!page:
   lda (copy_from), y
   sta (copy_to), y
   iny
-  bne page
+  bne !page-
   inc copy_from + 1
   inc copy_to + 1
   dex
-  bne page
-frag:
+  bne !page-
+!frag:
   cpy copy_size
-  beq copydone
+  beq !done+
   lda (copy_from), y
   sta (copy_to), y
   iny
-  bne frag
-copydone:
+  bne !frag-
+!done:
   rts

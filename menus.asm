@@ -10,9 +10,21 @@ ReadKeyboard:
   bne !nextkey+
   jmp HandleMKey
 !nextkey:
+  cmp #KEY_A
+  bne !nextkey+
+  jmp HandleAKey
+!nextkey:
   cmp #KEY_B
   bne !nextkey+
   jmp HandleBKey
+!nextkey:
+  cmp #KEY_E
+  bne !nextkey+
+  jmp HandleEKey
+!nextkey:
+  cmp #KEY_H
+  bne !nextkey+
+  jmp HandleHKey
 !nextkey:
   cmp #KEY_Q
   bne !nextkey+
@@ -42,6 +54,18 @@ NoValidInput:
   rts
 
 /*
+The A key is used to display the About menu or as column select during the game
+*/
+HandleAKey:
+  lda currentmenu
+  cmp #MENU_MAIN
+  bne !columnselect+
+  jmp ShowAboutMenu
+
+!columnselect:
+  rts
+
+/*
 The B key is used to go backwards in the menus as well as column select during the game
 */
 HandleBKey:
@@ -50,6 +74,8 @@ HandleBKey:
   beq !start+
   cmp #MENU_LEVEL_SELECT
   beq !playerselect+
+  cmp #MENU_COLOR_SELECT
+  beq !levelselect+
   cmp #MENU_GAME
   beq !columnselect+
   rts
@@ -57,11 +83,49 @@ HandleBKey:
 !columnselect:
   rts
 
+!levelselect:
+  lda numplayers
+  cmp #ONE_PLAYER
+  bne !playerselect+
+  jmp LevelSelectMenu
+
 !start:
   jmp StartMenu
 
 !playerselect:
   jmp PlayerSelectMenu
+
+/*
+The E key is used as column select during the game, or the Easy level menu selection
+*/
+HandleEKey:
+  lda currentmenu
+  cmp #MENU_LEVEL_SELECT
+  beq !easy+
+
+!columnselect:
+  rts
+
+!easy:
+  lda #LEVEL_EASY
+  sta difficulty
+  jmp ColorSelectMenu
+
+/*
+The H key is used as column select during the game, or the Hard level menu selection
+*/
+HandleHKey:
+  lda currentmenu
+  cmp #MENU_LEVEL_SELECT
+  beq !hard+
+
+!columnselect:
+  rts
+
+!hard:
+  lda #LEVEL_HARD
+  sta difficulty
+  jmp ColorSelectMenu
 
 /*
 The M key is used to mute/unmute the music while on the main screen or during gameplay
@@ -72,7 +136,14 @@ HandleMKey:
   beq !music+
   cmp #MENU_GAME
   beq !music+
+  cmp #MENU_LEVEL_SELECT
+  beq !medium+
   rts
+
+!medium:
+  lda #LEVEL_MEDIUM
+  sta difficulty
+  jmp ColorSelectMenu
 
 !music:
   jmp ToggleMusic
@@ -95,6 +166,7 @@ HandleYKey:
   lda currentmenu
   cmp #MENU_QUIT
   bne !exit+
+  jsr DisableSprites
   lda #$37
   sta $01
   jsr $fce2
@@ -129,11 +201,20 @@ The 1 key serves a couple of purposes: player selection and row selection during
 Handle1Key:
   lda currentmenu
   cmp #MENU_PLAYER_SELECT
-  bne !next+
-  lda #$01
-  jsr ShowLevelSelectMenu
-!next:
+  beq !playerselect+
+  cmp #MENU_COLOR_SELECT
+  beq !colorselect+
   rts
+
+!playerselect:
+  lda #$01
+  sta numplayers
+  jmp LevelSelectMenu
+
+!colorselect:
+  lda #BLACK
+  sta player1color
+  jmp StartGame
 
 /*
 The 2 key serves a couple of purposes: player selection and row selection during gameplay
@@ -141,15 +222,30 @@ The 2 key serves a couple of purposes: player selection and row selection during
 Handle2Key:
   lda currentmenu
   cmp #MENU_PLAYER_SELECT
-  bne !next+
-  lda #$02
-  jsr ShowLevelSelectMenu
-!next:
+  beq !playerselect+
+  cmp #MENU_COLOR_SELECT
+  beq !colorselect+
   rts
 
-ShowLevelSelectMenu:
+!playerselect:
+  lda #$02
   sta numplayers
-  jsr LevelSelectMenu
+  jmp ColorSelectMenu
+
+!colorselect:
+  lda #WHITE
+  sta player1color
+  jmp StartGame
+
+/*
+Start the game
+*/
+StartGame:
+  jsr ClearMenus
+  lda #MENU_GAME
+  sta currentmenu
+
+
   rts
 
 /*
@@ -176,6 +272,10 @@ StartMenu:
   // Display the Play Game menu option
   CopyMemory(PlayStart, ScreenAddress(PlayGamePos), PlayEnd - PlayStart)
   CopyMemory(PlayColorStart, ColorAddress(PlayGamePos), PlayColorEnd - PlayColorStart)
+
+  // Display the About menu option
+  CopyMemory(AboutStart, ScreenAddress(AboutPos), AboutEnd - AboutStart)
+  CopyMemory(AboutColorStart, ColorAddress(AboutPos), AboutColorEnd - AboutColorStart)
 
   // Display the Quit Game menu option
   CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
@@ -226,13 +326,6 @@ PlayerSelectMenu:
   jmp ShowBackMenuItem
 
 /*
-Color selection menu
-*/
-ColorSelectMenu:
-  jsr ClearMenus
-  rts
-
-/*
 Level selection menu
 */
 LevelSelectMenu:
@@ -258,6 +351,28 @@ LevelSelectMenu:
   jmp ShowBackMenuItem
 
 /*
+Color selection menu
+*/
+ColorSelectMenu:
+  jsr ClearMenus
+  lda #MENU_COLOR_SELECT
+  sta currentmenu
+
+  // Color select message
+  CopyMemory(Player1ColorStart, ScreenAddress(ColorSelectPos), Player1ColorEnd - Player1ColorStart)
+  CopyMemory(P1ColorStart, ColorAddress(ColorSelectPos), P1ColorEnd - P1ColorStart)
+
+  // Black menu item
+  CopyMemory(BlackMenuStart, ScreenAddress(BlackPos), BlackMenuEnd - BlackMenuStart)
+  CopyMemory(BlackMenuColorStart, ColorAddress(BlackPos), BlackMenuColorEnd - BlackMenuColorStart)
+
+  // White menu item
+  CopyMemory(WhiteMenuStart, ScreenAddress(WhitePos), WhiteMenuEnd - WhiteMenuStart)
+  CopyMemory(WhiteMenuColorStart, ColorAddress(WhitePos), WhiteMenuColorEnd - WhiteMenuColorStart)
+
+  jmp ShowBackMenuItem
+
+/*
 Menu displayed while the game is being played
 */
 GameMenu:
@@ -271,4 +386,10 @@ ShowBackMenuItem:
   // Back to main menu option
   CopyMemory(BackMenuStart, ScreenAddress(BackMenuPos), BackMenuEnd - BackMenuStart)
   CopyMemory(BackMenuColorStart, ColorAddress(BackMenuPos), BackMenuColorEnd - BackMenuColorStart)
+  rts
+
+/*
+Show the About menu
+*/
+ShowAboutMenu:
   rts

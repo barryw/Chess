@@ -19,6 +19,14 @@ storex:
 
   rts
 
+/*
+Disable all sprites
+*/
+DisableSprites:
+  lda #$00
+  sta vic.SPENA
+  rts
+
 // Bring in the custom characters
 SetupCharacters:
   lda vic.VMCSB
