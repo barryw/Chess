@@ -203,7 +203,11 @@ MateEnd:
 
 AboutTextStart:
   .byte $e0, $e0, $e0, $e0, $70
-  .fill $1e, $40
+  .fill $06, $40
+  .byte $73
+  .text "About C64 Chess"
+  .byte $6b
+  .fill $07, $40
   .byte $6e, $e0, $e0, $e0, $e0
   .byte $e0, $e0, $e0, $e0, $1c
   .text "This is my attempt at a chess "
@@ -241,7 +245,11 @@ AboutTextStart:
 AboutTextEnd:
 AboutTextColorStart:
   .byte $0f, $0f, $0f, $0b
-  .fill $20, $01
+  .fill $08, $01
+  .byte RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE
+  .byte RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE
+  .byte RED
+  .fill $09, $01
   .word $0000, $0000
   .byte $0f, $0f, $0f, $0b
   .fill $20, $01
