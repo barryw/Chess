@@ -60,6 +60,11 @@ HandleAKey:
   lda currentmenu
   cmp #MENU_MAIN
   bne !columnselect+
+  lda aboutisshowing
+  cmp #$00
+  beq !showabout+
+  jmp HideAboutMenu
+!showabout:
   jmp ShowAboutMenu
 
 !columnselect:
@@ -392,4 +397,20 @@ ShowBackMenuItem:
 Show the About menu
 */
 ShowAboutMenu:
+  CopyMemory(ScreenAddress(AboutTextPos), screenbuffer, AboutTextEnd - AboutTextStart)
+  CopyMemory(ColorAddress(AboutTextPos), colorbuffer, AboutTextEnd - AboutTextStart)
+
+  CopyMemory(AboutTextStart, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
+  CopyMemory(AboutTextColorStart, ColorAddress(AboutTextPos), AboutTextColorEnd - AboutTextColorStart)
+
+  lda #$01
+  sta aboutisshowing
+  rts
+
+HideAboutMenu:
+  CopyMemory(screenbuffer, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
+  CopyMemory(colorbuffer, ColorAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
+
+  lda #$00
+  sta aboutisshowing
   rts

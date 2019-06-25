@@ -201,6 +201,79 @@ MateStart:
   .text "Mate!"
 MateEnd:
 
-AboutScreenStart:
-
-AboutScreenEnd:
+AboutTextStart:
+  .byte $e0, $e0, $e0, $e0, $70
+  .fill $1e, $40
+  .byte $6e, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "This is my attempt at a chess "
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "game for the C64,made possible"
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "by modern tools like CBM prg  "
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "Studio and KickAssembler.     "
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .fill $1e, $20
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "BIG thanks to my wife Kate for"
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "her love,support & sprites ;-)"
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .fill $1e, $20
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "Feel free to share this game. "
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $1c
+  .text "-Barry @ www.barrywalker.io   "
+  .byte $1c, $e0, $e0, $e0, $e0
+  .byte $e0, $e0, $e0, $e0, $6d
+  .fill $1e, $40
+  .byte $7d, $e0, $e0, $e0, $e0
+AboutTextEnd:
+AboutTextColorStart:
+  .byte $0f, $0f, $0f, $0b
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0f, $0f, $0f, $0b
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0f, $0f, $0f, $0b
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0b, $0b, $0b, $0f
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0b, $0b, $0b, $0f
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0b, $0b, $0b, $0f
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0f, $0f, $0f, $0b
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0f, $0f, $0f, $0b
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0f, $0f, $0f, $0b
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0b, $0b, $0b, $0f
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0b, $0b, $0b, $0f
+  .fill $20, $01
+  .word $0000, $0000
+  .byte $0b, $0b, $0b, $0f
+  .fill $20, $01
+  .word $0000, $0000
+AboutTextColorEnd:

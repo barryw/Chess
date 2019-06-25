@@ -74,3 +74,14 @@ blackminutes:
   .byte $00
 blackhours:
   .byte $00
+
+aboutisshowing:
+  .byte $00
+
+// Placeholder memory for the portion of the screen that's obscured
+// by the "About" window
+screenbuffer:
+  .fill $1e0, $00
+
+colorbuffer:
+  .fill $1e0, $00

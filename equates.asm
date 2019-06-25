@@ -20,13 +20,14 @@
 // Positions for title and copyright
 .var Title1Pos = ScreenPos($1c, $00) // x=28, y=0
 .var Title2Pos = ScreenPos($1c, $01) // x=28, y=1
-.var CopyrightPos = ScreenPos($1a, $02) // x=26,y=1
+.var CopyrightPos = ScreenPos($1a, $02) // x=26,y=2
 
 // Positions for main menu items
 .var PlayGamePos = ScreenPos($1a, $14) // x=26,y=20
 .var MusicTogglePos = ScreenPos($1a, $15) // x=26,y=21
 .var AboutPos = ScreenPos($1a, $16) // x=26,y=22
 .var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
+.var AboutTextPos = ScreenPos($00, $06) // x=0,y=6
 
 // Positions for quit menu items
 .var YesPos = ScreenPos($1a, $15)

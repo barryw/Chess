@@ -34,7 +34,7 @@ start:
 #import "routines.asm"
 #import "raster.asm"
 #import "strings.asm"
+#import "sprites.asm"
 #import "storage.asm"
 #import "music.asm"
-#import "sprites.asm"
 #import "characters.asm"
