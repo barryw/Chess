@@ -84,7 +84,6 @@ updatesprites:
   cmp #NUM_ROWS - 1
   bne SkipServiceRoutines
   jsr PlayMusic
-  jsr ReadKeyboard
   jsr ComputeBoard
   jsr ColorCycleTitle
 
@@ -228,4 +227,13 @@ continue:
   inx
   cpx #$40                // Have we processed all 64 squares?
   bne keepcomputing
+  rts
+
+WaitForVblank:
+  pha
+!wait:
+  lda vic.RASTER
+  cmp #$c0
+  bne !wait-
+  pla
   rts

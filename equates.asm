@@ -111,6 +111,7 @@
 .const MENU_PLAYER_SELECT = $03
 .const MENU_COLOR_SELECT  = $04
 .const MENU_LEVEL_SELECT  = $05
+.const MENU_ABOUT_SHOWING = $06
 
 // Addresses used for memcopy operations
 .label copy_from  = $02

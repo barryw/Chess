@@ -21,7 +21,9 @@ start:
   jsr SetupMusic
   jsr SetupInterrupt
 
-  jmp *
+!readkeyboard:
+  jsr ReadKeyboard
+  jmp !readkeyboard-
 
 #import "vic.asm"
 #import "equates.asm"

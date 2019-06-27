@@ -6,6 +6,7 @@ Read the keyboard and process the key presses
 ReadKeyboard:
   jsr Keyboard
   bcs NoValidInput
+  jsr WaitForVblank
   cmp #KEY_M
   bne !nextkey+
   jmp HandleMKey
@@ -59,15 +60,19 @@ The A key is used to display the About menu or as column select during the game
 HandleAKey:
   lda currentmenu
   cmp #MENU_MAIN
-  bne !columnselect+
-  lda aboutisshowing
-  cmp #$00
   beq !showabout+
-  jmp HideAboutMenu
-!showabout:
-  jmp ShowAboutMenu
+  cmp #MENU_ABOUT_SHOWING
+  beq !hideabout+
 
 !columnselect:
+  rts
+
+!showabout:
+  jsr ShowAboutMenu
+  rts
+
+!hideabout:
+  jsr HideAboutMenu
   rts
 
 /*
@@ -403,6 +408,8 @@ ShowAboutMenu:
   CopyMemory(AboutTextStart, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
   CopyMemory(AboutTextColorStart, ColorAddress(AboutTextPos), AboutTextColorEnd - AboutTextColorStart)
 
+  lda #MENU_ABOUT_SHOWING
+  sta currentmenu
   lda #$01
   sta aboutisshowing
   rts
@@ -413,4 +420,6 @@ HideAboutMenu:
 
   lda #$00
   sta aboutisshowing
+  lda #MENU_MAIN
+  sta currentmenu
   rts

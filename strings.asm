@@ -228,7 +228,8 @@ AboutTextStart:
   .text "BIG thanks to my wife Kate for"
   .byte $1c, $e0, $e0, $e0, $e0
   .byte $e0, $e0, $e0, $e0, $1c
-  .text "her love,support & sprites ;-)"
+  .text "her love, support & sprites! "
+  .byte $dc
   .byte $1c, $e0, $e0, $e0, $e0
   .byte $e0, $e0, $e0, $e0, $1c
   .fill $1e, $20
