@@ -15,7 +15,9 @@
   pla
 }
 
-// Store a word
+/*
+Store a 16 bit word
+*/
 .macro StoreWord(address, word) {
   lda #<word
   sta address
@@ -23,8 +25,11 @@
   sta address+1
 }
 
-// Perform a memory copy
-// Each parameter is a 16 bit number
+/*
+Perform a memory copy
+
+Each parameter is 16 bits
+*/
 .macro CopyMemory(from_address, to_address, size) {
   StoreWord(copy_from, from_address)
   StoreWord(copy_to, to_address)
@@ -32,6 +37,11 @@
   jsr CopyMemory
 }
 
+/*
+Do the actual memory copy.
+
+Doesn't need to be on a page boundary. Can copy fragments as well.
+*/
 CopyMemory:
   ldy #0
   ldx copy_size + 1

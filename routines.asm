@@ -117,3 +117,20 @@ SetupScreen:
   CopyMemory(CopyrightColorStart, ColorAddress(CopyrightPos), CopyrightColorEnd - CopyrightColorStart)
 
   jmp StartMenu
+
+/*
+Spit out a single digit between 0 and 9. It gets the digit from num1
+and prints it out at the location pointed to at printvector
+*/
+PrintDigit:
+  tya
+  pha
+  lda num1
+  and #$0f
+  clc
+  adc #$30
+  ldy #$00
+  sta (printvector), y
+  pla
+  tay
+  rts

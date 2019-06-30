@@ -306,6 +306,30 @@ ShowCaptured:
 
   CopyMemory(CapturedQueenStart, ScreenAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart)
   CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedQueenPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+
+  lda currentplayer
+  ldy #$00
+  cmp #WHITES_TURN
+  beq !whitecaptured+
+!blackcaptured:
+  StoreWord(capturedvector, blackcaptured)
+  jmp !print+
+!whitecaptured:
+  StoreWord(capturedvector, whitecaptured)
+!print:
+  StoreWord(printvector, ScreenAddress(CapturedCountStart))
+!loop:
+  lda (capturedvector), y
+  sta num1
+  jsr PrintDigit
+  lda printvector
+  clc
+  adc #$28
+  sta printvector
+  iny
+  cpy #$05
+  bne !loop-
+
   rts
 
 /*

@@ -41,9 +41,9 @@ colorcycleposition:
 difficulty:
   .byte $00
 
-// Keep track of the current player. 1 = black, 0 = white
+// Keep track of the current player. 0 = black, 1 = white
 currentplayer:
-  .byte $00
+  .byte WHITES_TURN
 
 // Number of players
 numplayers:
@@ -69,6 +69,10 @@ whiteminutes:
 whitehours:
   .byte $00
 
+// Keep track of the number of each pieces captured by white
+whitecaptured:
+  .fill $05, $00
+
 // Keep track of the total time for black
 blackseconds:
   .byte $00
@@ -76,6 +80,10 @@ blackminutes:
   .byte $00
 blackhours:
   .byte $00
+
+// Keep track of the number of each pieces captured by black
+blackcaptured:
+  .fill $05, $00
 
 // Whether the play clock of the current player should be shown
 displayplayclocks:

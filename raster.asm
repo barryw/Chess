@@ -69,7 +69,7 @@ irq:
   asl
   tax
   ldy #$00
-updatesprites:
+!updatesprites:
   lda BoardSprites, x   // Set the sprite pointer
   sta SPRPTR, y
   lda BoardColors, x    // Set the sprite color
@@ -77,7 +77,7 @@ updatesprites:
   inx
   iny
   cpy #NUM_COLS
-  bne updatesprites
+  bne !updatesprites-
 
   // Handle our routines during the interrupt, but only once per frame
   lda counter
@@ -167,8 +167,8 @@ return:
 This will compute the entire board based on the internal representation of it in 'BoardState'. This gets called once per frame on
 the last interrupt of the screen.
 
-BoardState contains an 8x8 grid of pieces stored as a contiguous 64 bytes. Each byte represents a single square on the board.
-The pieces identify the type as well as the color, but they do NOT have sprite pointer or color data. That's what this routine does.
+BoardState contains an 8x8 grid of pieces stored as a contiguous 64 bytes. Each byte represents a single square on the board and it
+contains the sprite pointer in the lower 7 bits and the color in the high bit.
 
 This routine iterates over the 64 pieces and calculates which sprite and color lives in each square. Once that's computed, it stores
 this information in 2 separate 64 byte blocks of memory called BoardSprites and BoardColors.
@@ -180,54 +180,25 @@ BoardColors. This way we only do the heavy computation once per frame, but can q
 ComputeBoard:
   ldx #$00
 
-keepcomputing:
+!compute:
   lda BoardState, x
   sta CURRENT_PIECE
-  and #$fe              // Strip bit 0 to remove color information
-
-  cmp #BLACK_PAWN
-  beq ShowPawn
-  cmp #BLACK_KNIGHT
-  beq ShowKnight
-  cmp #BLACK_BISHOP
-  beq ShowBishop
-  cmp #BLACK_ROOK
-  beq ShowRook
-  cmp #BLACK_KING
-  beq ShowKing
-  cmp #BLACK_QUEEN
-  beq ShowQueen
-  jmp ShowEmpty
-
-ShowPawn:
-  lda #PAWN_SPR
-  jmp continue
-ShowKnight:
-  lda #KNIGHT_SPR
-  jmp continue
-ShowBishop:
-  lda #BISHOP_SPR
-  jmp continue
-ShowRook:
-  lda #ROOK_SPR
-  jmp continue
-ShowKing:
-  lda #KING_SPR
-  jmp continue
-ShowQueen:
-  lda #QUEEN_SPR
-  jmp continue
-ShowEmpty:
-  lda #EMPTY_SPR
-
-continue:
-  sta BoardSprites, x     // Store the sprite pointers
+  and #$7f              // Strip high bit to remove the color information.
+                        // The remaining 7 bits are the sprite pointer
+  sta BoardSprites, x   // Set the pointer for this sprite
   lda CURRENT_PIECE
-  and #$01                // Strip all bits but color information
-  sta BoardColors, x      // Store the sprite colors
+  and #$80              // Strip the lower 7 bits to get color information
+  lsr
+  lsr
+  lsr
+  lsr
+  lsr
+  lsr
+  lsr
+  sta BoardColors, x
   inx
-  cpx #$40                // Have we processed all 64 squares?
-  bne keepcomputing
+  cpx #$40              // Have we processed the entire board?
+  bne !compute-
   rts
 
 /*

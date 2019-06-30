@@ -1,14 +1,25 @@
-.label SPRPTR = $07f8
+// The bank the VIC-II chip will be in
+.const BANK = $00
+
+// The start of physical RAM the VIC-II will see
+.const VIC_START = (BANK * $4000)
+
+// The starting sprite pointer
+.const START_SPRITE_PTR = $30
 
 // The location in memory for our sprites
-.label SPRITE_MEMORY = $2000
+.const SPRITE_MEMORY = VIC_START + (START_SPRITE_PTR * $40)
 
 // The location in memory for our characters
-.label CHARACTER_MEMORY = $3000
+.const CHARACTER_MEMORY = $3000
 
-// The location of screen memory (bank 0)
-.const SCREEN_MEMORY = $0400
+// The location of screen memory in whatever bank we're in
+.const SCREEN_MEMORY = VIC_START + $0400
 
+// The location of sprite pointer memory
+.const SPRPTR = SCREEN_MEMORY + $03f8
+
+// The location of color RAM is constant
 .const COLOR_MEMORY = $d800
 
 // The offset between color memory and screen memory (in bank 0)
@@ -70,43 +81,63 @@
 .var TimeValuePos = ScreenPos($20, $05)
 
 // Show how many pieces a player has captured
-.var CapturedPos = ScreenPos($1c, $0d)
-.var CapturedUnderlinePos = ScreenPos($1c, $0e)
-.var CapturedPawnPos = ScreenPos($1a, $0f)
-.var CapturedKnightPos = ScreenPos($1a, $10)
-.var CapturedBishopPos = ScreenPos($1a, $11)
-.var CapturedRookPos = ScreenPos($1a, $12)
-.var CapturedQueenPos = ScreenPos($1a, $13)
+.var CapturedPos = ScreenPos($1c, $0c)
+.var CapturedUnderlinePos = ScreenPos($1c, $0d)
+.var CapturedPawnPos = ScreenPos($1a, $0e)
+.var CapturedKnightPos = ScreenPos($1a, $0f)
+.var CapturedBishopPos = ScreenPos($1a, $10)
+.var CapturedRookPos = ScreenPos($1a, $11)
+.var CapturedQueenPos = ScreenPos($1a, $12)
 
-// These are markers for the board's state. Each piece has its own signature
-// Bit 0 identifies the piece's color. A value of 1 means the piece is WHITE
-.label EMPTY_PIECE  = %00000000
-.label WHITE_PAWN   = %00000011
-.label BLACK_PAWN   = %00000010
-.label WHITE_KNIGHT = %00000101
-.label BLACK_KNIGHT = %00000100
-.label WHITE_BISHOP = %00001001
-.label BLACK_BISHOP = %00001000
-.label WHITE_ROOK   = %00010001
-.label BLACK_ROOK   = %00010000
-.label WHITE_KING   = %00100001
-.label BLACK_KING   = %00100000
-.label WHITE_QUEEN  = %01000001
-.label BLACK_QUEEN  = %01000000
+.var CapturedCountStart = ScreenPos($26, $0e)
+
+// These are indexes into the storage area that tracks
+// how many of each piece has been captured for white
+// and black
+.const CAP_PAWN   = $00
+.const CAP_KNIGHT = $01
+.const CAP_BISHOP = $02
+.const CAP_ROOK   = $03
+.const CAP_QUEEN  = $04
+
+.const BLACK_COLOR = $00
+.const WHITE_COLOR = $80
 
 // Sprite pointers for the 6 pieces
-.const EMPTY_SPR  = $80
-.const PAWN_SPR   = $81
-.const KNIGHT_SPR = $82
-.const BISHOP_SPR = $83
-.const ROOK_SPR   = $84
-.const QUEEN_SPR  = $85
-.const KING_SPR   = $86
+.const EMPTY_SPR  = START_SPRITE_PTR
+.const PAWN_SPR   = START_SPRITE_PTR + 1
+.const KNIGHT_SPR = START_SPRITE_PTR + 2
+.const BISHOP_SPR = START_SPRITE_PTR + 3
+.const ROOK_SPR   = START_SPRITE_PTR + 4
+.const QUEEN_SPR  = START_SPRITE_PTR + 5
+.const KING_SPR   = START_SPRITE_PTR + 6
+
+/*
+Add color information using the high bit of the sprite pointer. These are the
+values stored in BoardState
+*/
+.const EMPTY_PIECE  = EMPTY_SPR   + BLACK_COLOR
+.const WHITE_PAWN   = PAWN_SPR    + WHITE_COLOR
+.const BLACK_PAWN   = PAWN_SPR    + BLACK_COLOR
+.const WHITE_KNIGHT = KNIGHT_SPR  + WHITE_COLOR
+.const BLACK_KNIGHT = KNIGHT_SPR  + BLACK_COLOR
+.const WHITE_BISHOP = BISHOP_SPR  + WHITE_COLOR
+.const BLACK_BISHOP = BISHOP_SPR  + BLACK_COLOR
+.const WHITE_ROOK   = ROOK_SPR    + WHITE_COLOR
+.const BLACK_ROOK   = ROOK_SPR    + BLACK_COLOR
+.const WHITE_KING   = KING_SPR    + WHITE_COLOR
+.const BLACK_KING   = KING_SPR    + BLACK_COLOR
+.const WHITE_QUEEN  = QUEEN_SPR   + WHITE_COLOR
+.const BLACK_QUEEN  = QUEEN_SPR   + BLACK_COLOR
 
 .label CURRENT_PIECE = $08
 
 .const ONE_PLAYER = $01
 .const TWO_PLAYERS = $02
+
+// These indicate the current player
+.const WHITES_TURN = $01
+.const BLACKS_TURN = $00
 
 // Constants for raster interrupts
 .const RASTER_START = $27
@@ -130,14 +161,21 @@
 .const MENU_ABOUT_SHOWING = $06
 
 // Addresses used for memcopy operations
-.label copy_from  = $02
-.label copy_to    = $04
-.label copy_size  = $06
+.const copy_from  = $02
+.const copy_to    = $04
+.const copy_size  = $06
 
 // Addresses used for math operations
 .const num1   = $08
 .const num2   = $0a
 .const result = $0c
+
+// A 16 bit vector to the next location to print to
+.const printvector = $0e
+
+// A 16 bit vector to the start of the location of
+// storage that tracks captured pieces
+.const capturedvector = $10
 
 .const KEY_A = $01
 .const KEY_B = $02
