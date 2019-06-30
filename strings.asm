@@ -202,6 +202,10 @@ TimeColorStart:
   .fill TimeEnd - TimeStart, $01
 TimeColorEnd:
 
+ThinkingStart:
+  .text "Thinking"
+ThinkingEnd:
+
 CapturedStart:
   .text "Captured"
 CapturedEnd:
@@ -218,27 +222,27 @@ CapturedPieceColorEnd:
 
 CapturedPawnStart:
   .byte $1e
-  .text " Pawns   X 0"
+  .text " Pawns   X "
 CapturedPawnEnd:
 
 CapturedKnightStart:
   .byte $25
-  .text " Knights X 0"
+  .text " Knights X "
 CapturedKnightEnd:
 
 CapturedBishopStart:
   .byte $23
-  .text " Bishops X 0"
+  .text " Bishops X "
 CapturedBishopEnd:
 
 CapturedRookStart:
   .byte $1f
-  .text " Rooks   X 0"
+  .text " Rooks   X "
 CapturedRookEnd:
 
 CapturedQueenStart:
   .byte $22
-  .text " Queens  X 0"
+  .text " Queens  X "
 CapturedQueenEnd:
 
 InvalidMoveStart:

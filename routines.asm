@@ -134,3 +134,16 @@ PrintDigit:
   pla
   tay
   rts
+
+ShowThinking:
+  CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
+  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $01)
+  lda #$80
+  sta spinnerenabled
+  rts
+
+HideThinking:
+  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $00)
+  lda #$00
+  sta spinnerenabled
+  rts

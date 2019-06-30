@@ -91,6 +91,9 @@
 
 .var CapturedCountStart = ScreenPos($26, $0e)
 
+.var ThinkingPos = ScreenPos($1c, $09)
+.var SpinnerPos = ScreenPos($25, $09)
+
 // These are indexes into the storage area that tracks
 // how many of each piece has been captured for white
 // and black
@@ -100,10 +103,14 @@
 .const CAP_ROOK   = $03
 .const CAP_QUEEN  = $04
 
-.const BLACK_COLOR = $00
-.const WHITE_COLOR = $80
+// Set the high bit on our pieces to make them white
+.const BLACK_COLOR = %00000000
+.const WHITE_COLOR = %10000000
 
-// Sprite pointers for the 6 pieces
+/*
+Sprite pointers for the 6 pieces + empty. The pointers must be < 128
+so that we can store color information in the high bit.
+*/
 .const EMPTY_SPR  = START_SPRITE_PTR
 .const PAWN_SPR   = START_SPRITE_PTR + 1
 .const KNIGHT_SPR = START_SPRITE_PTR + 2
@@ -164,18 +171,19 @@ values stored in BoardState
 .const copy_from  = $02
 .const copy_to    = $04
 .const copy_size  = $06
+.const fill_value = $08
 
 // Addresses used for math operations
-.const num1   = $08
-.const num2   = $0a
-.const result = $0c
+.const num1   = $09
+.const num2   = $0b
+.const result = $0d
 
 // A 16 bit vector to the next location to print to
-.const printvector = $0e
+.const printvector = $0f
 
 // A 16 bit vector to the start of the location of
 // storage that tracks captured pieces
-.const capturedvector = $10
+.const capturedvector = $11
 
 .const KEY_A = $01
 .const KEY_B = $02

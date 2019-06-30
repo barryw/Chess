@@ -31,8 +31,23 @@ titlecolorsstart:
   .byte RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE
 titlecolorsend:
 
-colorcycletiming:
+// Whether to show the spinner
+spinnerenabled:
   .byte $00
+
+// Display an indeterminate progress bar with some characters
+spinnerstart:
+  .byte $7c, $6c, $7b, $7e
+spinnerend:
+
+spinnercurrent:
+  .byte $00
+
+spinnertiming:
+  .byte $10
+
+colorcycletiming:
+  .byte $10
 
 colorcycleposition:
   .byte $00

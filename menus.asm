@@ -275,6 +275,7 @@ ShowGameMenu:
   jsr ClearMenus
   SetMenu(MENU_GAME)
 
+  jsr ShowStatus
   jsr ShowCaptured
 
   CopyMemory(RotateStart, ScreenAddress(RotatePos), RotateEnd - RotateStart)
@@ -285,6 +286,17 @@ ShowGameMenu:
 
   rts
 
+/*
+Show the status line under the title and copyright. It includes which player is currently playing
+as well as a play clock for that player.
+*/
+ShowStatus:
+  jsr ShowThinking
+  rts
+
+/*
+Show the portion of the screen that details which pieces have been captured by the current player
+*/
 ShowCaptured:
   CopyMemory(CapturedStart, ScreenAddress(CapturedPos), CapturedEnd - CapturedStart)
   CopyMemory(CapturedColorStart, ColorAddress(CapturedPos), CapturedColorEnd - CapturedColorStart)
@@ -307,30 +319,7 @@ ShowCaptured:
   CopyMemory(CapturedQueenStart, ScreenAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart)
   CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedQueenPos), CapturedPieceColorEnd - CapturedPieceColorStart)
 
-  lda currentplayer
-  ldy #$00
-  cmp #WHITES_TURN
-  beq !whitecaptured+
-!blackcaptured:
-  StoreWord(capturedvector, blackcaptured)
-  jmp !print+
-!whitecaptured:
-  StoreWord(capturedvector, whitecaptured)
-!print:
-  StoreWord(printvector, ScreenAddress(CapturedCountStart))
-!loop:
-  lda (capturedvector), y
-  sta num1
-  jsr PrintDigit
-  lda printvector
-  clc
-  adc #$28
-  sta printvector
-  iny
-  cpy #$05
-  bne !loop-
-
-  rts
+  jmp UpdateCaptureCounts
 
 /*
 Clear the menu options and any displayed questions
@@ -490,4 +479,39 @@ HideAboutMenu:
   lda #$00
   sta aboutisshowing
   SetMenu(MENU_MAIN)
+  rts
+
+/*
+Display information at the top of the screen which shows whose turn it is
+*/
+DisplayStatus:
+  lda currentplayer
+  cmp #WHITES_TURN
+
+/*
+Update the counts of captured pieces for the current player
+*/
+UpdateCaptureCounts:
+  StoreWord(printvector, ScreenAddress(CapturedCountStart))
+  ldy #$00
+  lda currentplayer
+  cmp #WHITES_TURN
+  beq !whitecaptured+
+!blackcaptured:
+  StoreWord(capturedvector, blackcaptured)
+  jmp !print+
+!whitecaptured:
+  StoreWord(capturedvector, whitecaptured)
+!print:
+  lda (capturedvector), y
+  sta num1
+  jsr PrintDigit
+  lda printvector
+  clc
+  adc #$28
+  sta printvector
+  iny
+  cpy #$05
+  bne !print-
+
   rts

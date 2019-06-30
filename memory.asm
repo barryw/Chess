@@ -38,6 +38,39 @@ Each parameter is 16 bits
 }
 
 /*
+Fill a block of memory with a byte
+*/
+.macro FillMemory(address, size, value) {
+  StoreWord(copy_to, address)
+  StoreWord(copy_size, size)
+  lda #value
+  sta fill_value
+  jsr FillMemory
+}
+
+FillMemory:
+  ldy #0
+  ldx copy_size + 1
+  beq !frag+
+!page:
+  lda fill_value
+  sta (copy_to), y
+  iny
+  bne !page-
+  inc copy_to + 1
+  dex
+  bne !page-
+!frag:
+  cpy copy_size
+  beq !done+
+  lda fill_value
+  sta (copy_to), y
+  iny
+  bne !frag-
+!done:
+  rts
+
+/*
 Do the actual memory copy.
 
 Doesn't need to be on a page boundary. Can copy fragments as well.

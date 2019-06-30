@@ -87,6 +87,7 @@ irq:
   jsr ComputeBoard      // Recompute and draw the board
   jsr ColorCycleTitle   // Color cycle the title and make it look pretty
   jsr ShowClock         // Display the play clock
+  jsr ShowSpinner       // Show the spinner if required
 
 SkipServiceRoutines:
   ldx counter
@@ -124,19 +125,36 @@ return2:
   rts
 
 /*
+Display an indeterminate progress bar spinner
+*/
+ShowSpinner:
+  lda spinnerenabled
+  beq !return+
+  dec spinnertiming
+  bne !return+
+  lda #$10
+  sta spinnertiming
+  ldx spinnercurrent
+  cpx #spinnerend - spinnerstart
+  bne !spin+
+  ldx #$00
+  stx spinnercurrent
+!spin:
+  lda spinnerstart, x
+  sta ScreenAddress(SpinnerPos)
+  lda #$01
+  sta ColorAddress(SpinnerPos)
+  inc spinnercurrent
+!return:
+  rts
 
+/*
 Color cycle the title
-
 */
 ColorCycleTitle:
-  inc colorcycletiming
-  lda colorcycletiming
-  cmp #$10
-  beq begin
-  bne return
-
-begin:
-  lda #$00
+  dec colorcycletiming
+  bne !return+
+  lda #$10
   sta colorcycletiming
 
   ldx #$00
@@ -144,22 +162,22 @@ begin:
   iny
   sty colorcycleposition
   cpy #titlecolorsend - titlecolorsstart
-  bne painttitle
+  bne !paint+
   ldy #$00
   sty colorcycleposition
-painttitle:
+!paint:
   lda titlecolorsstart, y
-  sta vic.CLRRAM + 30, x
-  sta vic.CLRRAM + 70, x
+  sta vic.CLRRAM + $1e, x
+  sta vic.CLRRAM + $46, x
   inx
   cpx #$08
-  beq return
+  beq !return+
   iny
   cpy #titlecolorsend - titlecolorsstart
-  bne painttitle
+  bne !paint-
   ldy #$00
-  jmp painttitle
-return:
+  jmp !paint-
+!return:
   rts
 
 /*
@@ -188,13 +206,8 @@ ComputeBoard:
   sta BoardSprites, x   // Set the pointer for this sprite
   lda CURRENT_PIECE
   and #$80              // Strip the lower 7 bits to get color information
-  lsr
-  lsr
-  lsr
-  lsr
-  lsr
-  lsr
-  lsr
+  rol
+  rol
   sta BoardColors, x
   inx
   cpx #$40              // Have we processed the entire board?
