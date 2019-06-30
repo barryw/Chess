@@ -46,6 +46,10 @@
 .var BlackPos = ScreenPos($1a, $15)
 .var WhitePos = ScreenPos($1a, $16)
 
+// Positions for game menu items
+.var RotatePos = ScreenPos($1a, $16)
+.var ForfeitPos = ScreenPos($1a, $17)
+
 .var EmptyQuestionPos = ScreenPos($1a, $0a)
 .var Empty1Pos = ScreenPos($1a, $14)
 .var Empty2Pos = ScreenPos($1a, $15)
@@ -59,8 +63,20 @@
 .var LevelSelectPos = ScreenPos($1b, $0a) // x=26,y=10
 .var ColorSelectPos = ScreenPos($1a, $0a) // x=26,y=10
 
-.var WhiteTimerLabelPos = ScreenPos($1b, $03) // x=27,y=3
-.var BlackTimerLabelPos = ScreenPos($22, $03) // x=34,y=3
+.var TurnPos = ScreenPos($1a, $04)
+.var TimePos = ScreenPos($1a, $05)
+
+.var TurnValuePos = ScreenPos($20, $04)
+.var TimeValuePos = ScreenPos($20, $05)
+
+// Show how many pieces a player has captured
+.var CapturedPos = ScreenPos($1c, $0d)
+.var CapturedUnderlinePos = ScreenPos($1c, $0e)
+.var CapturedPawnPos = ScreenPos($1a, $0f)
+.var CapturedKnightPos = ScreenPos($1a, $10)
+.var CapturedBishopPos = ScreenPos($1a, $11)
+.var CapturedRookPos = ScreenPos($1a, $12)
+.var CapturedQueenPos = ScreenPos($1a, $13)
 
 // These are markers for the board's state. Each piece has its own signature
 // Bit 0 identifies the piece's color. A value of 1 means the piece is WHITE

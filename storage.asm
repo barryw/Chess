@@ -27,8 +27,9 @@ irqypos:
 spriteypos:
   .byte $34, $4c, $64, $7c, $94, $ac, $c4, $dc
 
-titlecolors:
+titlecolorsstart:
   .byte RED, ORANGE, YELLOW, LIGHT_GREEN, LIGHT_BLUE, BLUE, PURPLE
+titlecolorsend:
 
 colorcycletiming:
   .byte $00
@@ -60,7 +61,7 @@ playmusic:
 currentmenu:
   .byte $00
 
-// Game clocks
+// Keep track of the total time for white
 whiteseconds:
   .byte $00
 whiteminutes:
@@ -68,11 +69,16 @@ whiteminutes:
 whitehours:
   .byte $00
 
+// Keep track of the total time for black
 blackseconds:
   .byte $00
 blackminutes:
   .byte $00
 blackhours:
+  .byte $00
+
+// Whether the play clock of the current player should be shown
+displayplayclocks:
   .byte $00
 
 aboutisshowing:

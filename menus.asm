@@ -1,5 +1,10 @@
 *=* "Menus"
 
+.macro SetMenu(menu) {
+  lda #menu
+  sta currentmenu
+}
+
 /*
 Read the keyboard and process the key presses
 */
@@ -68,12 +73,10 @@ HandleAKey:
   rts
 
 !showabout:
-  jsr ShowAboutMenu
-  rts
+  jmp ShowAboutMenu
 
 !hideabout:
-  jsr HideAboutMenu
-  rts
+  jmp HideAboutMenu
 
 /*
 The B key is used to go backwards in the menus as well as column select during the game
@@ -206,7 +209,7 @@ HandlePKey:
   rts
 
 /*
-The 1 key serves a couple of purposes: player selection and row selection during gameplay
+The 1 key serves a few purposes: player selection, color selection and row selection during gameplay
 */
 Handle1Key:
   lda currentmenu
@@ -214,10 +217,12 @@ Handle1Key:
   beq !playerselect+
   cmp #MENU_COLOR_SELECT
   beq !colorselect+
+  cmp #MENU_GAME
+  beq !rowselect+
   rts
 
 !playerselect:
-  lda #$01
+  lda #ONE_PLAYER
   sta numplayers
   jmp LevelSelectMenu
 
@@ -226,8 +231,11 @@ Handle1Key:
   sta player1color
   jmp StartGame
 
+!rowselect:
+  rts
+
 /*
-The 2 key serves a couple of purposes: player selection and row selection during gameplay
+The 2 key serves a few purposes: player selection, color selection and row selection during gameplay
 */
 Handle2Key:
   lda currentmenu
@@ -235,10 +243,12 @@ Handle2Key:
   beq !playerselect+
   cmp #MENU_COLOR_SELECT
   beq !colorselect+
+  cmp #MENU_GAME
+  beq !rowselect+
   rts
 
 !playerselect:
-  lda #$02
+  lda #TWO_PLAYERS
   sta numplayers
   jmp ColorSelectMenu
 
@@ -247,15 +257,55 @@ Handle2Key:
   sta player1color
   jmp StartGame
 
+!rowselect:
+  rts
+
 /*
 Start the game
 */
 StartGame:
+  jsr ShowGameMenu
+
+  rts
+
+/*
+Display the menu that's shown while the game is being played\
+*/
+ShowGameMenu:
   jsr ClearMenus
-  lda #MENU_GAME
-  sta currentmenu
+  SetMenu(MENU_GAME)
 
+  jsr ShowCaptured
 
+  CopyMemory(RotateStart, ScreenAddress(RotatePos), RotateEnd - RotateStart)
+  CopyMemory(RotateColorStart, ColorAddress(RotatePos), RotateColorEnd - RotateColorStart)
+
+  CopyMemory(ForfeitStart, ScreenAddress(ForfeitPos), ForfeitEnd - ForfeitStart)
+  CopyMemory(ForfeitColorStart, ColorAddress(ForfeitPos), ForfeitColorEnd - ForfeitColorStart)
+
+  rts
+
+ShowCaptured:
+  CopyMemory(CapturedStart, ScreenAddress(CapturedPos), CapturedEnd - CapturedStart)
+  CopyMemory(CapturedColorStart, ColorAddress(CapturedPos), CapturedColorEnd - CapturedColorStart)
+
+  CopyMemory(CapturedUnderlineStart, ScreenAddress(CapturedUnderlinePos), CapturedUnderlineEnd - CapturedUnderlineStart)
+  CopyMemory(CapturedColorStart, ColorAddress(CapturedUnderlinePos), CapturedColorEnd - CapturedColorStart)
+
+  CopyMemory(CapturedPawnStart, ScreenAddress(CapturedPawnPos), CapturedPawnEnd - CapturedPawnStart)
+  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedPawnPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+
+  CopyMemory(CapturedKnightStart, ScreenAddress(CapturedKnightPos), CapturedKnightEnd - CapturedKnightStart)
+  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedKnightPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+
+  CopyMemory(CapturedBishopStart, ScreenAddress(CapturedBishopPos), CapturedBishopEnd - CapturedBishopStart)
+  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedBishopPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+
+  CopyMemory(CapturedRookStart, ScreenAddress(CapturedRookPos), CapturedRookEnd - CapturedRookStart)
+  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedRookPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+
+  CopyMemory(CapturedQueenStart, ScreenAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart)
+  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedQueenPos), CapturedPieceColorEnd - CapturedPieceColorStart)
   rts
 
 /*
@@ -276,8 +326,7 @@ Show the Start menu and the available options
 */
 StartMenu:
   jsr ClearMenus
-  lda #MENU_MAIN
-  sta currentmenu
+  SetMenu(MENU_MAIN)
 
   // Display the Play Game menu option
   CopyMemory(PlayStart, ScreenAddress(PlayGamePos), PlayEnd - PlayStart)
@@ -299,8 +348,7 @@ Show the Quit menu and the available options
 */
 QuitMenu:
   jsr ClearMenus
-  lda #MENU_QUIT
-  sta currentmenu
+  SetMenu(MENU_QUIT)
 
   // Display Quit message
   CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
@@ -318,8 +366,7 @@ QuitMenu:
 
 PlayerSelectMenu:
   jsr ClearMenus
-  lda #MENU_PLAYER_SELECT
-  sta currentmenu
+  SetMenu(MENU_PLAYER_SELECT)
 
   // Display the Player Selection message
   CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
@@ -340,8 +387,7 @@ Level selection menu
 */
 LevelSelectMenu:
   jsr ClearMenus
-  lda #MENU_LEVEL_SELECT
-  sta currentmenu
+  SetMenu(MENU_LEVEL_SELECT)
 
   CopyMemory(LevelSelectStart, ScreenAddress(LevelSelectPos), LevelSelectEnd - LevelSelectStart)
   CopyMemory(LevelSelectColorStart, ColorAddress(LevelSelectPos), LevelSelectColorEnd - LevelSelectColorStart)
@@ -365,8 +411,7 @@ Color selection menu
 */
 ColorSelectMenu:
   jsr ClearMenus
-  lda #MENU_COLOR_SELECT
-  sta currentmenu
+  SetMenu(MENU_COLOR_SELECT)
 
   // Color select message
   CopyMemory(Player1ColorStart, ScreenAddress(ColorSelectPos), Player1ColorEnd - Player1ColorStart)
@@ -387,8 +432,7 @@ Menu displayed while the game is being played
 */
 GameMenu:
   jsr ClearMenus
-  lda #MENU_GAME
-  sta currentmenu
+  SetMenu(MENU_GAME)
 
   rts
 
@@ -402,24 +446,24 @@ ShowBackMenuItem:
 Show the About menu
 */
 ShowAboutMenu:
+  // Buffer the center portion of the screen
   CopyMemory(ScreenAddress(AboutTextPos), screenbuffer, AboutTextEnd - AboutTextStart)
   CopyMemory(ColorAddress(AboutTextPos), colorbuffer, AboutTextEnd - AboutTextStart)
 
   CopyMemory(AboutTextStart, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
   CopyMemory(AboutTextColorStart, ColorAddress(AboutTextPos), AboutTextColorEnd - AboutTextColorStart)
 
-  lda #MENU_ABOUT_SHOWING
-  sta currentmenu
+  SetMenu(MENU_ABOUT_SHOWING)
   lda #$01
   sta aboutisshowing
   rts
 
 HideAboutMenu:
-  CopyMemory(screenbuffer, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
+  // Load the buffer back
   CopyMemory(colorbuffer, ColorAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
+  CopyMemory(screenbuffer, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
 
   lda #$00
   sta aboutisshowing
-  lda #MENU_MAIN
-  sta currentmenu
+  SetMenu(MENU_MAIN)
   rts

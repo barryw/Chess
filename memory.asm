@@ -26,19 +26,9 @@
 // Perform a memory copy
 // Each parameter is a 16 bit number
 .macro CopyMemory(from_address, to_address, size) {
-  lda #<from_address
-  sta copy_from
-  lda #>from_address
-  sta copy_from + 1
-  lda #<to_address
-  sta copy_to
-  lda #>to_address
-  sta copy_to + 1
-  lda #<size
-  sta copy_size
-  lda #>size
-  sta copy_size + 1
-
+  StoreWord(copy_from, from_address)
+  StoreWord(copy_to, to_address)
+  StoreWord(copy_size, size)
   jsr CopyMemory
 }
 

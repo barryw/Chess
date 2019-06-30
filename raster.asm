@@ -83,9 +83,10 @@ updatesprites:
   lda counter
   cmp #NUM_ROWS - 1
   bne SkipServiceRoutines
-  jsr PlayMusic
-  jsr ComputeBoard
-  jsr ColorCycleTitle
+  jsr PlayMusic         // Play the music if it's turned on
+  jsr ComputeBoard      // Recompute and draw the board
+  jsr ColorCycleTitle   // Color cycle the title and make it look pretty
+  jsr ShowClock         // Display the play clock
 
 SkipServiceRoutines:
   ldx counter
@@ -142,19 +143,19 @@ begin:
   ldy colorcycleposition
   iny
   sty colorcycleposition
-  cpy #$07
+  cpy #titlecolorsend - titlecolorsstart
   bne painttitle
   ldy #$00
   sty colorcycleposition
 painttitle:
-  lda titlecolors, y
+  lda titlecolorsstart, y
   sta vic.CLRRAM + 30, x
   sta vic.CLRRAM + 70, x
   inx
   cpx #$08
   beq return
   iny
-  cpy #$07
+  cpy #titlecolorsend - titlecolorsstart
   bne painttitle
   ldy #$00
   jmp painttitle
@@ -229,11 +230,14 @@ continue:
   bne keepcomputing
   rts
 
+/*
+Busy loop while waiting for the VBlank. We want to do most of our work here
+*/
 WaitForVblank:
   pha
 !wait:
   lda vic.RASTER
-  cmp #$c0
+  cmp #$80
   bne !wait-
   pla
   rts

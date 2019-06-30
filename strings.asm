@@ -72,6 +72,13 @@ NoColorStart:
   .fill NoEnd - NoStart, $01
 NoColorEnd:
 
+RotateStart:
+  .text "[R] Rotate"
+RotateEnd:
+RotateColorStart:
+  .fill RotateEnd - RotateStart, $01
+RotateColorEnd:
+
 ForfeitStart:
   .text "[Z] Forfeit"
 ForfeitEnd:
@@ -112,14 +119,14 @@ EmptyRowStart:
 EmptyRowEnd:
 
 WhiteStart:
-  .text "WHITE"
+  .text "White"
 WhiteEnd:
 WhiteColorStart:
   .fill WhiteEnd - WhiteStart, $01
 WhiteColorEnd:
 
 BlackStart:
-  .text "BLACK"
+  .text "Black"
 BlackEnd:
 BlackColorStart:
   .fill BlackEnd - BlackStart, $01
@@ -181,13 +188,58 @@ WhiteMenuColorStart:
   .fill WhiteMenuEnd - WhiteMenuStart, $01
 WhiteMenuColorEnd:
 
-BlacksTurnStart:
-  .text "Black's Turn"
-BlacksTurnEnd:
+TurnStart:
+  .text "Turn :"
+TurnEnd:
+TurnColorStart:
+  .fill TurnEnd - TurnStart, $01
+TurnColorEnd:
 
-WhitesTurnStart:
-  .text "White's Turn"
-WhitesTurnEnd:
+TimeStart:
+  .text "Time :"
+TimeEnd:
+TimeColorStart:
+  .fill TimeEnd - TimeStart, $01
+TimeColorEnd:
+
+CapturedStart:
+  .text "Captured"
+CapturedEnd:
+CapturedColorStart:
+  .fill CapturedEnd - CapturedStart, $01
+CapturedColorEnd:
+CapturedUnderlineStart:
+  .fill CapturedEnd - CapturedStart, $77
+CapturedUnderlineEnd:
+
+CapturedPieceColorStart:
+  .fill $0d, $01
+CapturedPieceColorEnd:
+
+CapturedPawnStart:
+  .byte $1e
+  .text " Pawns   X 0"
+CapturedPawnEnd:
+
+CapturedKnightStart:
+  .byte $25
+  .text " Knights X 0"
+CapturedKnightEnd:
+
+CapturedBishopStart:
+  .byte $23
+  .text " Bishops X 0"
+CapturedBishopEnd:
+
+CapturedRookStart:
+  .byte $1f
+  .text " Rooks   X 0"
+CapturedRookEnd:
+
+CapturedQueenStart:
+  .byte $22
+  .text " Queens  X 0"
+CapturedQueenEnd:
 
 InvalidMoveStart:
   .text "Invalid Move"
