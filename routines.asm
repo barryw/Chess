@@ -114,7 +114,7 @@ SetupScreen:
 
   // Display the copyright
   CopyMemory(CopyrightStart, ScreenAddress(CopyrightPos), CopyrightEnd - CopyrightStart)
-  CopyMemory(CopyrightColorStart, ColorAddress(CopyrightPos), CopyrightColorEnd - CopyrightColorStart)
+  FillMemory(ColorAddress(CopyrightPos), CopyrightEnd - CopyrightStart, WHITE)
 
   jmp StartMenu
 
@@ -135,6 +135,10 @@ PrintDigit:
   tay
   rts
 
+/*
+Display the "Thinking" message with an indeterminate progress bar. This is shown
+when the computer is determining its best move.
+*/
 ShowThinking:
   CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $01)
@@ -142,6 +146,9 @@ ShowThinking:
   sta spinnerenabled
   rts
 
+/*
+Hide the "Thinking" message when the computer is ready to move
+*/
 HideThinking:
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $00)
   lda #$00

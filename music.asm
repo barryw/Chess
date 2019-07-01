@@ -26,12 +26,12 @@ DisplayMuteMenu:
 
 ShowMute:
   CopyMemory(MuteStart, ScreenAddress(MusicTogglePos), MuteEnd - MuteStart)
-  CopyMemory(MuteColorStart, ColorAddress(MusicTogglePos), MuteColorEnd - MuteColorStart)
+  FillMemory(ColorAddress(MusicTogglePos), MuteEnd - MuteStart, WHITE)
   rts
 
 ShowUnmute:
   CopyMemory(UnmuteStart, ScreenAddress(MusicTogglePos), UnmuteEnd - UnmuteStart)
-  CopyMemory(UnmuteColorStart, ColorAddress(MusicTogglePos), UnmuteColorEnd - UnmuteColorStart)
+  FillMemory(ColorAddress(MusicTogglePos), UnmuteEnd - UnmuteStart, WHITE)
   rts
 
 *=music.location "Music"

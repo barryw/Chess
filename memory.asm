@@ -97,3 +97,27 @@ CopyMemory:
   bne !frag-
 !done:
   rts
+
+/*
+Flip the board
+*/
+FlipBoard:
+  PushStack()
+  ldx #$3f
+  ldy #$00
+!loop:
+  lda BoardState, x
+  sta fliptmp, y
+  iny
+  dex
+  cpx #$ff
+  bne !loop-
+  ldx #$00
+!loop2:
+  lda fliptmp, x
+  sta BoardState, x
+  inx
+  cpx #$40
+  bne !loop2-
+  PopStack()
+  rts

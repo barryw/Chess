@@ -3,21 +3,9 @@
 counter:
   .byte $00
 
-// Table of sprite pointers on the current row
-spritepointers:
-  .fill $08, $00
-
-// Table of pieces on the current row
-spritepieces:
-  .fill $08, $00
-
-// Bit mask to turn a single sprite off
-spritesoff:
-  .byte $fe, $fd, $fb, $f7, $ef, $df, $bf, $7f
-
-// Bit mask to turn a single sprite on
-spriteson:
-  .byte $01, $02, $04, $08, $10, $20, $40, $80
+// Temp location for when the board is flipped
+fliptmp:
+  .fill $40, $00
 
 // Store the lines where we want to trigger our raster interrupt
 irqypos:
@@ -40,14 +28,15 @@ spinnerstart:
   .byte $7c, $6c, $7b, $7e
 spinnerend:
 
+// The current spinner character being shown
 spinnercurrent:
   .byte $00
 
 spinnertiming:
-  .byte $10
+  .byte THINKING_SPINNER_SPEED
 
 colorcycletiming:
-  .byte $10
+  .byte TITLE_COLOR_SCROLL_SPEED
 
 colorcycleposition:
   .byte $00

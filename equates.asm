@@ -25,6 +25,12 @@
 // The offset between color memory and screen memory (in bank 0)
 .const COLOR_MEMORY_OFFSET = COLOR_MEMORY - SCREEN_MEMORY
 
+// The speed of the title's color scroll. Higher is slower
+.const TITLE_COLOR_SCROLL_SPEED = $8
+
+// The speed that the spinner rotates. Higher is slower
+.const THINKING_SPINNER_SPEED = $20
+
 // Struct for describing positions on a screen
 .struct ScreenPos{x,y}
 
@@ -58,7 +64,6 @@
 .var WhitePos = ScreenPos($1a, $16)
 
 // Positions for game menu items
-.var RotatePos = ScreenPos($1a, $16)
 .var ForfeitPos = ScreenPos($1a, $17)
 
 .var EmptyQuestionPos = ScreenPos($1a, $0a)

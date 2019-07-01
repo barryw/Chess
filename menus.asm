@@ -229,6 +229,7 @@ Handle1Key:
 !colorselect:
   lda #BLACK
   sta player1color
+  jsr FlipBoard
   jmp StartGame
 
 !rowselect:
@@ -278,11 +279,8 @@ ShowGameMenu:
   jsr ShowStatus
   jsr ShowCaptured
 
-  CopyMemory(RotateStart, ScreenAddress(RotatePos), RotateEnd - RotateStart)
-  CopyMemory(RotateColorStart, ColorAddress(RotatePos), RotateColorEnd - RotateColorStart)
-
   CopyMemory(ForfeitStart, ScreenAddress(ForfeitPos), ForfeitEnd - ForfeitStart)
-  CopyMemory(ForfeitColorStart, ColorAddress(ForfeitPos), ForfeitColorEnd - ForfeitColorStart)
+  FillMemory(ColorAddress(ForfeitPos), ForfeitEnd - ForfeitStart, WHITE)
 
   rts
 
@@ -299,25 +297,25 @@ Show the portion of the screen that details which pieces have been captured by t
 */
 ShowCaptured:
   CopyMemory(CapturedStart, ScreenAddress(CapturedPos), CapturedEnd - CapturedStart)
-  CopyMemory(CapturedColorStart, ColorAddress(CapturedPos), CapturedColorEnd - CapturedColorStart)
+  FillMemory(ColorAddress(CapturedPos), CapturedEnd - CapturedStart, WHITE)
 
   CopyMemory(CapturedUnderlineStart, ScreenAddress(CapturedUnderlinePos), CapturedUnderlineEnd - CapturedUnderlineStart)
-  CopyMemory(CapturedColorStart, ColorAddress(CapturedUnderlinePos), CapturedColorEnd - CapturedColorStart)
+  FillMemory(ColorAddress(CapturedUnderlinePos), CapturedUnderlineEnd - CapturedUnderlineStart, WHITE)
 
   CopyMemory(CapturedPawnStart, ScreenAddress(CapturedPawnPos), CapturedPawnEnd - CapturedPawnStart)
-  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedPawnPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+  FillMemory(ColorAddress(CapturedPawnPos), CapturedPawnEnd - CapturedPawnStart, WHITE)
 
   CopyMemory(CapturedKnightStart, ScreenAddress(CapturedKnightPos), CapturedKnightEnd - CapturedKnightStart)
-  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedKnightPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+  FillMemory(ColorAddress(CapturedKnightPos), CapturedKnightEnd - CapturedKnightStart, WHITE)
 
   CopyMemory(CapturedBishopStart, ScreenAddress(CapturedBishopPos), CapturedBishopEnd - CapturedBishopStart)
-  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedBishopPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+  FillMemory(ColorAddress(CapturedBishopPos), CapturedBishopEnd - CapturedBishopStart, WHITE)
 
   CopyMemory(CapturedRookStart, ScreenAddress(CapturedRookPos), CapturedRookEnd - CapturedRookStart)
-  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedRookPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+  FillMemory(ColorAddress(CapturedRookPos), CapturedRookEnd - CapturedRookStart, WHITE)
 
   CopyMemory(CapturedQueenStart, ScreenAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart)
-  CopyMemory(CapturedPieceColorStart, ColorAddress(CapturedQueenPos), CapturedPieceColorEnd - CapturedPieceColorStart)
+  FillMemory(ColorAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart, WHITE)
 
   jmp UpdateCaptureCounts
 
@@ -327,11 +325,12 @@ Clear the menu options and any displayed questions
 TODO: This could probably be simplified with routine to clear the right side of the screen
 */
 ClearMenus:
-  CopyMemory(EmptyRowStart, ScreenAddress(Empty1Pos), EmptyRowEnd - EmptyRowStart)
-  CopyMemory(EmptyRowStart, ScreenAddress(Empty2Pos), EmptyRowEnd - EmptyRowStart)
-  CopyMemory(EmptyRowStart, ScreenAddress(Empty3Pos), EmptyRowEnd - EmptyRowStart)
-  CopyMemory(EmptyRowStart, ScreenAddress(Empty4Pos), EmptyRowEnd - EmptyRowStart)
-  CopyMemory(EmptyRowStart, ScreenAddress(EmptyQuestionPos), EmptyRowEnd - EmptyRowStart)
+  FillMemory(ColorAddress(Empty1Pos), $0e, BLACK)
+  FillMemory(ColorAddress(Empty2Pos), $0e, BLACK)
+  FillMemory(ColorAddress(Empty3Pos), $0e, BLACK)
+  FillMemory(ColorAddress(Empty4Pos), $0e, BLACK)
+  FillMemory(ColorAddress(EmptyQuestionPos), $0e, BLACK)
+
   rts
 
 /*
@@ -343,15 +342,15 @@ StartMenu:
 
   // Display the Play Game menu option
   CopyMemory(PlayStart, ScreenAddress(PlayGamePos), PlayEnd - PlayStart)
-  CopyMemory(PlayColorStart, ColorAddress(PlayGamePos), PlayColorEnd - PlayColorStart)
+  FillMemory(ColorAddress(PlayGamePos), PlayEnd - PlayStart, WHITE)
 
   // Display the About menu option
   CopyMemory(AboutStart, ScreenAddress(AboutPos), AboutEnd - AboutStart)
-  CopyMemory(AboutColorStart, ColorAddress(AboutPos), AboutColorEnd - AboutColorStart)
+  FillMemory(ColorAddress(AboutPos), AboutEnd - AboutStart, WHITE)
 
   // Display the Quit Game menu option
   CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
-  CopyMemory(QuitColorStart, ColorAddress(QuitGamePos), QuitColorEnd - QuitColorStart)
+  FillMemory(ColorAddress(QuitGamePos), QuitEnd - QuitStart, WHITE)
 
   // Display the music play/stop menu option
   jmp DisplayMuteMenu
@@ -365,15 +364,15 @@ QuitMenu:
 
   // Display Quit message
   CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
-  CopyMemory(QuitConfirmationColorStart, ColorAddress(QuitConfirmPos), QuitConfirmationColorEnd - QuitConfirmationColorStart)
+  FillMemory(ColorAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart, WHITE)
 
   // Yes option
   CopyMemory(YesStart, ScreenAddress(YesPos), YesEnd - YesStart)
-  CopyMemory(YesColorStart, ColorAddress(YesPos), YesColorEnd - YesColorStart)
+  FillMemory(ColorAddress(YesPos), YesEnd - YesStart, WHITE)
 
   // No option
   CopyMemory(NoStart, ScreenAddress(NoPos), NoEnd - NoStart)
-  CopyMemory(NoColorStart, ColorAddress(NoPos), NoColorEnd - NoColorStart)
+  FillMemory(ColorAddress(NoPos), NoEnd - NoStart, WHITE)
 
   rts
 
@@ -383,15 +382,15 @@ PlayerSelectMenu:
 
   // Display the Player Selection message
   CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
-  CopyMemory(PlayerSelectColorStart, ColorAddress(PlayerSelectPos), PlayerSelectColorEnd - PlayerSelectColorStart)
+  FillMemory(ColorAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart, WHITE)
 
   // 1 player option
   CopyMemory(OnePlayerStart, ScreenAddress(OnePlayerPos), OnePlayerEnd - OnePlayerStart)
-  CopyMemory(OnePlayerColorStart, ColorAddress(OnePlayerPos), OnePlayerColorEnd - OnePlayerColorStart)
+  FillMemory(ColorAddress(OnePlayerPos), OnePlayerEnd - OnePlayerStart, WHITE)
 
   // 2 player option
   CopyMemory(TwoPlayerStart, ScreenAddress(TwoPlayerPos), TwoPlayerEnd - TwoPlayerStart)
-  CopyMemory(TwoPlayerColorStart, ColorAddress(TwoPlayerPos), TwoPlayerColorEnd - TwoPlayerColorStart)
+  FillMemory(ColorAddress(TwoPlayerPos), TwoPlayerEnd - TwoPlayerStart, WHITE)
 
   jmp ShowBackMenuItem
 
@@ -403,19 +402,19 @@ LevelSelectMenu:
   SetMenu(MENU_LEVEL_SELECT)
 
   CopyMemory(LevelSelectStart, ScreenAddress(LevelSelectPos), LevelSelectEnd - LevelSelectStart)
-  CopyMemory(LevelSelectColorStart, ColorAddress(LevelSelectPos), LevelSelectColorEnd - LevelSelectColorStart)
+  FillMemory(ColorAddress(LevelSelectPos), LevelSelectEnd - LevelSelectStart, WHITE)
 
   // Easy menu option
   CopyMemory(LevelEasyStart, ScreenAddress(EasyPos), LevelEasyEnd - LevelEasyStart)
-  CopyMemory(LevelEasyColorStart, ColorAddress(EasyPos), LevelEasyColorEnd - LevelEasyColorStart)
+  FillMemory(ColorAddress(EasyPos), LevelEasyEnd - LevelEasyStart, WHITE)
 
   // Medium menu option
   CopyMemory(LevelMediumStart, ScreenAddress(MediumPos), LevelMediumEnd - LevelMediumStart)
-  CopyMemory(LevelMediumColorStart, ColorAddress(MediumPos), LevelMediumColorEnd - LevelMediumColorStart)
+  FillMemory(ColorAddress(MediumPos), LevelMediumEnd - LevelMediumStart, WHITE)
 
   // Hard menu option
   CopyMemory(LevelHardStart, ScreenAddress(HardPos), LevelHardEnd - LevelHardStart)
-  CopyMemory(LevelHardColorStart, ColorAddress(HardPos), LevelHardColorEnd - LevelHardColorStart)
+  FillMemory(ColorAddress(HardPos), LevelHardEnd - LevelHardStart, WHITE)
 
   jmp ShowBackMenuItem
 
@@ -428,15 +427,15 @@ ColorSelectMenu:
 
   // Color select message
   CopyMemory(Player1ColorStart, ScreenAddress(ColorSelectPos), Player1ColorEnd - Player1ColorStart)
-  CopyMemory(P1ColorStart, ColorAddress(ColorSelectPos), P1ColorEnd - P1ColorStart)
+  FillMemory(ColorAddress(ColorSelectPos), Player1ColorEnd - Player1ColorStart, WHITE)
 
   // Black menu item
   CopyMemory(BlackMenuStart, ScreenAddress(BlackPos), BlackMenuEnd - BlackMenuStart)
-  CopyMemory(BlackMenuColorStart, ColorAddress(BlackPos), BlackMenuColorEnd - BlackMenuColorStart)
+  FillMemory(ColorAddress(BlackPos), BlackMenuEnd - BlackMenuStart, WHITE)
 
   // White menu item
   CopyMemory(WhiteMenuStart, ScreenAddress(WhitePos), WhiteMenuEnd - WhiteMenuStart)
-  CopyMemory(WhiteMenuColorStart, ColorAddress(WhitePos), WhiteMenuColorEnd - WhiteMenuColorStart)
+  FillMemory(ColorAddress(WhitePos), WhiteMenuEnd - WhiteMenuStart, WHITE)
 
   jmp ShowBackMenuItem
 
@@ -452,7 +451,7 @@ GameMenu:
 ShowBackMenuItem:
   // Back to main menu option
   CopyMemory(BackMenuStart, ScreenAddress(BackMenuPos), BackMenuEnd - BackMenuStart)
-  CopyMemory(BackMenuColorStart, ColorAddress(BackMenuPos), BackMenuColorEnd - BackMenuColorStart)
+  FillMemory(ColorAddress(BackMenuPos), BackMenuEnd - BackMenuStart, WHITE)
   rts
 
 /*

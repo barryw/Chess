@@ -35,11 +35,9 @@ SetupInterrupt:
   rts
 
 /*
-
 Main raster IRQ handler. The raster is chained such that when the interrupt fires, it does its processing
 and as its last step sets the next raster to fire 24 lines lower. It also maintains a variable called
 'counter' which keeps track of what row we're on. When counter reaches 8, it gets reset to 0.
-
 */
 irq:
   .if(DEBUG == true) {
@@ -62,7 +60,6 @@ irq:
   sta vic.SP6Y
   sta vic.SP7Y
 
-  // Update sprite colors & pointers
   txa
   asl                   // Multiply the row by 8 to get the correct position
   asl                   // inside our 64 byte data structures
@@ -83,11 +80,7 @@ irq:
   lda counter
   cmp #NUM_ROWS - 1
   bne SkipServiceRoutines
-  jsr PlayMusic         // Play the music if it's turned on
-  jsr ComputeBoard      // Recompute and draw the board
-  jsr ColorCycleTitle   // Color cycle the title and make it look pretty
-  jsr ShowClock         // Display the play clock
-  jsr ShowSpinner       // Show the spinner if required
+  jsr RunServiceRoutines
 
 SkipServiceRoutines:
   ldx counter
@@ -110,11 +103,19 @@ NextIRQ:
   rti
 
 /*
+These get called once per frame at the end of the frame
+*/
+RunServiceRoutines:
+  jsr PlayMusic         // Play the music if it's turned on
+  jsr ComputeBoard      // Recompute and draw the board
+  jsr ColorCycleTitle   // Color cycle the title and make it look pretty
+  jsr ShowClock         // Display the play clock
+  jsr ShowSpinner       // Show the spinner if required
 
+/*
 If the music is unmuted, play it. This will get called on every raster interrupt (8 times per frame),
 but will only call the SID play routine once per frame. It checks to see if counter == 0 (first row)
 and if so, calls the SID play routine.
-
 */
 PlayMusic:
   lda playmusic         // Is music enabled?
@@ -132,7 +133,7 @@ ShowSpinner:
   beq !return+
   dec spinnertiming
   bne !return+
-  lda #$10
+  lda #THINKING_SPINNER_SPEED
   sta spinnertiming
   ldx spinnercurrent
   cpx #spinnerend - spinnerstart
@@ -154,7 +155,7 @@ Color cycle the title
 ColorCycleTitle:
   dec colorcycletiming
   bne !return+
-  lda #$10
+  lda #TITLE_COLOR_SCROLL_SPEED
   sta colorcycletiming
 
   ldx #$00
