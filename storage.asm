@@ -70,6 +70,12 @@ currentmenu:
 subseconds:
   .byte $3c
 
+// Screen locations for each component of the timer
+timerpositions:
+  .word ScreenAddress(SecondsPos), ScreenAddress(MinutesPos), ScreenAddress(HoursPos)
+
+timers:
+
 // Keep track of the total time for white
 // Stored as BCD
 whiteseconds:

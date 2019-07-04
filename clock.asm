@@ -23,33 +23,27 @@ ShowClock:
   beq !showwhiteclock+
 
 !showblackclock:
-  lda blackseconds
-  sta num1
-  StoreWord(printvector, ScreenAddress(SecondsPos))
-  jsr PrintByte
-  lda blackminutes
-  sta num1
-  StoreWord(printvector, ScreenAddress(MinutesPos))
-  jsr PrintByte
-  lda blackhours
-  sta num1
-  StoreWord(printvector, ScreenAddress(HoursPos))
-  jsr PrintByte
-  jmp !return+
+  ldx #$03
+  jmp !doshow+
 
 !showwhiteclock:
-  lda whiteseconds
+  ldx #$00
+
+!doshow:
+  ldy #$00
+!showloop:
+  lda timers, x
   sta num1
-  StoreWord(printvector, ScreenAddress(SecondsPos))
+  lda timerpositions, y
+  sta printvector
+  iny
+  lda timerpositions, y
+  sta printvector + 1
   jsr PrintByte
-  lda whiteminutes
-  sta num1
-  StoreWord(printvector, ScreenAddress(MinutesPos))
-  jsr PrintByte
-  lda whitehours
-  sta num1
-  StoreWord(printvector, ScreenAddress(HoursPos))
-  jsr PrintByte
+  inx
+  iny
+  cpx #$03
+  bne !showloop-
 
 !return:
   rts
@@ -72,53 +66,38 @@ UpdateClock:
   beq !updatewhiteclock+
 
 !updateblackclock:
+  ldx #$03
+  jmp !doupdate+
+
+!updatewhiteclock:
+  ldx #$00
+
+!doupdate:
   sed
   clc
-  lda blackseconds
+  lda timers, x
   adc #$01
-  sta blackseconds
+  sta timers, x
   cmp #$60              // Have we hit 60 seconds?
   bne !return+
   lda #$00              // Yup. Reset seconds and increment minutes
-  sta blackseconds
+  sta timers, x
+  inx
   clc
-  lda blackminutes
+  lda timers, x
   adc #$01
-  sta blackminutes
+  sta timers, x
   cmp #$60              // Have we hit 60 minutes?
   bne !return+
   lda #$00              // Yup. Reset minutes and increment hours
-  sta blackminutes
+  sta timers, x
+  inx
   clc
-  lda blackhours
+  lda timers, x
   adc #$01
-  sta blackhours
+  sta timers, x
   cld
   jmp !return+
-
-!updatewhiteclock:
-  sed
-  clc
-  lda whiteseconds
-  adc #$01
-  sta whiteseconds
-  cmp #$60
-  bne !return+
-  lda #$00
-  sta whiteseconds
-  clc
-  lda whiteminutes
-  adc #$01
-  sta whiteminutes
-  cmp #$60
-  bne !return+
-  lda #$00
-  sta whiteminutes
-  clc
-  lda whitehours
-  adc #$01
-  sta whitehours
-  cld
 
 !return:
   rts
