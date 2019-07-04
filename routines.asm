@@ -165,6 +165,7 @@ ShowThinking:
   CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $01)
   lda #$80
+  sta playclockrunning
   sta spinnerenabled
   rts
 
@@ -174,5 +175,39 @@ Hide the "Thinking" message when the computer is ready to move
 HideThinking:
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $00)
   lda #$00
+  sta playclockrunning
   sta spinnerenabled
+  rts
+
+/*
+Update the counts of captured pieces for the current player
+*/
+UpdateCaptureCounts:
+  lda #$00
+  sta playclockrunning
+  StoreWord(printvector, ScreenAddress(CapturedCountStart))
+  ldy #$00
+  lda currentplayer
+  cmp #WHITES_TURN
+  beq !whitecaptured+
+!blackcaptured:
+  StoreWord(capturedvector, blackcaptured)
+  jmp !print+
+!whitecaptured:
+  StoreWord(capturedvector, whitecaptured)
+!print:
+  lda (capturedvector), y
+  sta num1
+  jsr PrintByte
+  lda printvector
+  clc
+  adc #$28
+  sta printvector
+  iny
+  cpy #$05
+  bne !print-
+
+  lda #$80
+  sta playclockrunning
+
   rts

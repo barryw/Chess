@@ -278,6 +278,7 @@ ShowGameMenu:
 
   jsr ShowStatus
   jsr ShowCaptured
+  jsr ShowClock
 
   CopyMemory(ForfeitStart, ScreenAddress(ForfeitPos), ForfeitEnd - ForfeitStart)
   FillMemory(ColorAddress(ForfeitPos), ForfeitEnd - ForfeitStart, WHITE)
@@ -508,6 +509,8 @@ UpdateCurrentPlayer:
   beq !oneplayer+
 
 !twoplayers:
+  lda #$80
+  sta playclockrunning
   lda #WHITE
   sta ColorAddress(PlayerNumberPos)
   lda player1color
@@ -535,38 +538,13 @@ UpdateCurrentPlayer:
   FillMemory(ColorAddress(TurnValuePos), ComputerEnd - ComputerStart, WHITE)
   jsr ShowThinking      // Enable the spinner to show that the computer is thinking
   jmp !return+
+
 !playersturn:
   CopyMemory(PlayerStart, ScreenAddress(TurnValuePos), PlayerEnd - PlayerStart)
   FillMemory(ColorAddress(TurnValuePos), PlayerEnd - PlayerStart, WHITE)
   jsr HideThinking      // If it's the players turn, disable the spinner
+  lda #$80
+  sta playclockrunning
 
 !return:
-  rts
-
-/*
-Update the counts of captured pieces for the current player
-*/
-UpdateCaptureCounts:
-  StoreWord(printvector, ScreenAddress(CapturedCountStart))
-  ldy #$00
-  lda currentplayer
-  cmp #WHITES_TURN
-  beq !whitecaptured+
-!blackcaptured:
-  StoreWord(capturedvector, blackcaptured)
-  jmp !print+
-!whitecaptured:
-  StoreWord(capturedvector, whitecaptured)
-!print:
-  lda (capturedvector), y
-  sta num1
-  jsr PrintByte
-  lda printvector
-  clc
-  adc #$28
-  sta printvector
-  iny
-  cpy #$05
-  bne !print-
-
   rts

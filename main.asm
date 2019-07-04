@@ -39,5 +39,6 @@ start:
 #import "storage.asm"
 #import "strings.asm"
 #import "menus.asm"
+#import "opening_moves.asm"
 #import "music.asm"
 #import "characters.asm"

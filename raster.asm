@@ -103,6 +103,8 @@ RunServiceRoutines:
   jsr ShowClock         // Display the play clock
   jsr ShowSpinner       // Show the spinner if required
 
+  rts
+
 /*
 If the music is unmuted, play it. This will get called on every raster interrupt (8 times per frame),
 but will only call the SID play routine once per frame. It checks to see if counter == 0 (first row)
@@ -191,12 +193,13 @@ ComputeBoard:
 
 !compute:
   lda BoardState, x
-  sta CURRENT_PIECE
+  sta currentpiece
   and #$7f              // Strip high bit to remove the color information.
                         // The remaining 7 bits are the sprite pointer
   sta BoardSprites, x   // Set the pointer for this sprite
-  lda CURRENT_PIECE
+  lda currentpiece
   and #$80              // Strip the lower 7 bits to get color information
+  clc
   rol
   rol
   sta BoardColors, x

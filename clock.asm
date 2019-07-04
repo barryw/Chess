@@ -8,8 +8,8 @@ ShowClock:
   rts
 
 !checksubseconds:
-  lda subseconds        // Have subseconds reached 0?
-  cmp #$01
+  lda subseconds
+  cmp #$3b
   beq !showclock+
   rts
 
@@ -54,6 +54,9 @@ Update the clock for the current player
 UpdateClock:
   lda currentmenu       // Are we in a game?
   cmp #MENU_GAME
+  bne !return+
+  lda playclockrunning
+  cmp #$80
   bne !return+
 
 !updateclock:

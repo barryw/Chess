@@ -3,6 +3,10 @@
 counter:
   .byte $00
 
+// The temp location of the current piece
+currentpiece:
+  .byte $00
+
 // Temp location for when the board is flipped
 fliptmp:
   .fill $40, $00
@@ -74,6 +78,10 @@ subseconds:
 timerpositions:
   .word ScreenAddress(SecondsPos), ScreenAddress(MinutesPos), ScreenAddress(HoursPos)
 
+// Whether or not the play clock is counting
+playclockrunning:
+  .byte $80
+
 timers:
 
 // Keep track of the total time for white
@@ -116,3 +124,9 @@ screenbuffer:
 
 colorbuffer:
   .fill $1e0, $00
+
+// Make sure we don't stomp on each other
+fillmutex:
+  .byte $00
+copymutex:
+  .byte $00

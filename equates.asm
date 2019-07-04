@@ -156,8 +156,6 @@ values stored in BoardState
 .const WHITE_QUEEN  = QUEEN_SPR   + WHITE_COLOR
 .const BLACK_QUEEN  = QUEEN_SPR   + BLACK_COLOR
 
-.label CURRENT_PIECE = $08
-
 .const ONE_PLAYER   = $01
 .const TWO_PLAYERS  = $02
 
@@ -186,23 +184,27 @@ values stored in BoardState
 .const MENU_LEVEL_SELECT  = $05
 .const MENU_ABOUT_SHOWING = $06
 
-// Addresses used for memcopy/memfill operations
+// Addresses used for memcopy operations
 .const copy_from  = $02
 .const copy_to    = $04
 .const copy_size  = $06
-.const fill_value = $08
+
+// Addresses used for memfill operations
+.const fill_to    = $08
+.const fill_size  = $0a
+.const fill_value = $0c
 
 // Addresses used for math operations
-.const num1   = $09
-.const num2   = $0b
-.const result = $0d
+.const num1   = $0d
+.const num2   = $0f
+.const result = $11
 
 // A 16 bit vector to the next location to print to
-.const printvector = $0f
+.const printvector = $13
 
 // A 16 bit vector to the start of the location of
 // storage that tracks captured pieces
-.const capturedvector = $11
+.const capturedvector = $15
 
 .const KEY_A = $01
 .const KEY_B = $02
