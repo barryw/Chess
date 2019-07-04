@@ -270,7 +270,7 @@ StartGame:
   rts
 
 /*
-Display the menu that's shown while the game is being played\
+Display the menu that's shown while the game is being played
 */
 ShowGameMenu:
   jsr ClearMenus
@@ -289,7 +289,14 @@ Show the status line under the title and copyright. It includes which player is 
 as well as a play clock for that player.
 */
 ShowStatus:
-  jsr ShowThinking
+  CopyMemory(TurnStart, ScreenAddress(TurnPos), TurnEnd - TurnStart)
+  FillMemory(ColorAddress(TurnPos), TurnEnd - TurnStart, WHITE)
+
+  CopyMemory(TimeStart, ScreenAddress(TimePos), TimeEnd - TimeStart)
+  FillMemory(ColorAddress(TimePos), TimeEnd - TimeStart, WHITE)
+
+  jsr UpdateStatus
+
   rts
 
 /*
@@ -382,7 +389,7 @@ PlayerSelectMenu:
 
   // Display the Player Selection message
   CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
-  FillMemory(ColorAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart, WHITE)
+  //FillMemory(ColorAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart, WHITE)
 
   // 1 player option
   CopyMemory(OnePlayerStart, ScreenAddress(OnePlayerPos), OnePlayerEnd - OnePlayerStart)
@@ -452,6 +459,7 @@ ShowBackMenuItem:
   // Back to main menu option
   CopyMemory(BackMenuStart, ScreenAddress(BackMenuPos), BackMenuEnd - BackMenuStart)
   FillMemory(ColorAddress(BackMenuPos), BackMenuEnd - BackMenuStart, WHITE)
+
   rts
 
 /*
@@ -481,11 +489,59 @@ HideAboutMenu:
   rts
 
 /*
-Display information at the top of the screen which shows whose turn it is
+Update the status line which includes showing whose turn it is and updating
+the counts of captured pieces
 */
-DisplayStatus:
-  lda currentplayer
-  cmp #WHITES_TURN
+UpdateStatus:
+  jsr UpdateCurrentPlayer
+  jsr UpdateCaptureCounts
+  rts
+
+/*
+Figure out whose turn it is and update the status lines
+*/
+UpdateCurrentPlayer:
+  lda #$3c
+  sta subseconds        // Reset the value of subseconds
+  lda numplayers        // Is it head-to-head or player-vs-computer?
+  cmp #ONE_PLAYER
+  beq !oneplayer+
+
+!twoplayers:
+  lda #WHITE
+  sta ColorAddress(PlayerNumberPos)
+  lda player1color
+  cmp currentplayer
+  beq !playeronesturn+
+
+!playertwosturn:
+  lda #'2'
+  sta ScreenAddress(PlayerNumberPos)
+  jmp !playersturn+
+!playeronesturn:
+  lda #'1'
+  sta ScreenAddress(PlayerNumberPos)
+  jmp !playersturn+
+
+!oneplayer:
+  lda #BLACK
+  sta ColorAddress(PlayerNumberPos)
+  lda player1color      // Is it the player's turn?
+  cmp currentplayer
+  beq !playersturn+     // Yep
+
+!computersturn:
+  CopyMemory(ComputerStart, ScreenAddress(TurnValuePos), ComputerEnd - ComputerStart)
+  FillMemory(ColorAddress(TurnValuePos), ComputerEnd - ComputerStart, WHITE)
+  jsr ShowThinking      // Enable the spinner to show that the computer is thinking
+  jmp !return+
+!playersturn:
+  CopyMemory(PlayerStart, ScreenAddress(TurnValuePos), PlayerEnd - PlayerStart)
+  FillMemory(ColorAddress(TurnValuePos), PlayerEnd - PlayerStart, WHITE)
+  jsr HideThinking      // If it's the players turn, disable the spinner
+
+!return:
+  rts
 
 /*
 Update the counts of captured pieces for the current player
@@ -504,7 +560,7 @@ UpdateCaptureCounts:
 !print:
   lda (capturedvector), y
   sta num1
-  jsr PrintDigit
+  jsr PrintByte
   lda printvector
   clc
   adc #$28

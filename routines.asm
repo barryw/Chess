@@ -3,8 +3,14 @@
 
 *=* "Routines"
 
-// Set the initial positions of the 8 sprites
+/*
+Turn on and position all 8 sprites. We spread them out every 24 pixels and
+place them on the first row. The multiplexer is responsible for moving them
+to subsequent rows.
+*/
 SetupSprites:
+  lda #$ff
+  sta vic.SPENA
   ldx #$00
   stx counter
   lda #PIECE_WIDTH
@@ -27,7 +33,9 @@ DisableSprites:
   sta vic.SPENA
   rts
 
-// Bring in the custom characters
+/*
+Turn on the custom characters
+*/
 SetupCharacters:
   lda vic.VMCSB
   and #$f0
@@ -38,7 +46,9 @@ SetupCharacters:
 
   rts
 
-// Clear the screen by storing space directly to screen memory
+/*
+Clear the screen
+*/
 ClearScreen:
   ldx #$ff
   lda #$20
@@ -51,6 +61,9 @@ clrloop:
   bne clrloop
   rts
 
+/*
+Set up the chess board
+*/
 SetupScreen:
   jsr ClearScreen
   lda #$00
@@ -119,18 +132,27 @@ SetupScreen:
   jmp StartMenu
 
 /*
-Spit out a single digit between 0 and 9. It gets the digit from num1
-and prints it out at the location pointed to at printvector
+Print out a byte as 2 digits. This assumes that the byte is stored as BCD
+with the upper nybble containing the 10s value and the lower nybble containing
+the 1s value. The digits are written to the location pointed at by printvector
 */
-PrintDigit:
+PrintByte:
   tya
   pha
   lda num1
-  and #$0f
-  clc
+  and #$f0              // Get the upper nybble first
+  lsr
+  lsr
+  lsr
+  lsr
   adc #$30
   ldy #$00
-  sta (printvector), y
+  sta (printvector),y
+  iny
+  lda num1
+  and #$0f              // Get the lower nybble
+  adc #$30
+  sta (printvector),y
   pla
   tay
   rts

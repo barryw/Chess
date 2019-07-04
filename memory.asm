@@ -51,23 +51,23 @@ Fill a block of memory with a byte
 FillMemory:
   ldy #0
   ldx copy_size + 1
-  beq !frag+
-!page:
+  beq !frag_fill+
+!page_fill:
   lda fill_value
   sta (copy_to), y
   iny
-  bne !page-
+  bne !page_fill-
   inc copy_to + 1
   dex
-  bne !page-
-!frag:
+  bne !page_fill-
+!frag_fill:
   cpy copy_size
-  beq !done+
+  beq !done_fill+
   lda fill_value
   sta (copy_to), y
   iny
-  bne !frag-
-!done:
+  bne !frag_fill-
+!done_fill:
   rts
 
 /*

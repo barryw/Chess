@@ -1,8 +1,6 @@
-#import "vic.asm"
-#import "routines.asm"
-
 *=* "Raster Routine"
-.macro InitRasterInterrupt(address) {
+
+SetupInterrupt:
   sei
 
   lda #$7f
@@ -16,22 +14,15 @@
   sta vic.VICIRQ
   sta vic.IRQMSK
 
-  lda irqypos
+  lda irqypos           // Get the raster line for the first interrupt
   sta vic.RASTER
-
-  lda #$ff
-  sta vic.SPENA
 
   lda #$1b
   sta vic.SCROLY
 
-  StoreWord($fffe, address)
+  StoreWord(IRQ_VECTOR, irq) // Point the interrupt vector at our routine
 
   cli
-}
-
-SetupInterrupt:
-  InitRasterInterrupt(irq)
   rts
 
 /*
@@ -67,29 +58,28 @@ irq:
   tax
   ldy #$00
 !updatesprites:
-  lda BoardSprites, x   // Set the sprite pointer
+  lda BoardSprites, x   // Set the sprite pointer based on the piece in this position
   sta SPRPTR, y
-  lda BoardColors, x    // Set the sprite color
+  lda BoardColors, x    // Set the sprite color for this sprite
   sta vic.SP0COL, y
   inx
   iny
   cpy #NUM_COLS
   bne !updatesprites-
 
-  // Handle our routines during the interrupt, but only once per frame
   lda counter
   cmp #NUM_ROWS - 1
-  bne SkipServiceRoutines
+  bne !skip+            // Handle our routines during the interrupt, but only once per frame
   jsr RunServiceRoutines
 
-SkipServiceRoutines:
+!skip:
   ldx counter
   inx
   cpx #NUM_ROWS
-  bne NextIRQ
+  bne !nextirq+
   ldx #$00
 
-NextIRQ:
+!nextirq:
   stx counter
   lda irqypos, x
   sta vic.RASTER
@@ -109,6 +99,7 @@ RunServiceRoutines:
   jsr PlayMusic         // Play the music if it's turned on
   jsr ComputeBoard      // Recompute and draw the board
   jsr ColorCycleTitle   // Color cycle the title and make it look pretty
+  jsr UpdateClock       // Update the play clock for whichever player is playing
   jsr ShowClock         // Display the play clock
   jsr ShowSpinner       // Show the spinner if required
 
@@ -120,13 +111,13 @@ and if so, calls the SID play routine.
 PlayMusic:
   lda playmusic         // Is music enabled?
   cmp #$01
-  bne return2
+  bne !return+
   jsr music_play        // Play it
-return2:
+!return:
   rts
 
 /*
-Display an indeterminate progress bar spinner
+Display an indeterminate progress bar spinner when the computer is "Thinking"
 */
 ShowSpinner:
   lda spinnerenabled
@@ -159,9 +150,8 @@ ColorCycleTitle:
   sta colorcycletiming
 
   ldx #$00
+  inc colorcycleposition
   ldy colorcycleposition
-  iny
-  sty colorcycleposition
   cpy #titlecolorsend - titlecolorsstart
   bne !paint+
   ldy #$00

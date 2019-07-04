@@ -72,13 +72,13 @@ EmptyRowStart:
   .fill $0e, $20
 EmptyRowEnd:
 
-WhiteStart:
-  .text "White"
-WhiteEnd:
+PlayerStart:
+  .text "Player"
+PlayerEnd:
 
-BlackStart:
-  .text "Black"
-BlackEnd:
+ComputerStart:
+  .text "Computer"
+ComputerEnd:
 
 OnePlayerStart:
   .text "[1] 1 Player"
@@ -133,27 +133,27 @@ CapturedUnderlineEnd:
 
 CapturedPawnStart:
   .byte $1e
-  .text " Pawns   X  "
+  .text " Pawns   X   "
 CapturedPawnEnd:
 
 CapturedKnightStart:
   .byte $25
-  .text " Knights X  "
+  .text " Knights X   "
 CapturedKnightEnd:
 
 CapturedBishopStart:
   .byte $23
-  .text " Bishops X  "
+  .text " Bishops X   "
 CapturedBishopEnd:
 
 CapturedRookStart:
   .byte $1f
-  .text " Rooks   X  "
+  .text " Rooks   X   "
 CapturedRookEnd:
 
 CapturedQueenStart:
   .byte $22
-  .text " Queens  X  "
+  .text " Queens  X   "
 CapturedQueenEnd:
 
 InvalidMoveStart:

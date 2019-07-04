@@ -65,7 +65,13 @@ playmusic:
 currentmenu:
   .byte $00
 
+// This gets updated every screen refresh. After it reaches 60, update
+// the current player's seconds value
+subseconds:
+  .byte $3c
+
 // Keep track of the total time for white
+// Stored as BCD
 whiteseconds:
   .byte $00
 whiteminutes:
@@ -73,17 +79,18 @@ whiteminutes:
 whitehours:
   .byte $00
 
-// Keep track of the number of each pieces captured by white
-whitecaptured:
-  .fill $05, $00
-
 // Keep track of the total time for black
+// Stored as BCD
 blackseconds:
   .byte $00
 blackminutes:
   .byte $00
 blackhours:
   .byte $00
+
+// Keep track of the number of each pieces captured by white
+whitecaptured:
+  .fill $05, $00
 
 // Keep track of the number of each pieces captured by black
 blackcaptured:

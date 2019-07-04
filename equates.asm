@@ -26,10 +26,15 @@
 .const COLOR_MEMORY_OFFSET = COLOR_MEMORY - SCREEN_MEMORY
 
 // The speed of the title's color scroll. Higher is slower
-.const TITLE_COLOR_SCROLL_SPEED = $8
+.const TITLE_COLOR_SCROLL_SPEED = $08
 
 // The speed that the spinner rotates. Higher is slower
 .const THINKING_SPINNER_SPEED = $20
+
+// IRQ vector locations
+.const NMI_VECTOR = $fffa
+.const RESET_VECTOR = $fffc
+.const IRQ_VECTOR = $fffe
 
 // Struct for describing positions on a screen
 .struct ScreenPos{x,y}
@@ -84,6 +89,15 @@
 
 .var TurnValuePos = ScreenPos($20, $04)
 .var TimeValuePos = ScreenPos($20, $05)
+
+.var PlayerNumberPos = ScreenPos($27, $04)
+
+// Positions for the play clock
+.var SecondsPos = ScreenPos($26, $05)
+.var MinutesPos = ScreenPos($23, $05)
+.var HoursPos = ScreenPos($20, $05)
+.var Colon1Pos = ScreenPos($22, $05)
+.var Colon2Pos = ScreenPos($25, $05)
 
 // Show how many pieces a player has captured
 .var CapturedPos = ScreenPos($1c, $0c)
@@ -144,8 +158,8 @@ values stored in BoardState
 
 .label CURRENT_PIECE = $08
 
-.const ONE_PLAYER = $01
-.const TWO_PLAYERS = $02
+.const ONE_PLAYER   = $01
+.const TWO_PLAYERS  = $02
 
 // These indicate the current player
 .const WHITES_TURN = $01
@@ -172,7 +186,7 @@ values stored in BoardState
 .const MENU_LEVEL_SELECT  = $05
 .const MENU_ABOUT_SHOWING = $06
 
-// Addresses used for memcopy operations
+// Addresses used for memcopy/memfill operations
 .const copy_from  = $02
 .const copy_to    = $04
 .const copy_size  = $06
