@@ -31,40 +31,29 @@ Perform a memory copy
 Each parameter is 16 bits
 */
 .macro CopyMemory(from_address, to_address, size) {
-!wait:
-  lda copymutex
-  cmp #$00
-  bne !wait-
-  lda #$01
-  sta copymutex
   StoreWord(copy_from, from_address)
   StoreWord(copy_to, to_address)
   StoreWord(copy_size, size)
   jsr CopyMemory
-  lda #$00
-  sta copymutex
 }
 
 /*
 Fill a block of memory with a byte
 */
 .macro FillMemory(address, size, value) {
-!wait:
-  lda fillmutex
-  cmp #$00
-  bne !wait-
-  lda #$01
-  sta fillmutex
   StoreWord(fill_to, address)
   StoreWord(fill_size, size)
   lda #value
   sta fill_value
   jsr FillMemory
-  lda #$00
-  sta fillmutex
 }
 
 FillMemory:
+  lda fillmutex
+  cmp #$00
+  bne FillMemory
+  lda #$01
+  sta fillmutex
   ldy #0
   ldx fill_size + 1
   beq !frag_fill+
@@ -84,6 +73,8 @@ FillMemory:
   iny
   bne !frag_fill-
 !done_fill:
+  lda #$00
+  sta fillmutex
   rts
 
 /*
@@ -92,6 +83,11 @@ Do the actual memory copy.
 Doesn't need to be on a page boundary. Can copy fragments as well.
 */
 CopyMemory:
+  lda copymutex
+  cmp #$00
+  bne CopyMemory
+  lda #$01
+  sta copymutex
   ldy #0
   ldx copy_size + 1
   beq !frag+
@@ -112,6 +108,8 @@ CopyMemory:
   iny
   bne !frag-
 !done:
+  lda #$00
+  sta copymutex
   rts
 
 /*
