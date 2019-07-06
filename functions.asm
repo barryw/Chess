@@ -1,9 +1,3 @@
-/*
-
-A bunch of useful functions
-
-*/
-
 // Given a ScreenPos struct, return the screen memory location
 .function ScreenAddress(pos) {
   .return (pos.y * $28) + pos.x + SCREEN_MEMORY

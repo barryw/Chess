@@ -8,7 +8,7 @@ ShowClock:
   rts
 
 !checksubseconds:
-  lda subseconds
+  lda subseconds        // Has the subsecond clock started?
   cmp #$3b
   beq !showclock+
   rts
@@ -55,7 +55,7 @@ UpdateClock:
   lda currentmenu       // Are we in a game?
   cmp #MENU_GAME
   bne !return+
-  lda playclockrunning
+  lda playclockrunning  // Is the play clock running?
   cmp #$80
   bne !return+
 
@@ -74,33 +74,21 @@ UpdateClock:
 
 !updatewhiteclock:
   ldx #$00
+  sed
 
 !doupdate:
-  sed
   clc
   lda timers, x
   adc #$01
   sta timers, x
-  cmp #$60              // Have we hit 60 seconds?
+  cmp #$60              // Have we hit 60 seconds/minutes/hours?
   bne !return+
-  lda #$00              // Yup. Reset seconds and increment minutes
+  lda #$00              // Yup. Reset seconds and increment minutes/hours
   sta timers, x
   inx
-  clc
-  lda timers, x
-  adc #$01
-  sta timers, x
-  cmp #$60              // Have we hit 60 minutes?
-  bne !return+
-  lda #$00              // Yup. Reset minutes and increment hours
-  sta timers, x
-  inx
-  clc
-  lda timers, x
-  adc #$01
-  sta timers, x
-  cld
-  jmp !return+
+  cpx #$02
+  bne !doupdate-
 
 !return:
+  cld
   rts

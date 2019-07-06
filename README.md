@@ -28,10 +28,20 @@ To get around this, a technique called "sprite multiplexing" is used whereby the
 
 #### How do I build it?
 
+It's all built with KickAssembler, which really is a Kick Ass Assembler! It makes it very easy to build 6502/6510 code and has a nice java-like language built in.
+
 There's a docker image containing KickAssembler that you can use. You will need to have `Make` and `docker` installed to run this.
 
 ```bash
 make build
 ```
 
-This will output a file called `C64Chess.d64` that you can load into VICE.
+This will output a file called `C64Chess.d64` that you can load into VICE or your 1541 Ultimate II+.
+
+#### How is the code laid out?
+
+I've tried to put related things into the same files, but for the most part everything is brought in from `main.asm`. If you're going to make changes, be very careful that things don't overlap! The sprites, custom characters and music cannot move, so you'll need to make sure that everything is located around them.
+
+The chess pieces are rendered with sprites, which have to be multiplexed to get 32 pieces. This is very easy on a game like chess where the pieces are stationary. It's also nice that the chess board is 8x8 which lines up very nicely with limitations on an 8-bit machine like the 64.
+
+Raster interrupts are heavily used to do the sprite multiplexing. Every 24 scan lines the sprites are re-drawn to show the pieces for that row. The last row also triggers the once-per-frame subroutines (keyboard scan, title colors, music, play clock updates).
