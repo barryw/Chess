@@ -102,7 +102,27 @@ RunServiceRoutines:
   jsr UpdateClock       // Update the play clock for whichever player is playing
   jsr ShowClock         // Display the play clock
   jsr ShowSpinner       // Show the spinner if required
+  jsr FlashCursor       // Flash the cursor if it's on-screen
 
+  rts
+
+/*
+Flash the cursor indicating that we're waiting on human input
+*/
+FlashCursor:
+  lda showcursor
+  beq !return+
+  dec cursorflashtimer
+  bne !return+
+  lda #CURSOR_FLASH_SPEED
+  sta cursorflashtimer
+  StoreWord(inputlocationvector, ScreenAddress(CursorPos))
+  ldy cursorxpos
+  lda (inputlocationvector),y
+  eor #$80
+  sta (inputlocationvector),y
+
+!return:
   rts
 
 /*

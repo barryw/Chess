@@ -124,6 +124,14 @@ ThinkingStart:
   .text "Thinking"
 ThinkingEnd:
 
+MoveFromStart:
+  .text "Move From :   "
+MoveFromEnd:
+
+MoveToStart:
+  .text "Move To   :   "
+MoveToEnd:
+
 CapturedStart:
   .text "Captured"
 CapturedEnd:

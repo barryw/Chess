@@ -10,53 +10,130 @@ Read the keyboard and process the key presses
 */
 ReadKeyboard:
   jsr Keyboard
-  bcs NoValidInput
+  bcc !processkey+
+  jmp NoValidInput
+!processkey:
+  sta currentkey
   jsr WaitForVblank
-  cmp #KEY_M
-  bne !nextkey+
-  jmp HandleMKey
-!nextkey:
+  cpx #$02
+  bne !next+
+  jmp HandleReturnKey
+!next:
+  cpx #$01
+  bne !next+
+  jmp HandleDeleteKey
+!next:
   cmp #KEY_A
-  bne !nextkey+
+  bne !next+
   jmp HandleAKey
-!nextkey:
+!next:
   cmp #KEY_B
-  bne !nextkey+
+  bne !next+
   jmp HandleBKey
-!nextkey:
+!next:
+  cmp #KEY_C
+  bne !next+
+  jmp HandleCKey
+!next:
+  cmp #KEY_D
+  bne !next+
+  jmp HandleDKey
+!next:
   cmp #KEY_E
-  bne !nextkey+
+  bne !next+
   jmp HandleEKey
-!nextkey:
+!next:
+  cmp #KEY_F
+  bne !next+
+  jmp HandleFKey
+!next:
+  cmp #KEY_G
+  bne !next+
+  jmp HandleGKey
+!next:
   cmp #KEY_H
-  bne !nextkey+
+  bne !next+
   jmp HandleHKey
-!nextkey:
-  cmp #KEY_Q
-  bne !nextkey+
-  jmp HandleQKey
-!nextkey:
-  cmp #KEY_Y
-  bne !nextkey+
-  jmp HandleYKey
-!nextkey:
+!next:
+  cmp #KEY_M
+  bne !next+
+  jmp HandleMKey
+!next:
   cmp #KEY_N
-  bne !nextkey+
+  bne !next+
   jmp HandleNKey
-!nextkey:
+!next:
   cmp #KEY_P
-  bne !nextkey+
+  bne !next+
   jmp HandlePKey
-!nextkey:
+!next:
+  cmp #KEY_Q
+  bne !next+
+  jmp HandleQKey
+!next:
+  cmp #KEY_Y
+  bne !next+
+  jmp HandleYKey
+!next:
   cmp #KEY_1
-  bne !nextkey+
+  bne !next+
   jmp Handle1Key
-!nextkey:
+!next:
   cmp #KEY_2
-  bne !nextkey+
+  bne !next+
   jmp Handle2Key
-!nextkey:
+!next:
+  cmp #KEY_3
+  bne !next+
+  jmp Handle3Key
+!next:
+  cmp #KEY_4
+  bne !next+
+  jmp Handle4Key
+!next:
+  cmp #KEY_5
+  bne !next+
+  jmp Handle5Key
+!next:
+  cmp #KEY_6
+  bne !next+
+  jmp Handle6Key
+!next:
+  cmp #KEY_7
+  bne !next+
+  jmp Handle7Key
+!next:
+  cmp #KEY_8
+  bne NoValidInput
+  jmp Handle8Key
 NoValidInput:
+  rts
+
+/*
+Handle the pressing of the return key
+*/
+HandleReturnKey:
+  lda currentmenu
+  cmp #MENU_GAME
+  bne !exit+
+
+
+!exit:
+  rts
+
+/*
+Allow the user to correct their input
+*/
+HandleDeleteKey:
+  lda cursorxpos
+  cmp #$00
+  beq !exit+
+  lda #$20              // Put a space in the current location
+  ldy coordinateindex
+  sta (inputlocationvector),y
+  dec cursorxpos
+  dec coordinateindex
+!exit:
   rts
 
 /*
@@ -70,7 +147,7 @@ HandleAKey:
   beq !hideabout+
 
 !columnselect:
-  rts
+  jmp HandleColumnSelection
 
 !showabout:
   jmp ShowAboutMenu
@@ -94,7 +171,7 @@ HandleBKey:
   rts
 
 !columnselect:
-  rts
+  jmp HandleColumnSelection
 
 !levelselect:
   lda numplayers
@@ -108,6 +185,10 @@ HandleBKey:
 !playerselect:
   jmp PlayerSelectMenu
 
+HandleCKey:
+HandleDKey:
+  jmp HandleColumnSelection
+
 /*
 The E key is used as column select during the game, or the Easy level menu selection
 */
@@ -117,12 +198,16 @@ HandleEKey:
   beq !easy+
 
 !columnselect:
-  rts
+  jmp HandleColumnSelection
 
 !easy:
   lda #LEVEL_EASY
   sta difficulty
   jmp ColorSelectMenu
+
+HandleFKey:
+HandleGKey:
+  jmp HandleColumnSelection
 
 /*
 The H key is used as column select during the game, or the Hard level menu selection
@@ -133,7 +218,7 @@ HandleHKey:
   beq !hard+
 
 !columnselect:
-  rts
+  jmp HandleColumnSelection
 
 !hard:
   lda #LEVEL_HARD
@@ -229,11 +314,10 @@ Handle1Key:
 !colorselect:
   lda #BLACK
   sta player1color
-  jsr FlipBoard
   jmp StartGame
 
 !rowselect:
-  rts
+  jmp HandleRowSelection
 
 /*
 The 2 key serves a few purposes: player selection, color selection and row selection during gameplay
@@ -259,14 +343,75 @@ Handle2Key:
   jmp StartGame
 
 !rowselect:
+  jmp HandleRowSelection
+
+Handle3Key:
+Handle4Key:
+Handle5Key:
+Handle6Key:
+Handle7Key:
+Handle8Key:
+  jmp HandleRowSelection
+
+/*
+Deal with a row selection
+*/
+HandleRowSelection:
+  lda coordinateindex
+  lsr
+  bcc !exit+
+  jsr DisplayCoordinate
+!exit:
   rts
 
 /*
-Start the game
+Deal with a column selection
+*/
+HandleColumnSelection:
+  lda coordinateindex
+  lsr
+  bcs !exit+
+  lda currentkey        // Make the column selection uppercase
+  clc
+  adc #$40
+  sta currentkey
+  jsr DisplayCoordinate
+  inc coordinateindex   // Allow the user to enter a row
+  inc cursorxpos        // Move the cursor over 1 place
+!exit:
+  rts
+
+DisplayCoordinate:
+  lda currentkey
+  pha
+  StoreWord(inputlocationvector, ScreenAddress(CursorPos))
+  pla
+  ldy cursorxpos
+  sta (inputlocationvector), y
+
+  rts
+
+/*
+The main game loop
 */
 StartGame:
   jsr ShowGameMenu
 
+!playgame:
+  lda numplayers
+  cmp #TWO_PLAYERS
+  beq !twoplayers+
+
+!oneplayer:
+  lda currentplayer
+  cmp #WHITES_TURN
+
+  jmp !exit+
+
+!twoplayers:
+  jsr DisplayMoveFromPrompt
+
+!exit:
   rts
 
 /*
@@ -390,7 +535,7 @@ PlayerSelectMenu:
 
   // Display the Player Selection message
   CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
-  //FillMemory(ColorAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart, WHITE)
+  FillMemory(ColorAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart, WHITE)
 
   // 1 player option
   CopyMemory(OnePlayerStart, ScreenAddress(OnePlayerPos), OnePlayerEnd - OnePlayerStart)
@@ -490,6 +635,44 @@ HideAboutMenu:
   rts
 
 /*
+Display the prompt to allow the player to enter the coordinates of the piece to move.
+*/
+DisplayMoveFromPrompt:
+  CopyMemory(MoveFromStart, ScreenAddress(MovePos), MoveFromEnd - MoveFromStart)
+  FillMemory(ColorAddress(MovePos), MoveFromEnd - MoveFromStart, WHITE)
+
+  lda #$00
+  sta movefrom
+  sta movefrom + $01
+  sta cursorxpos
+  sta coordinateindex
+
+  lda #$80
+  sta showcursor
+
+  rts
+
+/*
+Display the prompt to allow the player to enter the coordinates of where to move the
+selected piece.
+*/
+DisplayMoveToPrompt:
+  CopyMemory(MoveToStart, ScreenAddress(MovePos), MoveToEnd - MoveToStart)
+  FillMemory(ColorAddress(MovePos), MoveToEnd - MoveToStart, WHITE)
+
+  lda #$00
+  sta moveto
+  sta moveto + $01
+  sta cursorxpos
+
+  lda #$02
+  sta coordinateindex
+
+  lda #$80
+  sta showcursor
+  rts
+
+/*
 Update the status line which includes showing whose turn it is and updating
 the counts of captured pieces
 */
@@ -499,9 +682,11 @@ UpdateStatus:
   rts
 
 /*
-Figure out whose turn it is and update the status lines
+Figure out whose turn it is and update the status lines.
 */
 UpdateCurrentPlayer:
+  lda #$80
+  sta playclockrunning
   lda #$3c
   sta subseconds        // Reset the value of subseconds
   lda numplayers        // Is it head-to-head or player-vs-computer?
@@ -509,8 +694,6 @@ UpdateCurrentPlayer:
   beq !oneplayer+
 
 !twoplayers:
-  lda #$80
-  sta playclockrunning
   lda #WHITE
   sta ColorAddress(PlayerNumberPos)
   lda player1color
@@ -543,8 +726,6 @@ UpdateCurrentPlayer:
   CopyMemory(PlayerStart, ScreenAddress(TurnValuePos), PlayerEnd - PlayerStart)
   FillMemory(ColorAddress(TurnValuePos), PlayerEnd - PlayerStart, WHITE)
   jsr HideThinking      // If it's the players turn, disable the spinner
-  lda #$80
-  sta playclockrunning
 
 !return:
   rts

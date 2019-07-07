@@ -7,6 +7,10 @@ counter:
 currentpiece:
   .byte $00
 
+// The temp location of the current key pressed
+currentkey:
+  .byte $00
+
 // Temp location for when the board is flipped
 fliptmp:
   .fill $40, $00
@@ -69,8 +73,9 @@ playmusic:
 currentmenu:
   .byte $00
 
-// This gets updated every screen refresh. After it reaches 60, update
-// the current player's seconds value
+// This gets updated every screen refresh. It counts down and once
+// it reaches 0, it will update the seconds value for the current
+// player.
 subseconds:
   .byte $3c
 
@@ -81,6 +86,17 @@ timerpositions:
 // Whether or not the play clock is counting
 playclockrunning:
   .byte $80
+
+// Whether to show the flashing cursor to wait for the movefrom/moveto coordinates
+showcursor:
+  .byte $00
+
+cursorxpos:
+  .byte $00
+
+// Countdown timer for flashing the cursor
+cursorflashtimer:
+  .byte CURSOR_FLASH_SPEED
 
 timers:
 
@@ -110,10 +126,6 @@ whitecaptured:
 blackcaptured:
   .fill $05, $00
 
-// Whether the play clock of the current player should be shown
-displayplayclocks:
-  .byte $00
-
 aboutisshowing:
   .byte $00
 
@@ -125,8 +137,20 @@ screenbuffer:
 colorbuffer:
   .fill $1e0, $00
 
-// Make sure we don't stomp on each other
+// Make sure we only do one memcopy/memfill at a time. There can be
+// a race condition between interrupt and non-interrupt code.
 fillmutex:
   .byte $00
 copymutex:
+  .byte $00
+
+coordinates:
+// Stores the player's selected piece
+movefrom:
+  .word $0000
+// Stores the location where the player wants to move to
+moveto:
+  .word $0000
+
+coordinateindex:
   .byte $00

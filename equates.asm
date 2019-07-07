@@ -31,6 +31,9 @@
 // The speed that the spinner rotates. Higher is slower
 .const THINKING_SPINNER_SPEED = $20
 
+// The cursor flash speed
+.const CURSOR_FLASH_SPEED = $10
+
 // IRQ vector locations
 .const NMI_VECTOR = $fffa
 .const RESET_VECTOR = $fffc
@@ -112,6 +115,8 @@
 
 .var ThinkingPos = ScreenPos($1c, $09)
 .var SpinnerPos = ScreenPos($25, $09)
+.var MovePos = ScreenPos($1a, $07)
+.var CursorPos = ScreenPos($26, $07)
 
 // These are indexes into the storage area that tracks
 // how many of each piece has been captured for white
@@ -205,6 +210,9 @@ values stored in BoardState
 // A 16 bit vector to the start of the location of
 // storage that tracks captured pieces
 .const capturedvector = $15
+
+// Pointer to screen location of user input
+.const inputlocationvector = $17
 
 .const KEY_A = $01
 .const KEY_B = $02
