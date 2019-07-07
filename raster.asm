@@ -126,9 +126,7 @@ FlashCursor:
   rts
 
 /*
-If the music is unmuted, play it. This will get called on every raster interrupt (8 times per frame),
-but will only call the SID play routine once per frame. It checks to see if counter == 0 (first row)
-and if so, calls the SID play routine.
+If the music is unmuted, play it. This will get called once per frame (60x a second).
 */
 PlayMusic:
   lda playmusic         // Is music enabled?

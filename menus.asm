@@ -368,6 +368,7 @@ HandleRowSelection:
   ldy coordinateindex   // This makes it easier to compute location in BoardState
   sta coordinates, y    // Store the row in our coordinate structure
   jsr DisplayCoordinate
+  jsr ComputeBoardOffsets
 !exit:
   rts
 
@@ -399,7 +400,6 @@ DisplayCoordinate:
   pla
   ldy cursorxpos
   sta (inputlocationvector), y
-
   rts
 
 /*

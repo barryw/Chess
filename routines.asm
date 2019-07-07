@@ -211,3 +211,26 @@ UpdateCaptureCounts:
   sta playclockrunning
 
   rts
+
+/*
+This will take the coordinates in movefrom and moveto and calculate a 0-63 byte
+offset in BoardState. This is how we translate something like A1 into 56
+(A = 0, 1 = 7 which becomes 7*8+0=56)
+*/
+ComputeBoardOffsets:
+  lda movefrom + $01        // Calculate the row offset first
+  asl                       // Multiply it by 8
+  asl
+  asl
+  clc
+  adc movefrom
+  sta movefromindex
+  lda moveto + $01
+  asl
+  asl
+  asl
+  clc
+  adc moveto
+  sta movetoindex
+
+  rts

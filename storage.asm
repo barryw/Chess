@@ -155,6 +155,14 @@ moveto:
 coordinateindex:
   .byte $00
 
+// Store the offset in BoardState for the piece to move here
+movefromindex:
+  .byte $00
+
+// Store the offset in BoardState for the location to move to here
+movetoindex:
+  .byte $00
+
 // This is a lookup table to translate row numbers into their
 // inverse. This is needed due to the way BoardState is arranged.
 // This could probably be done in code, but I'm lazy.
