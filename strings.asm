@@ -132,6 +132,14 @@ MoveToStart:
   .text "Move To   :   "
 MoveToEnd:
 
+NoPieceStart:
+  .text "No piece there"
+NoPieceEnd:
+
+NotYourPieceStart:
+  .text "Not your piece"
+NotYourPieceEnd:
+
 CapturedStart:
   .text "Captured"
 CapturedEnd:

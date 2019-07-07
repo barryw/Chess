@@ -90,33 +90,36 @@
 .var TurnPos = ScreenPos($1a, $04)
 .var TimePos = ScreenPos($1a, $05)
 
-.var TurnValuePos = ScreenPos($20, $04)
-.var TimeValuePos = ScreenPos($20, $05)
+.var TurnValuePos = ScreenPos($20, TurnPos.y)
+.var TimeValuePos = ScreenPos($20, TimePos.y)
 
-.var PlayerNumberPos = ScreenPos($27, $04)
+.var PlayerNumberPos = ScreenPos($27, TurnValuePos.y)
 
 // Positions for the play clock
 .var SecondsPos = ScreenPos($26, $05)
-.var MinutesPos = ScreenPos($23, $05)
-.var HoursPos = ScreenPos($20, $05)
-.var Colon1Pos = ScreenPos($22, $05)
-.var Colon2Pos = ScreenPos($25, $05)
+.var MinutesPos = ScreenPos($23, SecondsPos.y)
+.var HoursPos = ScreenPos($20, SecondsPos.y)
+.var Colon1Pos = ScreenPos($22, SecondsPos.y)
+.var Colon2Pos = ScreenPos($25, SecondsPos.y)
 
 // Show how many pieces a player has captured
 .var CapturedPos = ScreenPos($1c, $0c)
-.var CapturedUnderlinePos = ScreenPos($1c, $0d)
-.var CapturedPawnPos = ScreenPos($1a, $0e)
-.var CapturedKnightPos = ScreenPos($1a, $0f)
-.var CapturedBishopPos = ScreenPos($1a, $10)
-.var CapturedRookPos = ScreenPos($1a, $11)
-.var CapturedQueenPos = ScreenPos($1a, $12)
+.var CapturedUnderlinePos = ScreenPos($1c, CapturedPos.y + $01)
+.var CapturedPawnPos = ScreenPos($1a, CapturedPos.y + $02)
+.var CapturedKnightPos = ScreenPos($1a, CapturedPos.y + $03)
+.var CapturedBishopPos = ScreenPos($1a, CapturedPos.y + $04)
+.var CapturedRookPos = ScreenPos($1a, CapturedPos.y + $05)
+.var CapturedQueenPos = ScreenPos($1a, CapturedPos.y + $06)
 
-.var CapturedCountStart = ScreenPos($26, $0e)
+.var CapturedCountStart = ScreenPos($26, CapturedPawnPos.y)
 
-.var ThinkingPos = ScreenPos($1c, $09)
-.var SpinnerPos = ScreenPos($25, $09)
-.var MovePos = ScreenPos($1a, $07)
-.var CursorPos = ScreenPos($26, $07)
+.var ThinkingPos = ScreenPos($1c, $07)
+.var SpinnerPos = ScreenPos($25, ThinkingPos.y)
+.var MovePos = ScreenPos($1a, ThinkingPos.y)
+.var CursorPos = ScreenPos($26, ThinkingPos.y)
+
+// The location to display movement errors
+.var ErrorPos = ScreenPos($1a, ThinkingPos.y + $02)
 
 // These are indexes into the storage area that tracks
 // how many of each piece has been captured for white

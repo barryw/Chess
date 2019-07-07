@@ -15,6 +15,12 @@
   pla
 }
 
+.macro Toggle(address) {
+  lda address
+  eor #$80
+  sta address
+}
+
 /*
 Store a 16 bit word
 */

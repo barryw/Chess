@@ -110,33 +110,6 @@ NoValidInput:
   rts
 
 /*
-Handle the pressing of the return key
-*/
-HandleReturnKey:
-  lda currentmenu
-  cmp #MENU_GAME
-  bne !exit+
-
-
-!exit:
-  rts
-
-/*
-Allow the user to correct their input
-*/
-HandleDeleteKey:
-  lda cursorxpos
-  cmp #$00
-  beq !exit+
-  lda #$20              // Put a space in the current location
-  ldy coordinateindex
-  sta (inputlocationvector),y
-  dec cursorxpos
-  dec coordinateindex
-!exit:
-  rts
-
-/*
 The A key is used to display the About menu or as column select during the game
 */
 HandleAKey:
@@ -354,7 +327,61 @@ Handle8Key:
   jmp HandleRowSelection
 
 /*
-Deal with a row selection
+Handle the pressing of the return key. This key gets pressed when
+the player has typed in the entire movefrom or moveto coordinates
+*/
+HandleReturnKey:
+  lda processreturn     // Already processing the enter key?
+  bne !exit+
+  eor #$80
+  sta processreturn
+  lda currentmenu       // Are we playing?
+  cmp #MENU_GAME
+  bne !endreturn+
+  lda showcursor        // Are we accepting input?
+  beq !endreturn+
+  lda movefromindex     // Does movefrom have a value?
+  bpl !checkmoveto+     // Yes. check moveto
+  jmp !endreturn+       // Nope. Don't do anything until we have a movefrom value
+!checkmoveto:
+  lda movetoindex       // Does moveto have a value?
+  bpl !processmove+     // Yes. Process the move
+!validatefrom:
+  jsr ValidateFrom      // Make sure this is a valid move
+  jmp !endreturn+
+!processmove:
+  jsr ValidateMove
+!endreturn:
+  Toggle(processreturn)
+!exit:
+  rts
+
+/*
+Allow the user to correct their input
+*/
+HandleDeleteKey:
+  lda cursorxpos
+  cmp #$00
+  beq !exit+
+  lda #$20              // Put a space in the current location
+  ldy coordinateindex
+  sta (inputlocationvector),y
+  dec cursorxpos
+  dec coordinateindex
+  lda coordinateindex
+  cmp #$00
+  beq !zeromovefrom+
+  lda #$80
+  sta movetoindex
+  jmp !exit+
+!zeromovefrom:
+  lda #$80
+  sta movefromindex
+!exit:
+  rts
+
+/*
+Deal with a row selection. This is the second part of the board coordinate.
 */
 HandleRowSelection:
   lda coordinateindex
@@ -373,19 +400,20 @@ HandleRowSelection:
   rts
 
 /*
-Deal with a column selection
+Deal with a column selection. This is the first part of the board coordinate
+for movefrom and moveto.
 */
 HandleColumnSelection:
   lda coordinateindex
   lsr
   bcs !exit+
-  lda currentkey        // Make the column selection uppercase
+  lda currentkey
   sec
-  sbc #$01
+  sbc #$01              // Make the column number 0 based
   ldy coordinateindex
   sta coordinates, y    // Store the column in our coordinate structure
   clc
-  adc #$41
+  adc #$41              // Make the column selection uppercase
   sta currentkey
   jsr DisplayCoordinate
   inc coordinateindex   // Allow the user to enter a row
@@ -393,7 +421,11 @@ HandleColumnSelection:
 !exit:
   rts
 
+/*
+Display either the row or the column
+*/
 DisplayCoordinate:
+  jsr ClearError
   lda currentkey
   pha
   StoreWord(inputlocationvector, ScreenAddress(CursorPos))

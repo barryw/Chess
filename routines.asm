@@ -223,9 +223,12 @@ ComputeBoardOffsets:
   asl
   asl
   clc
-  adc movefrom
+  adc movefrom              // Add in the column offset
   sta movefromindex
-  lda moveto + $01
+  lda coordinateindex
+  cmp #$02
+  bne !exit+
+  lda moveto + $01          // Do the same for moveto
   asl
   asl
   asl
@@ -233,4 +236,62 @@ ComputeBoardOffsets:
   adc moveto
   sta movetoindex
 
+!exit:
+  rts
+
+/*
+Clear the error line
+*/
+ClearError:
+  FillMemory(ColorAddress(ErrorPos), $0e, BLACK)
+  rts
+
+/*
+Reset the input for whatever position is being displayed
+*/
+ResetInput:
+  ldy #$00
+  sty cursorxpos
+  lda #$20
+  sta (inputlocationvector), y
+  iny
+  sta (inputlocationvector), y
+  dec coordinateindex
+  rts
+
+/*
+Validate that the selected movefrom location contains a piece of the correct color
+*/
+ValidateFrom:
+  ldx movefromindex     // Get the piece at the selected location
+  lda BoardState, x
+  cmp #EMPTY_PIECE      // Is it an empty square?
+  beq !emptysquare+
+  and #$80
+  clc
+  rol
+  rol
+  cmp currentplayer
+  bne !notyourpiece+
+
+  jmp !exit+
+!notyourpiece:
+  CopyMemory(NotYourPieceStart, ScreenAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart)
+  FillMemory(ColorAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart, WHITE)
+  jmp !clearinput+
+!emptysquare:
+  CopyMemory(NoPieceStart, ScreenAddress(ErrorPos), NoPieceEnd - NoPieceStart)
+  FillMemory(ColorAddress(ErrorPos), NoPieceEnd - NoPieceStart, WHITE)
+!clearinput:
+  jsr ResetInput
+  lda #$80
+  sta movefromindex
+
+!exit:
+  rts
+
+/*
+Validate that the selected moveto location is valid for the piece selected
+*/
+ValidateMove:
   rts
