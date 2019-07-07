@@ -170,6 +170,10 @@ values stored in BoardState
 .const ONE_PLAYER   = $01
 .const TWO_PLAYERS  = $02
 
+// Constants for the coordinate selections
+.const INPUT_MOVE_FROM = $00
+.const INPUT_MOVE_TO   = $80
+
 // These indicate the current player
 .const WHITES_TURN = $01
 .const BLACKS_TURN = $00

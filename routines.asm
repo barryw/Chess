@@ -213,22 +213,24 @@ UpdateCaptureCounts:
   rts
 
 /*
-This will take the coordinates in movefrom and moveto and calculate a 0-63 byte
-offset in BoardState. This is how we translate something like A1 into 56
-(A = 0, 1 = 7 which becomes 7*8+0=56)
+Calculate the board offset for the movefrom coordinate
 */
-ComputeBoardOffsets:
-  lda movefrom + $01        // Calculate the row offset first
-  asl                       // Multiply it by 8
+ComputeMoveFromOffset:
+  lda movefrom + $01
+  asl
   asl
   asl
   clc
-  adc movefrom              // Add in the column offset
+  adc movefrom
   sta movefromindex
-  lda coordinateindex       // Don't compute moveto until we've entered its coordinate
-  cmp #$03
-  bne !exit+
-  lda moveto + $01          // Do the same for moveto
+
+  rts
+
+/*
+Calculate the board offset for the moveto coordinate
+*/
+ComputeMoveToOffset:
+  lda moveto + $01
   asl
   asl
   asl
@@ -236,7 +238,6 @@ ComputeBoardOffsets:
   adc moveto
   sta movetoindex
 
-!exit:
   rts
 
 /*
@@ -250,15 +251,15 @@ ClearError:
 Reset the input for whatever position is being displayed
 */
 ResetInput:
-  ldy #$00
+  ldy #$00              // Reset the cursor position
   sty cursorxpos
-  lda #$20
+  lda #$20              // Put space characters in both coordinate locations
   sta (inputlocationvector), y
   iny
   sta (inputlocationvector), y
-  dec coordinateindex
-  lda #$00
-  sta flashpiece
+  lda #$80              // Show the cursor
+  sta showcursor
+
   rts
 
 /*
@@ -279,7 +280,8 @@ ValidateFrom:
   ldx movefromindex
   lda BoardState, x
   sta selectedpiece
-  lda #$80
+
+  lda #$80              // Start flashing the selected piece
   sta flashpiece
 
   jsr DisplayMoveToPrompt

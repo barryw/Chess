@@ -365,19 +365,9 @@ HandleDeleteKey:
   cmp #$00
   beq !exit+
   lda #$20              // Put a space in the current location
-  ldy coordinateindex
+  ldy cursorxpos
   sta (inputlocationvector),y
   dec cursorxpos
-  dec coordinateindex
-  lda coordinateindex
-  cmp #$00
-  beq !zeromovefrom+
-  lda #$80
-  sta movetoindex
-  jmp !exit+
-!zeromovefrom:
-  lda #$80
-  sta movefromindex
 !exit:
   rts
 
@@ -385,18 +375,28 @@ HandleDeleteKey:
 Deal with a row selection. This is the second part of the board coordinate.
 */
 HandleRowSelection:
-  lda coordinateindex
-  lsr
-  bcc !exit+
+  lda cursorxpos        // Don't have a column selection yet?
+  cmp #$00
+  beq !exit+
   lda currentkey
   sec
   sbc #$31              // Store the row 0 based instead of 1 based.
   tay
-  lda rowlookup, y
-  ldy coordinateindex   // This makes it easier to compute location in BoardState
-  sta coordinates, y    // Store the row in our coordinate structure
+  lda rowlookup, y      // Invert the row numbers
+  pha
+  lda inputselection
+  cmp #INPUT_MOVE_FROM
+  bne !moveto+
+  pla
+  sta movefrom + $01
+  jsr ComputeMoveFromOffset
+  jmp !continue+
+!moveto:
+  pla
+  sta moveto + $01
+  jsr ComputeMoveToOffset
+!continue:
   jsr DisplayCoordinate
-  jsr ComputeBoardOffsets
 !exit:
   rts
 
@@ -405,19 +405,27 @@ Deal with a column selection. This is the first part of the board coordinate
 for movefrom and moveto.
 */
 HandleColumnSelection:
-  lda coordinateindex
-  lsr
-  bcs !exit+
+  lda cursorxpos        // Already have a column selection?
+  cmp #$01
+  beq !exit+
   lda currentkey
   sec
   sbc #$01              // Make the column number 0 based
-  ldy coordinateindex
-  sta coordinates, y    // Store the column in our coordinate structure
+  pha
+  lda inputselection    // Are we working with movefrom or moveto?
+  cmp #INPUT_MOVE_FROM
+  bne !moveto+
+  pla
+  sta movefrom
+  jmp !continue+
+!moveto:
+  pla
+  sta moveto
+!continue:
   clc
   adc #$41              // Make the column selection uppercase
   sta currentkey
   jsr DisplayCoordinate
-  inc coordinateindex   // Allow the user to enter a row
   inc cursorxpos        // Move the cursor over 1 place
 !exit:
   rts
@@ -685,14 +693,10 @@ DisplayMoveFromPrompt:
   CopyMemory(MoveFromStart, ScreenAddress(MovePos), MoveFromEnd - MoveFromStart)
   FillMemory(ColorAddress(MovePos), MoveFromEnd - MoveFromStart, WHITE)
 
-  lda #$00
-  sta movefrom
-  sta movefrom + $01
-  sta cursorxpos
-  sta coordinateindex
+  lda #INPUT_MOVE_FROM
+  sta inputselection
 
-  lda #$80
-  sta showcursor
+  jsr ResetInput
 
   rts
 
@@ -704,16 +708,11 @@ DisplayMoveToPrompt:
   CopyMemory(MoveToStart, ScreenAddress(MovePos), MoveToEnd - MoveToStart)
   FillMemory(ColorAddress(MovePos), MoveToEnd - MoveToStart, WHITE)
 
-  lda #$00
-  sta moveto
-  sta moveto + $01
-  sta cursorxpos
+  lda #INPUT_MOVE_TO
+  sta inputselection
 
-  lda #$02
-  sta coordinateindex
+  jsr ResetInput
 
-  lda #$80
-  sta showcursor
   rts
 
 /*

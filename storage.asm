@@ -87,13 +87,6 @@ timerpositions:
 playclockrunning:
   .byte $80
 
-// Whether to show the flashing cursor to wait for the movefrom/moveto coordinates
-showcursor:
-  .byte $00
-
-cursorxpos:
-  .byte $00
-
 // Countdown timer for flashing the cursor
 cursorflashtimer:
   .byte CURSOR_FLASH_SPEED
@@ -144,16 +137,25 @@ fillmutex:
 copymutex:
   .byte $00
 
-coordinates:
-// Stores the player's selected piece
+// Whether to show the flashing cursor to wait for the movefrom/moveto coordinates
+showcursor:
+  .byte $00
+
+// The x position for the cursor. Can only be 0 or 1
+cursorxpos:
+  .byte $00
+
+// $00 = movefrom, $80 = moveto
+inputselection:
+  .byte $00
+
+// The location of the piece the player wants to move
 movefrom:
   .word $0000
+
 // Stores the location where the player wants to move to
 moveto:
   .word $0000
-
-coordinateindex:
-  .byte $00
 
 // Store the offset in BoardState for the piece to move here
 movefromindex:
