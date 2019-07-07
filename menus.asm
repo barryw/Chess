@@ -340,12 +340,13 @@ HandleReturnKey:
   bne !endreturn+
   lda showcursor        // Are we accepting input?
   beq !endreturn+
-  lda movefromindex     // Does movefrom have a value?
-  bpl !checkmoveto+     // Yes. check moveto
+
+  lda movetoindex       // First check moveto
+  bpl !processmove+     // if moveto has a value, process the move
+
+  lda movefromindex     // moveto is empty. Does movefrom have a value?
+  bpl !validatefrom+    // Yes, validate it
   jmp !endreturn+       // Nope. Don't do anything until we have a movefrom value
-!checkmoveto:
-  lda movetoindex       // Does moveto have a value?
-  bpl !processmove+     // Yes. Process the move
 !validatefrom:
   jsr ValidateFrom      // Make sure this is a valid move
   jmp !endreturn+

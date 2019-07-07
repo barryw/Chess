@@ -34,6 +34,9 @@
 // The cursor flash speed
 .const CURSOR_FLASH_SPEED = $10
 
+// The speed to flash the selected piece at
+.const PIECE_FLASH_SPEED = $10
+
 // IRQ vector locations
 .const NMI_VECTOR = $fffa
 .const RESET_VECTOR = $fffc

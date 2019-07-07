@@ -171,3 +171,15 @@ rowlookup:
 
 processreturn:
   .byte $00
+
+// If the player has selected a piece, this will hold the piece's
+// color and sprite pointer. It will be flashed between this and
+// the empty piece to give the appearance that the piece is flashing.
+selectedpiece:
+  .byte $00
+
+pieceflashtimer:
+  .byte PIECE_FLASH_SPEED
+
+flashpiece:
+  .byte $00

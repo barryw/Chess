@@ -62,6 +62,7 @@ irq:
   sta SPRPTR, y
   lda BoardColors, x    // Set the sprite color for this sprite
   sta vic.SP0COL, y
+!continue:
   inx
   iny
   cpy #NUM_COLS
@@ -103,7 +104,34 @@ RunServiceRoutines:
   jsr ShowClock         // Display the play clock
   jsr ShowSpinner       // Show the spinner if required
   jsr FlashCursor       // Flash the cursor if it's on-screen
+  jsr FlashPiece
 
+  rts
+
+/*
+If the player has selected a piece, flash it
+*/
+FlashPiece:
+  lda flashpiece
+  cmp #$00
+  beq !exit+
+  dec pieceflashtimer
+  bpl !exit+
+  lda #PIECE_FLASH_SPEED
+  sta pieceflashtimer
+
+  ldx movefromindex
+  lda BoardState, x
+  cmp #EMPTY_SPR
+  beq !showpiece+
+!showempty:
+  lda #EMPTY_SPR
+  sta BoardState, x
+  jmp !exit+
+!showpiece:
+  lda selectedpiece
+  sta BoardState, x
+!exit:
   rts
 
 /*

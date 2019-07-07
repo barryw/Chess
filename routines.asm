@@ -225,8 +225,8 @@ ComputeBoardOffsets:
   clc
   adc movefrom              // Add in the column offset
   sta movefromindex
-  lda coordinateindex
-  cmp #$02
+  lda coordinateindex       // Don't compute moveto until we've entered its coordinate
+  cmp #$03
   bne !exit+
   lda moveto + $01          // Do the same for moveto
   asl
@@ -257,6 +257,8 @@ ResetInput:
   iny
   sta (inputlocationvector), y
   dec coordinateindex
+  lda #$00
+  sta flashpiece
   rts
 
 /*
@@ -274,6 +276,14 @@ ValidateFrom:
   cmp currentplayer
   bne !notyourpiece+
 
+  ldx movefromindex
+  lda BoardState, x
+  sta selectedpiece
+  lda #$80
+  sta flashpiece
+
+  jsr DisplayMoveToPrompt
+
   jmp !exit+
 !notyourpiece:
   CopyMemory(NotYourPieceStart, ScreenAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart)
@@ -286,6 +296,8 @@ ValidateFrom:
   jsr ResetInput
   lda #$80
   sta movefromindex
+  lda #$00
+  sta selectedpiece
 
 !exit:
   rts
