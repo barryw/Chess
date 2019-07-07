@@ -154,3 +154,9 @@ moveto:
 
 coordinateindex:
   .byte $00
+
+// This is a lookup table to translate row numbers into their
+// inverse. This is needed due to the way BoardState is arranged.
+// This could probably be done in code, but I'm lazy.
+rowlookup:
+  .byte $07, $06, $05, $04, $03, $02, $01, $00

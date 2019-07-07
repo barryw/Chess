@@ -360,6 +360,13 @@ HandleRowSelection:
   lda coordinateindex
   lsr
   bcc !exit+
+  lda currentkey
+  sec
+  sbc #$31              // Store the row 0 based instead of 1 based.
+  tay
+  lda rowlookup, y
+  ldy coordinateindex   // This makes it easier to compute location in BoardState
+  sta coordinates, y    // Store the row in our coordinate structure
   jsr DisplayCoordinate
 !exit:
   rts
@@ -372,8 +379,12 @@ HandleColumnSelection:
   lsr
   bcs !exit+
   lda currentkey        // Make the column selection uppercase
+  sec
+  sbc #$01
+  ldy coordinateindex
+  sta coordinates, y    // Store the column in our coordinate structure
   clc
-  adc #$40
+  adc #$41
   sta currentkey
   jsr DisplayCoordinate
   inc coordinateindex   // Allow the user to enter a row
