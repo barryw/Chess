@@ -257,9 +257,22 @@ ResetInput:
   sta (inputlocationvector), y
   iny
   sta (inputlocationvector), y
-  lda #$80              // Show the cursor
-  sta showcursor
+  Enable(showcursor)    // Show the cursor
 
+  rts
+
+/*
+Reset everything for the current player
+*/
+ResetPlayer:
+  lda #$00
+  sta movefrom
+  sta movefrom + $01
+  sta moveto
+  sta moveto + $01
+  lda #$80
+  sta movefromindex
+  sta movetoindex
   rts
 
 /*
@@ -281,8 +294,7 @@ ValidateFrom:
   lda BoardState, x
   sta selectedpiece
 
-  lda #$80              // Start flashing the selected piece
-  sta flashpiece
+  Toggle(flashpiece)    // Start flashing the selected piece
 
   jsr DisplayMoveToPrompt
 
@@ -308,4 +320,85 @@ ValidateFrom:
 Validate that the selected moveto location is valid for the piece selected
 */
 ValidateMove:
+  // TODO
+  rts
+
+/*
+After we've validated that this is a valid move, do the bit shuffling. If there's
+a piece in moveto, capture it first and then move the piece.
+*/
+MovePiece:
+  Toggle(flashpiece)    // Turn off the flashing of the selected piece
+  ldx movetoindex
+  lda BoardState, x     // Get the piece in the moveto location if there is one
+  cmp #EMPTY_SPR        // If it's an empty sprite, just move the piece
+  beq !movepiece+
+  and #$7f              // Strip color information
+  cmp #PAWN_SPR         // Capture a pawn?
+  beq !capturepawn+
+  cmp #KNIGHT_SPR       // A knight?
+  beq !captureknight+
+  cmp #BISHOP_SPR       // A bishop?
+  beq !capturebishop+
+  cmp #ROOK_SPR         // A rook?
+  beq !capturerook+
+  cmp #QUEEN_SPR        // A queen?
+  beq !capturequeen+
+  jmp !movepiece+
+
+!capturepawn:
+  ldx #CAP_PAWN
+  jmp !capturepiece+
+!captureknight:
+  ldx #CAP_KNIGHT
+  jmp !capturepiece+
+!capturebishop:
+  ldx #CAP_BISHOP
+  jmp !capturepiece+
+!capturerook:
+  ldx #CAP_ROOK
+  jmp !capturepiece+
+!capturequeen:
+  ldx #CAP_QUEEN
+!capturepiece:
+  lda currentplayer
+  cmp #WHITES_TURN
+  bne !incrementblack+
+  inc whitecaptured, x
+  jmp !movepiece+
+!incrementblack:
+  inc blackcaptured, x
+!movepiece:
+  lda selectedpiece
+  ldx movetoindex       // Move it to the moveto location
+  sta BoardState, x
+  ldx movefromindex
+  lda #EMPTY_SPR
+  sta BoardState, x
+!exit:
+  rts
+
+/*
+Swap the board and swap players. This is called after a player has
+made a move.
+*/
+ChangePlayers:
+  lda currentplayer
+  cmp #WHITES_TURN
+  beq !blacksup+
+!whitesup:
+  lda #WHITES_TURN
+  sta currentplayer
+  jmp !continue+
+ !blacksup:
+  lda #BLACKS_TURN
+  sta currentplayer
+!continue:
+  Toggle(playclockrunning)
+  jsr UpdateCaptureCounts
+  jsr ResetPlayer
+  jsr FlipBoard
+  jsr UpdateCurrentPlayer
+  jsr DisplayMoveFromPrompt
+
   rts

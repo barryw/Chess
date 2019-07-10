@@ -1,4 +1,10 @@
 *=* "Variable Storage"
+/*
+
+This file contains the storage locations of several variables. It's essentially
+the state of the game.
+*/
+
 // Which chess board row are we working on right now?
 counter:
   .byte $00
@@ -119,9 +125,6 @@ whitecaptured:
 blackcaptured:
   .fill $05, $00
 
-aboutisshowing:
-  .byte $00
-
 // Placeholder memory for the portion of the screen that's obscured
 // by the "About" window
 screenbuffer:
@@ -180,8 +183,10 @@ processreturn:
 selectedpiece:
   .byte $00
 
+// How quickly the selected piece should be flashed
 pieceflashtimer:
   .byte PIECE_FLASH_SPEED
 
+// A flag indicating whether a piece should be flashed
 flashpiece:
   .byte $00

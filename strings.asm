@@ -1,5 +1,9 @@
 *=* "String Storage"
 
+/*
+This file stores all of the strings in the game
+*/
+
 TitleRow1Start:
   .byte $eb, $ed, $fb, $fd, $20, $f9, $f3, $f5, $f7, $f7
 TitleRow1End:
@@ -140,6 +144,18 @@ NotYourPieceStart:
   .text "Not your piece"
 NotYourPieceEnd:
 
+InvalidMoveStart:
+  .text "Invalid Move"
+InvalidMoveEnd:
+
+CheckStart:
+  .text "Check!"
+CheckEnd:
+
+MateStart:
+  .text "Mate!"
+MateEnd:
+
 CapturedStart:
   .text "Captured"
 CapturedEnd:
@@ -171,18 +187,6 @@ CapturedQueenStart:
   .byte $22
   .text " Queens  X   "
 CapturedQueenEnd:
-
-InvalidMoveStart:
-  .text "Invalid Move"
-InvalidMoveEnd:
-
-CheckStart:
-  .text "Check!"
-CheckEnd:
-
-MateStart:
-  .text "Mate!"
-MateEnd:
 
 AboutTextStart:
   .byte $e0, $e0, $e0, $e0, $70

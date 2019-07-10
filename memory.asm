@@ -1,5 +1,6 @@
 *=* "Memory"
 .macro PushStack() {
+  php
   pha
   txa
   pha
@@ -13,14 +14,27 @@
   pla
   tax
   pla
+  plp
 }
 
+// Toggle a flag
 .macro Toggle(address) {
   lda address
   eor #$80
   sta address
 }
 
+// Disable a flag
+.macro Disable(address) {
+  lda #$00
+  sta address
+}
+
+// Enable a flag
+.macro Enable(address) {
+  lda #$80
+  sta address
+}
 /*
 Store a 16 bit word
 */
@@ -28,7 +42,7 @@ Store a 16 bit word
   lda #<word
   sta address
   lda #>word
-  sta address+1
+  sta address + $01
 }
 
 /*
@@ -61,14 +75,14 @@ FillMemory:
   lda #$01
   sta fillmutex
   ldy #0
-  ldx fill_size + 1
+  ldx fill_size + $01
   beq !frag_fill+
 !page_fill:
   lda fill_value
   sta (fill_to), y
   iny
   bne !page_fill-
-  inc fill_to + 1
+  inc fill_to + $01
   dex
   bne !page_fill-
 !frag_fill:
@@ -95,15 +109,15 @@ CopyMemory:
   lda #$01
   sta copymutex
   ldy #0
-  ldx copy_size + 1
+  ldx copy_size + $01
   beq !frag+
 !page:
   lda (copy_from), y
   sta (copy_to), y
   iny
   bne !page-
-  inc copy_from + 1
-  inc copy_to + 1
+  inc copy_from + $01
+  inc copy_to + $01
   dex
   bne !page-
 !frag:

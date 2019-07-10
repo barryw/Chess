@@ -11,10 +11,9 @@ Read the keyboard and process the key presses
 ReadKeyboard:
   jsr Keyboard
   bcc !processkey+
-  jmp NoValidInput
+  rts
 !processkey:
   sta currentkey
-  jsr WaitForVblank
   cpx #$02
   bne !next+
   jmp HandleReturnKey
@@ -104,9 +103,9 @@ ReadKeyboard:
   jmp Handle7Key
 !next:
   cmp #KEY_8
-  bne NoValidInput
+  bne !next+
   jmp Handle8Key
-NoValidInput:
+!next:
   rts
 
 /*
@@ -342,16 +341,21 @@ HandleReturnKey:
   beq !endreturn+
 
   lda movetoindex       // First check moveto
-  bpl !processmove+     // if moveto has a value, process the move
+  cmp #$80
+  bne !processmove+     // if moveto has a value, process the move
 
   lda movefromindex     // moveto is empty. Does movefrom have a value?
-  bpl !validatefrom+    // Yes, validate it
+  cmp #$80
+  bne !validatefrom+    // Yes, validate it
+
   jmp !endreturn+       // Nope. Don't do anything until we have a movefrom value
 !validatefrom:
   jsr ValidateFrom      // Make sure this is a valid move
   jmp !endreturn+
 !processmove:
   jsr ValidateMove
+  jsr MovePiece
+  jsr ChangePlayers
 !endreturn:
   Toggle(processreturn)
 !exit:
@@ -361,11 +365,10 @@ HandleReturnKey:
 Allow the user to correct their input
 */
 HandleDeleteKey:
-  lda cursorxpos
-  cmp #$00
-  beq !exit+
+  ldy cursorxpos        // Is the cursor at the beginning of input?
+  cpy #$00
+  beq !exit+            // Yea. just exit since we can't delete anymore.
   lda #$20              // Put a space in the current location
-  ldy cursorxpos
   sta (inputlocationvector),y
   dec cursorxpos
 !exit:
@@ -456,10 +459,12 @@ StartGame:
 
 !oneplayer:
   lda currentplayer
-  cmp #WHITES_TURN
+  cmp player1color
+  beq !playersturn+
+!computersturn:
+  jsr ShowThinking
 
-  jmp !exit+
-
+!playersturn:
 !twoplayers:
   jsr DisplayMoveFromPrompt
 
@@ -672,8 +677,7 @@ ShowAboutMenu:
   CopyMemory(AboutTextColorStart, ColorAddress(AboutTextPos), AboutTextColorEnd - AboutTextColorStart)
 
   SetMenu(MENU_ABOUT_SHOWING)
-  lda #$01
-  sta aboutisshowing
+
   rts
 
 HideAboutMenu:
@@ -681,9 +685,8 @@ HideAboutMenu:
   CopyMemory(colorbuffer, ColorAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
   CopyMemory(screenbuffer, ScreenAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
 
-  lda #$00
-  sta aboutisshowing
   SetMenu(MENU_MAIN)
+
   rts
 
 /*

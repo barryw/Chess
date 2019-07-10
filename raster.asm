@@ -259,9 +259,11 @@ Busy loop while waiting for the VBlank. We want to do most of our work here
 */
 WaitForVblank:
   pha
+  php
 !wait:
   lda vic.RASTER
   cmp #$80
   bne !wait-
+  plp
   pla
   rts

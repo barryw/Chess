@@ -22,6 +22,7 @@ start:
   jsr SetupInterrupt
 
 !readkeyboard:
+  jsr WaitForVblank
   jsr ReadKeyboard
   jmp !readkeyboard-
 
