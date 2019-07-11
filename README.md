@@ -45,3 +45,11 @@ I've tried to put related things into the same files, but for the most part ever
 The chess pieces are rendered with sprites, which have to be multiplexed to get 32 pieces. This is very easy on a game like chess where the pieces are stationary. It's also nice that the chess board is 8x8 which lines up very nicely with limitations on an 8-bit machine like the 64.
 
 Raster interrupts are heavily used to do the sprite multiplexing. Every 24 scan lines the sprites are re-drawn to show the pieces for that row. The last row also triggers the once-per-frame subroutines (keyboard scan, title colors, music, play clock updates).
+
+#### Current status
+
+It's still early days, so the game isn't even close to playable yet. My first goal is to get gameplay working to where players can take turns moving their pieces to any location and upping the captured count when pieces are captured. Once that's working reliably, I'll add in the logic to validate whether a move is legal before making it.
+
+Lastly I'm going to add in some "AI" to allow humans to play the computer.
+
+A stretch goal is to include pre-defined scenarios where play starts deep into a game and it's up to the player to win in X number of moves. This may prove difficult on a machine with 64k.
