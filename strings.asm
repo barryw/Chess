@@ -277,3 +277,8 @@ AboutTextColorStart:
   .fill $20, $01
   .word $0000, $0000
 AboutTextColorEnd:
+
+// Display an indeterminate progress bar with some characters
+spinnerstart:
+  .byte $7c, $6c, $7b, $7e
+spinnerend:

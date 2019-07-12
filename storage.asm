@@ -37,11 +37,6 @@ titlecolorsend:
 spinnerenabled:
   .byte $00
 
-// Display an indeterminate progress bar with some characters
-spinnerstart:
-  .byte $7c, $6c, $7b, $7e
-spinnerend:
-
 // The current spinner character being shown
 spinnercurrent:
   .byte $00
@@ -150,6 +145,10 @@ cursorxpos:
 
 // $00 = movefrom, $80 = moveto
 inputselection:
+  .byte $00
+
+// $00 move is not valid, $80 move is valid
+moveisvalid:
   .byte $00
 
 // The location of the piece the player wants to move

@@ -354,6 +354,10 @@ HandleReturnKey:
   jmp !endreturn+
 !processmove:
   jsr ValidateMove
+  lda moveisvalid
+  cmp #$00
+  beq !endreturn+
+!movepiece:
   jsr MovePiece
   jsr ChangePlayers
 !endreturn:
@@ -498,9 +502,10 @@ ShowStatus:
   CopyMemory(TimeStart, ScreenAddress(TimePos), TimeEnd - TimeStart)
   FillMemory(ColorAddress(TimePos), TimeEnd - TimeStart, WHITE)
 
-  jsr UpdateStatus
+  FillMemory(ScreenAddress(StatusSepPos), $0e, $77)
+  FillMemory(ColorAddress(StatusSepPos), $0e, WHITE)
 
-  rts
+  jmp UpdateStatus
 
 /*
 Show the portion of the screen that details which pieces have been captured by the current player

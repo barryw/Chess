@@ -104,7 +104,7 @@ RunServiceRoutines:
   jsr ShowClock         // Display the play clock
   jsr ShowSpinner       // Show the spinner if required
   jsr FlashCursor       // Flash the cursor if it's on-screen
-  jsr FlashPiece
+  jsr FlashPiece        // If a piece has been selected to move, flash it
 
   rts
 
@@ -113,7 +113,7 @@ If the player has selected a piece, flash it
 */
 FlashPiece:
   lda flashpiece
-  bpl !exit+
+  bpl !exit+            // If no piece is selected, just exit
   dec pieceflashtimer
   bpl !exit+
   lda #PIECE_FLASH_SPEED

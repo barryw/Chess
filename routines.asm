@@ -320,13 +320,14 @@ ValidateFrom:
 Validate that the selected moveto location is valid for the piece selected
 */
 ValidateMove:
+  Disable(moveisvalid)
   ldx movetoindex
   lda BoardState, x     // See if we're trying to move on top of one of our own pieces
   and #$80
   rol
   rol
   cmp currentplayer
-  bne !exit+
+  bne !validmove+
 !alreadyyours:
   CopyMemory(AlreadyYoursStart, ScreenAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart)
   FillMemory(ColorAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart, WHITE)
@@ -335,7 +336,10 @@ ValidateMove:
   jsr ResetInput
   lda #$80
   sta movetoindex
+  jmp !exit+
 
+!validmove:
+  Enable(moveisvalid)
 !exit:
   rts
 

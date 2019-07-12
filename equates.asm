@@ -88,16 +88,17 @@
 
 .var BackMenuPos = ScreenPos($1a, $17)
 
-.var QuitConfirmPos = ScreenPos($1e, $0a) // x=26,y=10
-.var PlayerSelectPos = ScreenPos($1b, $0a) // x=26,y=10
-.var LevelSelectPos = ScreenPos($1b, $0a) // x=26,y=10
-.var ColorSelectPos = ScreenPos($1a, $0a) // x=26,y=10
+.var QuitConfirmPos = ScreenPos($1e, $0a)
+.var PlayerSelectPos = ScreenPos($1b, $0a)
+.var LevelSelectPos = ScreenPos($1b, $0a)
+.var ColorSelectPos = ScreenPos($1a, $0a)
 
 .var TurnPos = ScreenPos($1a, $04)
 .var TimePos = ScreenPos($1a, $05)
 
 .var TurnValuePos = ScreenPos($20, TurnPos.y)
 .var TimeValuePos = ScreenPos($20, TimePos.y)
+.var StatusSepPos = ScreenPos($1a, TimePos.y + $01)
 
 .var PlayerNumberPos = ScreenPos($27, TurnValuePos.y)
 
