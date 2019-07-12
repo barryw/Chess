@@ -294,7 +294,7 @@ ValidateFrom:
   lda BoardState, x
   sta selectedpiece
 
-  Toggle(flashpiece)    // Start flashing the selected piece
+  Enable(flashpiece)    // Start flashing the selected piece
 
   jsr DisplayMoveToPrompt
 
@@ -320,7 +320,23 @@ ValidateFrom:
 Validate that the selected moveto location is valid for the piece selected
 */
 ValidateMove:
-  // TODO
+  ldx movetoindex
+  lda BoardState, x     // See if we're trying to move on top of one of our own pieces
+  and #$80
+  rol
+  rol
+  cmp currentplayer
+  bne !exit+
+!alreadyyours:
+  CopyMemory(AlreadyYoursStart, ScreenAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart)
+  FillMemory(ColorAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart, WHITE)
+
+!clearinput:
+  jsr ResetInput
+  lda #$80
+  sta movetoindex
+
+!exit:
   rts
 
 /*
@@ -328,7 +344,7 @@ After we've validated that this is a valid move, do the bit shuffling. If there'
 a piece in moveto, capture it first and then move the piece.
 */
 MovePiece:
-  Toggle(flashpiece)    // Turn off the flashing of the selected piece
+  Disable(flashpiece)   // Turn off the flashing of the selected piece
   ldx movetoindex
   lda BoardState, x     // Get the piece in the moveto location if there is one
   cmp #EMPTY_SPR        // If it's an empty sprite, just move the piece

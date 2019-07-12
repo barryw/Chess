@@ -45,43 +45,46 @@
 // Struct for describing positions on a screen
 .struct ScreenPos{x,y}
 
+// The position of the first menu
+.var Menu1Pos = ScreenPos($1a, $14)
+
 // Positions for title and copyright
-.var Title1Pos = ScreenPos($1c, $00) // x=28, y=0
-.var Title2Pos = ScreenPos($1c, $01) // x=28, y=1
-.var CopyrightPos = ScreenPos($1a, $02) // x=26,y=2
+.var Title1Pos = ScreenPos($1c, $00)
+.var Title2Pos = ScreenPos(Title1Pos.x, Title1Pos.y + $01)
+.var CopyrightPos = ScreenPos($1a, Title2Pos.y + $01)
 
 // Positions for main menu items
-.var PlayGamePos = ScreenPos($1a, $14) // x=26,y=20
-.var MusicTogglePos = ScreenPos($1a, $15) // x=26,y=21
-.var AboutPos = ScreenPos($1a, $16) // x=26,y=22
-.var QuitGamePos = ScreenPos($1a, $17) // x=26,y=23
-.var AboutTextPos = ScreenPos($00, $06) // x=0,y=6
+.var PlayGamePos = ScreenPos($1a, Menu1Pos.y)
+.var MusicTogglePos = ScreenPos($1a, PlayGamePos.y + $01)
+.var AboutPos = ScreenPos($1a, MusicTogglePos.y + $01)
+.var QuitGamePos = ScreenPos($1a, AboutPos.y + $01)
+.var AboutTextPos = ScreenPos($00, $06)
 
 // Positions for quit menu items
-.var YesPos = ScreenPos($1a, $15)
-.var NoPos = ScreenPos($1a, $16)
+.var YesPos = ScreenPos($1a, Menu1Pos.y + $01)
+.var NoPos = ScreenPos($1a, Menu1Pos.y + $02)
 
 // Positions for player select menu items
-.var OnePlayerPos = ScreenPos($1a, $15)
-.var TwoPlayerPos = ScreenPos($1a, $16)
+.var OnePlayerPos = ScreenPos($1a, Menu1Pos.y + $01)
+.var TwoPlayerPos = ScreenPos($1a, Menu1Pos.y + $02)
 
 // Positions for level select menu items
-.var EasyPos = ScreenPos($1a, $14)
-.var MediumPos = ScreenPos($1a, $15)
-.var HardPos = ScreenPos($1a, $16)
+.var EasyPos = ScreenPos($1a, Menu1Pos.y)
+.var MediumPos = ScreenPos($1a, Menu1Pos.y + $01)
+.var HardPos = ScreenPos($1a, Menu1Pos.y + $02)
 
 // Positions for color select menu items
-.var BlackPos = ScreenPos($1a, $15)
-.var WhitePos = ScreenPos($1a, $16)
+.var BlackPos = ScreenPos($1a, Menu1Pos.y + $01)
+.var WhitePos = ScreenPos($1a, Menu1Pos.y + $02)
 
 // Positions for game menu items
 .var ForfeitPos = ScreenPos($1a, $17)
 
 .var EmptyQuestionPos = ScreenPos($1a, $0a)
-.var Empty1Pos = ScreenPos($1a, $14)
-.var Empty2Pos = ScreenPos($1a, $15)
-.var Empty3Pos = ScreenPos($1a, $16)
-.var Empty4Pos = ScreenPos($1a, $17)
+.var Empty1Pos = ScreenPos($1a, Menu1Pos.y)
+.var Empty2Pos = ScreenPos($1a, Menu1Pos.y + $01)
+.var Empty3Pos = ScreenPos($1a, Menu1Pos.y + $02)
+.var Empty4Pos = ScreenPos($1a, Menu1Pos.y + $03)
 
 .var BackMenuPos = ScreenPos($1a, $17)
 
@@ -106,8 +109,8 @@
 .var Colon2Pos = ScreenPos($25, SecondsPos.y)
 
 // Show how many pieces a player has captured
-.var CapturedPos = ScreenPos($1c, $0c)
-.var CapturedUnderlinePos = ScreenPos($1c, CapturedPos.y + $01)
+.var CapturedPos = ScreenPos($1d, $0c)
+.var CapturedUnderlinePos = ScreenPos(CapturedPos.x, CapturedPos.y + $01)
 .var CapturedPawnPos = ScreenPos($1a, CapturedPos.y + $02)
 .var CapturedKnightPos = ScreenPos($1a, CapturedPos.y + $03)
 .var CapturedBishopPos = ScreenPos($1a, CapturedPos.y + $04)

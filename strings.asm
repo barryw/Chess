@@ -144,6 +144,10 @@ NotYourPieceStart:
   .text "Not your piece"
 NotYourPieceEnd:
 
+AlreadyYoursStart:
+  .text "Already yours"
+AlreadyYoursEnd:
+
 InvalidMoveStart:
   .text "Invalid Move"
 InvalidMoveEnd:

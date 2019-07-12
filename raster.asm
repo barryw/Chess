@@ -113,13 +113,11 @@ If the player has selected a piece, flash it
 */
 FlashPiece:
   lda flashpiece
-  cmp #$00
-  beq !exit+
+  bpl !exit+
   dec pieceflashtimer
   bpl !exit+
   lda #PIECE_FLASH_SPEED
   sta pieceflashtimer
-
   ldx movefromindex
   lda BoardState, x
   cmp #EMPTY_SPR
