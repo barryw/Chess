@@ -178,6 +178,11 @@ values stored in BoardState
 .const INPUT_MOVE_FROM = $00
 .const INPUT_MOVE_TO   = $80
 
+// index positions into the structure containing play
+// clock information
+.const WHITE_CLOCK_POS = $00
+.const BLACK_CLOCK_POS = $03
+
 // These indicate the current player
 .const WHITES_TURN = $01
 .const BLACKS_TURN = $00
@@ -231,6 +236,7 @@ values stored in BoardState
 // Pointer to screen location of user input
 .const inputlocationvector = $17
 
+// Keyboard constants
 .const KEY_A = $01
 .const KEY_B = $02
 .const KEY_C = $03

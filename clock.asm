@@ -23,11 +23,11 @@ ShowClock:
   beq !showwhiteclock+
 
 !showblackclock:
-  ldx #$03
+  ldx #BLACK_CLOCK_POS  // Set the position to show the black clock
   jmp !doshow+
 
 !showwhiteclock:
-  ldx #$00
+  ldx #WHITE_CLOCK_POS  // Set the position to show the white clock
 
 !doshow:
   ldy #$00
@@ -39,7 +39,7 @@ ShowClock:
   iny
   lda timerpositions, y
   sta printvector + 1
-  jsr PrintByte
+  jsr PrintByte         // Print the 2 byte BCD digit for this position
   inx
   iny
   cpx #$03
@@ -56,8 +56,7 @@ UpdateClock:
   cmp #MENU_GAME
   bne !return+
   lda playclockrunning  // Is the play clock running?
-  cmp #$80
-  bne !return+
+  bpl !return+
 
 !updateclock:
   dec subseconds
