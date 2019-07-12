@@ -39,10 +39,12 @@
 Store a 16 bit word
 */
 .macro StoreWord(address, word) {
+  pha
   lda #<word
   sta address
   lda #>word
   sta address + $01
+  pla
 }
 
 /*

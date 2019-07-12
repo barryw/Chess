@@ -38,6 +38,14 @@ make build
 
 This will output a file called `C64Chess.d64` that you can load into VICE or your 1541 Ultimate II+.
 
+If you're on a Mac and you have VICE installed in `/Applications/VICE/x64sc.app/` you can run
+
+```bash
+make run
+```
+
+Which will build the code and run it in VICE.
+
 #### How is the code laid out?
 
 I've tried to put related things into the same files, but for the most part everything is brought in from `main.asm`. If you're going to make changes, be very careful that things don't overlap! The sprites, custom characters and music cannot move, so you'll need to make sure that everything is located around them.

@@ -443,9 +443,7 @@ Display either the row or the column
 DisplayCoordinate:
   jsr ClearError
   lda currentkey
-  pha
   StoreWord(inputlocationvector, ScreenAddress(CursorPos))
-  pla
   ldy cursorxpos
   sta (inputlocationvector), y
   rts
@@ -467,6 +465,7 @@ StartGame:
   beq !playersturn+
 !computersturn:
   jsr ShowThinking
+  jmp !exit+
 
 !playersturn:
 !twoplayers:
