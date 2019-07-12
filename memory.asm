@@ -20,19 +20,19 @@
 // Toggle a flag
 .macro Toggle(address) {
   lda address
-  eor #$80
+  eor #ENABLE
   sta address
 }
 
 // Disable a flag
 .macro Disable(address) {
-  lda #$00
+  lda #DISABLE
   sta address
 }
 
 // Enable a flag
 .macro Enable(address) {
-  lda #$80
+  lda #ENABLE
   sta address
 }
 /*

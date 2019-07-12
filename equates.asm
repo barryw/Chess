@@ -203,6 +203,9 @@ values stored in BoardState
 .const MENU_LEVEL_SELECT  = $05
 .const MENU_ABOUT_SHOWING = $06
 
+.const ENABLE   = $80
+.const DISABLE  = $00
+
 // Addresses used for memcopy operations
 .const copy_from  = $02
 .const copy_to    = $04
