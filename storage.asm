@@ -86,7 +86,7 @@ timerpositions:
 
 // Whether or not the play clock is counting
 playclockrunning:
-  .byte $80
+  .byte ENABLE
 
 // Countdown timer for flashing the cursor
 cursorflashtimer:
@@ -132,6 +132,7 @@ colorbuffer:
 // a race condition between interrupt and non-interrupt code.
 fillmutex:
   .byte $00
+
 copymutex:
   .byte $00
 

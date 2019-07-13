@@ -70,6 +70,10 @@ Fill a block of memory with a byte
   jsr FillMemory
 }
 
+/*
+Fill memory with bytes. This is very similar to the memcopy routine
+below, but just stores a single value into a range of addresses.
+*/
 FillMemory:
   lda fillmutex
   cmp #$00
@@ -156,4 +160,29 @@ FlipBoard:
   cpx #$40
   bne !loop2-
   PopStack()
+  rts
+
+/*
+Enable the flashing of the selected piece
+*/
+FlashPieceOn:
+  ldx movefromindex     // Has a piece been selected?
+  bmi !exit+
+  lda BoardState, x     // Grab the piece that's in that location
+  sta selectedpiece     // tuck it away for later
+  Enable(flashpiece)
+!exit:
+  rts
+
+/*
+Disable the flashing of a selected piece
+*/
+FlashPieceOff:
+  lda flashpiece
+  bpl !exit+
+  lda selectedpiece
+  ldx movefromindex
+  sta BoardState, x
+  Disable(flashpiece)
+!exit:
   rts

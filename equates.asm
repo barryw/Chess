@@ -52,6 +52,8 @@
 .var Title1Pos = ScreenPos($1c, $00)
 .var Title2Pos = ScreenPos(Title1Pos.x, Title1Pos.y + $01)
 .var CopyrightPos = ScreenPos($1a, Title2Pos.y + $01)
+.var Title1CharPos = ScreenPos($1e, $00)
+.var Title2CharPos = ScreenPos($1e, $01)
 
 // Positions for main menu items
 .var PlayGamePos = ScreenPos($1a, Menu1Pos.y)

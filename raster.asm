@@ -122,11 +122,11 @@ FlashPiece:
   lda BoardState, x
   cmp #EMPTY_SPR
   beq !showpiece+
-!showempty:
+!showempty:             // Flash OFF
   lda #EMPTY_SPR
   sta BoardState, x
   jmp !exit+
-!showpiece:
+!showpiece:             // Flash ON
   lda selectedpiece
   sta BoardState, x
 !exit:
@@ -145,7 +145,7 @@ FlashCursor:
   StoreWord(inputlocationvector, ScreenAddress(CursorPos))
   ldy cursorxpos
   lda (inputlocationvector),y
-  eor #$80
+  eor #ENABLE
   sta (inputlocationvector),y
 
 !return:
@@ -204,8 +204,8 @@ ColorCycleTitle:
   sty colorcycleposition
 !paint:
   lda titlecolorsstart, y
-  sta vic.CLRRAM + $1e, x
-  sta vic.CLRRAM + $46, x
+  sta ColorAddress(Title1CharPos), x
+  sta ColorAddress(Title2CharPos), x
   inx
   cpx #$08
   beq !return+

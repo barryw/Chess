@@ -54,6 +54,52 @@ The chess pieces are rendered with sprites, which have to be multiplexed to get 
 
 Raster interrupts are heavily used to do the sprite multiplexing. Every 24 scan lines the sprites are re-drawn to show the pieces for that row. The last row also triggers the once-per-frame subroutines (keyboard scan, title colors, music, play clock updates).
 
+#### Important memory locations
+
+The files `storage.asm` and `board.asm` contain variable storage and important data structures. Here are some of the more important ones:
+
+- BoardState: This is a 64 byte block that contains the piece and color information for every location on the board. When the game starts, the upper left corner of the board is offset 0 and the lower right is offset 63. The lower 7 bits of each byte contains the sprite pointer to the piece data, and the upper bit is the color information (1 = white, 0 = black). This makes it easy to compute which sprite should be displayed during every raster routine.
+
+- BoardSprites, BoardColors: These are each 64 byte blocks of memory that split out the sprite pointers and color information for each piece on the board.
+
+- Board: 1000 bytes of color information for the screen, including the board.
+
+- moveto, movefrom: These contain the selected coordinates for the movefrom and moveto locations. Each is a 16 bit word containing the column in the first byte and the row in the second byte. These values are used to compute movetoindex and movefromindex.
+
+- movetoindex, movefromindex: These are the computed offsets in BoardState based on the values in moveto and movefrom. These values have a range of 0-63 and are used to select the piece to move as well as its destination.
+
+- counter: The board row that's currently being drawn (0-7). This is used to select values from BoardSprites and BoardColors for the current row so that sprites can be multiplexed and drawn. It's also used to figure out when we've drawn the last row so that we can trigger the calling of our interrupt subroutines.
+
+- fliptmp: When the board is reeversed to show the current player's view, this 64 byte location is used as a holding area as the memory is reversed.
+
+- irqypos: A lookup table of raster lines where we'd like to trigger raster interrupts. These are triggered 4 lines before where we'd like the sprites to appear to give us time to render them.
+
+- spriteypos: A lookup table of raster lines where we'd like our sprites to appear. These line up nicely with the board.
+
+- spinnerenabled: When the computer is taking its turn, this is enabled to display the "Thinking" indeterminate spinner.
+
+- spinnercurrent: Points to a location in `spinnerstart` to indicate which portion of the spinner is currently being displayed.
+
+- subseconds: A countdown timer that starts at 60 and gets decremented every frame. When it reaches 0, the seconds for the current player is incremented.
+
+- timers: This contains 6 bytes (hours, minutes, seconds) for each player. This is the play clock information for each player and increments when the player is currently playing.
+
+- whitecaptured, blackcaptured: Each is a 5 byte block containing counts of each type of captured piece (pawn, knight, rook, bishop, queen) for each player.
+
+- screenbuffer, colorbuffer: A temporary area to hold data when the "About" menu is displayed.
+
+- fillmutex, copymutex: Mutex bytes to ensure that only 1 copy/fill operation happens at a time. Since we have interrupt and non-interrupt code doing memcopy/memfill, we need to ensure that they don't step on each other.
+
+- showcursor: Whether to display the cursor to allow input.
+
+- cursorxpos: Input consists of a 2 digit coordinate for movefrom and moveto (row and column), so this location will either be 0 or 1 to show which field is currently being set.
+
+- inputselection: If movefrom is being entered, this will be $00. If moveto is being entered, it will be $80
+
+- rowlookup: The rows that the player enters starts from 1 at the bottom of the board and increses to 8 at the top. The BoardState memory starts from the top and goes to the bottom. This introduces a bit of a disconnect, so this lookup table allows us to invert the table so that we can more easily compute movefrom and moveto offsets within BoardState.
+
+- selectedpiece: When the player has chosen the piece to move, we stash the data from BoardState for that piece here. That way we can flash it between EMPTY_SPR and the actual piece until they've chosen the moveto coordinate.
+
 #### Current status
 
 It's still early days, so the game isn't even close to playable yet. My first goal is to get gameplay working to where players can take turns moving their pieces to any location and upping the captured count when pieces are captured. Once that's working reliably, I'll add in the logic to validate whether a move is legal before making it.

@@ -482,8 +482,10 @@ ShowGameMenu:
   SetMenu(MENU_GAME)
 
   jsr ShowStatus
+  jsr UpdateCurrentPlayer
+  jsr UpdateCaptureCounts
   jsr ShowCaptured
-  jsr ShowClock
+  jsr UpdateCaptureCounts
 
   CopyMemory(ForfeitStart, ScreenAddress(ForfeitPos), ForfeitEnd - ForfeitStart)
   FillMemory(ColorAddress(ForfeitPos), ForfeitEnd - ForfeitStart, WHITE)
@@ -504,7 +506,7 @@ ShowStatus:
   FillMemory(ScreenAddress(StatusSepPos), $0e, $77)
   FillMemory(ColorAddress(StatusSepPos), $0e, WHITE)
 
-  jmp UpdateStatus
+  rts
 
 /*
 Show the portion of the screen that details which pieces have been captured by the current player
@@ -531,7 +533,7 @@ ShowCaptured:
   CopyMemory(CapturedQueenStart, ScreenAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart)
   FillMemory(ColorAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart, WHITE)
 
-  jmp UpdateCaptureCounts
+  rts
 
 /*
 Clear the menu options and any displayed questions
@@ -654,16 +656,9 @@ ColorSelectMenu:
   jmp ShowBackMenuItem
 
 /*
-Menu displayed while the game is being played
+Display the menu item to allow navigating backwards
 */
-GameMenu:
-  jsr ClearMenus
-  SetMenu(MENU_GAME)
-
-  rts
-
 ShowBackMenuItem:
-  // Back to main menu option
   CopyMemory(BackMenuStart, ScreenAddress(BackMenuPos), BackMenuEnd - BackMenuStart)
   FillMemory(ColorAddress(BackMenuPos), BackMenuEnd - BackMenuStart, WHITE)
 
@@ -684,6 +679,9 @@ ShowAboutMenu:
 
   rts
 
+/*
+Remove the about menu
+*/
 HideAboutMenu:
   // Load the buffer back
   CopyMemory(colorbuffer, ColorAddress(AboutTextPos), AboutTextEnd - AboutTextStart)
@@ -723,20 +721,9 @@ DisplayMoveToPrompt:
   rts
 
 /*
-Update the status line which includes showing whose turn it is and updating
-the counts of captured pieces
-*/
-UpdateStatus:
-  jsr UpdateCurrentPlayer
-  jsr UpdateCaptureCounts
-  rts
-
-/*
 Figure out whose turn it is and update the status lines.
 */
 UpdateCurrentPlayer:
-  lda #$80
-  sta playclockrunning
   lda #$3c
   sta subseconds        // Reset the value of subseconds
   lda numplayers        // Is it head-to-head or player-vs-computer?

@@ -19,7 +19,7 @@ ShowClock:
   sta ScreenAddress(Colon1Pos)
   sta ScreenAddress(Colon2Pos)
   lda currentplayer
-  cmp #WHITES_TURN
+  cmp #WHITES_TURN      // Whose turn is it?
   beq !showwhiteclock+
 
 !showblackclock:
@@ -32,8 +32,8 @@ ShowClock:
 !doshow:
   ldy #$00
 !showloop:
-  lda timers, x
-  sta num1
+  lda timers, x         // Get the correct position in the timers structure
+  sta num1              // White clock is the first 3 bytes, black the last 3
   lda timerpositions, y
   sta printvector
   iny
@@ -42,7 +42,7 @@ ShowClock:
   jsr PrintByte         // Print the 2 byte BCD digit for this position
   inx
   iny
-  cpx #$03
+  cpx #$03              // hours, minutes and seconds
   bne !showloop-
 
 !return:
@@ -63,19 +63,20 @@ UpdateClock:
   bne !return+
   lda #$3c
   sta subseconds
-  lda currentplayer
+  lda currentplayer     // Whose turn is it?
   cmp #WHITES_TURN
   beq !updatewhiteclock+
 
 !updateblackclock:
-  ldx #$03
+  ldx #BLACK_CLOCK_POS  // Black player is up
   jmp !doupdate+
 
 !updatewhiteclock:
-  ldx #$00
-  sed
+  ldx #WHITE_CLOCK_POS  // White player is up
 
 !doupdate:
+  sed                   // All of our numbers are in BCD.
+!updatetimers:
   clc
   lda timers, x
   adc #$01
@@ -86,7 +87,7 @@ UpdateClock:
   sta timers, x
   inx
   cpx #$02
-  bne !doupdate-
+  bne !updatetimers-
 
 !return:
   cld

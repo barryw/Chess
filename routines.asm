@@ -163,7 +163,7 @@ when the computer is determining its best move.
 */
 ShowThinking:
   CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
-  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $01)
+  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, WHITE)
   lda #$80
   sta playclockrunning
   sta spinnerenabled
@@ -173,7 +173,7 @@ ShowThinking:
 Hide the "Thinking" message when the computer is ready to move
 */
 HideThinking:
-  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, $00)
+  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, BLACK)
   lda #$00
   sta playclockrunning
   sta spinnerenabled
@@ -183,8 +183,8 @@ HideThinking:
 Update the counts of captured pieces for the current player
 */
 UpdateCaptureCounts:
-  lda #$00
-  sta playclockrunning
+  Disable(playclockrunning)
+
   StoreWord(printvector, ScreenAddress(CapturedCountStart))
   ldy #$00
   lda currentplayer
@@ -207,8 +207,7 @@ UpdateCaptureCounts:
   cpy #$05
   bne !print-
 
-  lda #$80
-  sta playclockrunning
+  Enable(playclockrunning)
 
   rts
 
@@ -294,7 +293,7 @@ ValidateFrom:
   lda BoardState, x
   sta selectedpiece
 
-  Enable(flashpiece)    // Start flashing the selected piece
+  jsr FlashPieceOn      // Start flashing the selected piece
 
   jsr DisplayMoveToPrompt
 
@@ -348,7 +347,7 @@ After we've validated that this is a valid move, do the bit shuffling. If there'
 a piece in moveto, capture it first and then move the piece.
 */
 MovePiece:
-  Disable(flashpiece)   // Turn off the flashing of the selected piece
+  jsr FlashPieceOff     // Turn off the flashing of the selected piece
   ldx movetoindex
   lda BoardState, x     // Get the piece in the moveto location if there is one
   cmp #EMPTY_SPR        // If it's an empty sprite, just move the piece
@@ -404,17 +403,9 @@ made a move.
 */
 ChangePlayers:
   lda currentplayer
-  cmp #WHITES_TURN
-  beq !blacksup+
-!whitesup:
-  lda #WHITES_TURN
+  eor #%00000001
   sta currentplayer
-  jmp !continue+
- !blacksup:
-  lda #BLACKS_TURN
-  sta currentplayer
-!continue:
-  Toggle(playclockrunning)
+
   jsr UpdateCaptureCounts
   jsr ResetPlayer
   jsr FlipBoard
