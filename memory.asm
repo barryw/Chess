@@ -5,8 +5,6 @@ Fill memory with bytes. This is very similar to the memcopy routine
 below, but just stores a single value into a range of addresses.
 */
 FillMemory:
-  wfc fillmutex         // Wait for mutex to be released
-  sef fillmutex         // Set the mutex
   ldy #0
   ldx fill_size + $01
   beq !frag_fill+
@@ -26,8 +24,6 @@ FillMemory:
   iny
   bne !frag_fill-
 !done_fill:
-  clf fillmutex         // Clear the mutex
-!exit:
   rts
 
 /*
@@ -36,8 +32,6 @@ Do the actual memory copy.
 Doesn't need to be on a page boundary. Can copy fragments as well.
 */
 CopyMemory:
-  wfc copymutex
-  sef copymutex
   ldy #0
   ldx copy_size + $01
   beq !frag+
@@ -58,8 +52,6 @@ CopyMemory:
   iny
   bne !frag-
 !done:
-  clf copymutex
-!exit:
   rts
 
 /*

@@ -61,6 +61,16 @@ Store a 16 bit word
 }
 
 /*
+Copy a 16 bit word to another location
+*/
+.macro CopyWord(source, target) {
+  lda source
+  sta target
+  lda source + $01
+  sta target + $01
+}
+
+/*
 Perform a memory copy
 
 Each parameter is 16 bits

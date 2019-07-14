@@ -128,17 +128,6 @@ screenbuffer:
 colorbuffer:
   .fill $1e0, $00
 
-// Make sure we only do one memcopy/memfill at a time. There can be
-// a race condition between interrupt and non-interrupt code.
-fillmutex:
-  .byte $00
-
-copymutex:
-  .byte $00
-
-printmutex:
-  .byte $00
-
 // Whether to show the flashing cursor to wait for the movefrom/moveto coordinates
 showcursor:
   .byte $00

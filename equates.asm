@@ -249,6 +249,11 @@ values stored in BoardState
 // Pointer to screen location of user input
 .const inputlocationvector = $17
 
+.const printclockvector = $19
+
+.const temp1 = $1b
+.const temp2 = $1d
+
 // Keyboard constants
 .const KEY_A = $01
 .const KEY_B = $02

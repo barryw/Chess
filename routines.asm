@@ -178,9 +178,6 @@ HideThinking:
 Update the counts of captured pieces for the current player
 */
 UpdateCaptureCounts:
-  wfc printmutex
-  sef printmutex
-
   StoreWord(printvector, ScreenAddress(CapturedCountStart))
   ldy #$00
   jeq currentplayer:#WHITES_TURN:!whitecaptured+
@@ -200,7 +197,6 @@ UpdateCaptureCounts:
   iny
   cpy #$05
   bne !print-
-  clf printmutex
   rts
 
 /*
@@ -336,9 +332,7 @@ a piece in moveto, capture it first and then move the piece.
 MovePiece:
   jsr FlashPieceOff     // Turn off the flashing of the selected piece
   ldx movetoindex
-  lda BoardState, x     // Get the piece in the moveto location if there is one
-  cmp #EMPTY_SPR        // If it's an empty sprite, just move the piece
-  beq !movepiece+
+  jeq BoardState, x:#EMPTY_SPR:!movepiece+
   and #LOWER7           // Strip color information
   cmp #PAWN_SPR         // Capture a pawn?
   beq !capturepawn+
@@ -375,7 +369,7 @@ MovePiece:
 !movepiece:
   ldx movetoindex       // Move it to the moveto location
   stb selectedpiece:BoardState, x
-  ldx movefromindex
+  ldx movefromindex     // Empty the movefrom location
   stb #EMPTY_SPR:BoardState, x
 !exit:
   rts
@@ -400,7 +394,7 @@ ChangePlayers:
   // TODO: If I enable the play clock at this point
   // the game hangs. There's a race condition in the
   // call to PrintByte in the ShowClock routine
-  //sef playclockrunning
+  sef playclockrunning
 
   rts
 
