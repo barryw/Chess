@@ -3,7 +3,7 @@
 SetupInterrupt:
   sei
 
-  lda #$7f
+  lda #LOWER7
   sta vic.CIAICR
   sta vic.CI2ICR
 
@@ -14,11 +14,8 @@ SetupInterrupt:
   sta vic.VICIRQ
   sta vic.IRQMSK
 
-  lda irqypos           // Get the raster line for the first interrupt
-  sta vic.RASTER
-
-  lda #$1b
-  sta vic.SCROLY
+  stb irqypos:vic.RASTER
+  stb #$1b:vic.SCROLY
 
   StoreWord(IRQ_VECTOR, irq) // Point the interrupt vector at our routine
 
@@ -58,19 +55,16 @@ irq:
   tax
   ldy #$00
 !updatesprites:
-  lda BoardSprites, x   // Set the sprite pointer based on the piece in this position
-  sta SPRPTR, y
-  lda BoardColors, x    // Set the sprite color for this sprite
-  sta vic.SP0COL, y
+  stb BoardSprites, x:SPRPTR, y
+  stb BoardColors, x:vic.SP0COL, y
 !continue:
   inx
   iny
   cpy #NUM_COLS
   bne !updatesprites-
 
-  lda counter
-  cmp #NUM_ROWS - 1
-  bne !skip+            // Handle our routines during the interrupt, but only once per frame
+  jne counter:#NUM_ROWS - 1:!skip+
+
   jsr RunServiceRoutines
 
 !skip:
@@ -82,8 +76,7 @@ irq:
 
 !nextirq:
   stx counter
-  lda irqypos, x
-  sta vic.RASTER
+  stb irqypos, x:vic.RASTER
 
   .if(DEBUG == true) {
     dec vic.EXTCOL
@@ -119,16 +112,12 @@ FlashPiece:
   lda #PIECE_FLASH_SPEED
   sta pieceflashtimer
   ldx movefromindex
-  lda BoardState, x
-  cmp #EMPTY_SPR
-  beq !showpiece+
+  jeq BoardState, x:#EMPTY_SPR:!showpiece+
 !showempty:             // Flash OFF
-  lda #EMPTY_SPR
-  sta BoardState, x
+  stb #EMPTY_SPR:BoardState, x
   jmp !exit+
 !showpiece:             // Flash ON
-  lda selectedpiece
-  sta BoardState, x
+  stb selectedpiece:BoardState, x
 !exit:
   rts
 
@@ -140,8 +129,7 @@ FlashCursor:
   beq !return+
   dec cursorflashtimer
   bne !return+
-  lda #CURSOR_FLASH_SPEED
-  sta cursorflashtimer
+  stb #CURSOR_FLASH_SPEED:cursorflashtimer
   StoreWord(inputlocationvector, ScreenAddress(CursorPos))
   ldy cursorxpos
   lda (inputlocationvector),y
@@ -155,10 +143,8 @@ FlashCursor:
 If the music is unmuted, play it. This will get called once per frame (60x a second).
 */
 PlayMusic:
-  lda playmusic         // Is music enabled?
-  cmp #$01
-  bne !return+
-  jsr music_play        // Play it
+  bfc playmusic:!return+
+  jsr music_play
 !return:
   rts
 
@@ -170,18 +156,15 @@ ShowSpinner:
   beq !return+
   dec spinnertiming
   bne !return+
-  lda #THINKING_SPINNER_SPEED
-  sta spinnertiming
+  stb #THINKING_SPINNER_SPEED:spinnertiming
   ldx spinnercurrent
   cpx #spinnerend - spinnerstart
   bne !spin+
   ldx #$00
   stx spinnercurrent
 !spin:
-  lda spinnerstart, x
-  sta ScreenAddress(SpinnerPos)
-  lda #$01
-  sta ColorAddress(SpinnerPos)
+  stb spinnerstart, x:ScreenAddress(SpinnerPos)
+  stb #$01:ColorAddress(SpinnerPos)
   inc spinnercurrent
 !return:
   rts
@@ -192,8 +175,7 @@ Color cycle the title
 ColorCycleTitle:
   dec colorcycletiming
   bne !return+
-  lda #TITLE_COLOR_SCROLL_SPEED
-  sta colorcycletiming
+  stb #TITLE_COLOR_SCROLL_SPEED:colorcycletiming
 
   ldx #$00
   inc colorcycleposition
@@ -236,19 +218,18 @@ ComputeBoard:
   ldx #$00
 
 !compute:
-  lda BoardState, x
-  sta currentpiece
-  and #$7f              // Strip high bit to remove the color information.
+  stb BoardState, x:currentpiece
+  and #LOWER7           // Strip high bit to remove the color information.
                         // The remaining 7 bits are the sprite pointer
   sta BoardSprites, x   // Set the pointer for this sprite
   lda currentpiece
-  and #$80              // Strip the lower 7 bits to get color information
+  and #BIT8             // Strip the lower 7 bits to get color information
   clc
   rol
   rol
   sta BoardColors, x
   inx
-  cpx #$40              // Have we processed the entire board?
+  cpx #BIT7             // Have we processed the entire board?
   bne !compute-
   rts
 
@@ -258,10 +239,7 @@ Busy loop while waiting for the VBlank. We want to do most of our work here
 WaitForVblank:
   pha
   php
-!wait:
-  lda vic.RASTER
-  cmp #$80
-  bne !wait-
+  wfv vic.RASTER:#$80
   plp
   pla
   rts

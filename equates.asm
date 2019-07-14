@@ -29,7 +29,7 @@
 .const TITLE_COLOR_SCROLL_SPEED = $08
 
 // The speed that the spinner rotates. Higher is slower
-.const THINKING_SPINNER_SPEED = $20
+.const THINKING_SPINNER_SPEED = $0e
 
 // The cursor flash speed
 .const CURSOR_FLASH_SPEED = $10
@@ -119,6 +119,7 @@
 .var CapturedBishopPos = ScreenPos($1a, CapturedPos.y + $04)
 .var CapturedRookPos = ScreenPos($1a, CapturedPos.y + $05)
 .var CapturedQueenPos = ScreenPos($1a, CapturedPos.y + $06)
+.var KingInCheckPos = ScreenPos($1a, $09)
 
 .var CapturedCountStart = ScreenPos($26, CapturedPawnPos.y)
 
@@ -210,8 +211,18 @@ values stored in BoardState
 .const MENU_LEVEL_SELECT  = $05
 .const MENU_ABOUT_SHOWING = $06
 
+// We enable by setting bit 8
 .const ENABLE   = $80
 .const DISABLE  = $00
+
+// Bit 8
+.const BIT8 = ENABLE
+
+// Bit 7
+.const BIT7 = $40
+
+// Lower 7 bits
+.const LOWER7 = $7f
 
 // Addresses used for memcopy operations
 .const copy_from  = $02

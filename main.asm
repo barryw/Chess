@@ -27,6 +27,8 @@ start:
   jmp !readkeyboard-
 
 #import "vic.asm"
+#import "macros.asm"
+#import "pseudocommands.asm"
 #import "equates.asm"
 #import "math.asm"
 #import "memory.asm"

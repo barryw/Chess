@@ -1,10 +1,5 @@
 *=* "Menus"
 
-.macro SetMenu(menu) {
-  lda #menu
-  sta currentmenu
-}
-
 /*
 Read the keyboard and process the key presses
 */
@@ -138,17 +133,12 @@ HandleBKey:
   beq !playerselect+
   cmp #MENU_COLOR_SELECT
   beq !levelselect+
-  cmp #MENU_GAME
-  beq !columnselect+
-  rts
 
 !columnselect:
   jmp HandleColumnSelection
 
 !levelselect:
-  lda numplayers
-  cmp #ONE_PLAYER
-  bne !playerselect+
+  jne numplayers:#ONE_PLAYER:!playerselect+
   jmp LevelSelectMenu
 
 !start:
@@ -165,16 +155,13 @@ HandleDKey:
 The E key is used as column select during the game, or the Easy level menu selection
 */
 HandleEKey:
-  lda currentmenu
-  cmp #MENU_LEVEL_SELECT
-  beq !easy+
+  jeq currentmenu:#MENU_LEVEL_SELECT:!easy+
 
 !columnselect:
   jmp HandleColumnSelection
 
 !easy:
-  lda #LEVEL_EASY
-  sta difficulty
+  stb #LEVEL_EASY:difficulty
   jmp ColorSelectMenu
 
 HandleFKey:
@@ -185,16 +172,13 @@ HandleGKey:
 The H key is used as column select during the game, or the Hard level menu selection
 */
 HandleHKey:
-  lda currentmenu
-  cmp #MENU_LEVEL_SELECT
-  beq !hard+
+  jeq currentmenu:#MENU_LEVEL_SELECT:!hard+
 
 !columnselect:
   jmp HandleColumnSelection
 
 !hard:
-  lda #LEVEL_HARD
-  sta difficulty
+  stb #LEVEL_HARD:difficulty
   jmp ColorSelectMenu
 
 /*
@@ -211,8 +195,7 @@ HandleMKey:
   rts
 
 !medium:
-  lda #LEVEL_MEDIUM
-  sta difficulty
+  stb #LEVEL_MEDIUM:difficulty
   jmp ColorSelectMenu
 
 !music:
@@ -222,9 +205,7 @@ HandleMKey:
 Handle the pressing of the Q key. This is normally tied to the Quit option from the main menu
 */
 HandleQKey:
-  lda currentmenu
-  cmp #MENU_MAIN
-  bne !exit+
+  jne currentmenu:#MENU_MAIN:!exit+
   jsr QuitMenu
 !exit:
   rts
@@ -233,12 +214,9 @@ HandleQKey:
 Handle the pressing of the Y key. This normally tied to the Quit option
 */
 HandleYKey:
-  lda currentmenu
-  cmp #MENU_QUIT
-  bne !exit+
+  jne currentmenu:#MENU_QUIT:!exit+
   jsr DisableSprites
-  lda #$37
-  sta $01
+  stb #$37:$01
   jsr $fce2
 !exit:
   rts
@@ -247,9 +225,7 @@ HandleYKey:
 Handle the pressing of the N key. This is normally tied to the Quit option
 */
 HandleNKey:
-  lda currentmenu
-  cmp #MENU_QUIT
-  bne !exit+
+  jne currentmenu:#MENU_QUIT:!exit+
   jsr StartMenu
 !exit:
   rts
@@ -258,9 +234,7 @@ HandleNKey:
 Handle the pressing of the P key.
 */
 HandlePKey:
-  lda currentmenu
-  cmp #MENU_MAIN
-  bne !exit+
+  jne currentmenu:#MENU_MAIN:!exit+
   jsr PlayerSelectMenu
 !exit:
   rts
@@ -279,13 +253,11 @@ Handle1Key:
   rts
 
 !playerselect:
-  lda #ONE_PLAYER
-  sta numplayers
+  stb #ONE_PLAYER:numplayers
   jmp LevelSelectMenu
 
 !colorselect:
-  lda #BLACK
-  sta player1color
+  stb #BLACK:player1color
   jmp StartGame
 
 !rowselect:
@@ -305,13 +277,11 @@ Handle2Key:
   rts
 
 !playerselect:
-  lda #TWO_PLAYERS
-  sta numplayers
+  stb #TWO_PLAYERS:numplayers
   jmp ColorSelectMenu
 
 !colorselect:
-  lda #WHITE
-  sta player1color
+  stb #WHITE:player1color
   jmp StartGame
 
 !rowselect:
@@ -330,23 +300,16 @@ Handle the pressing of the return key. This key gets pressed when
 the player has typed in the entire movefrom or moveto coordinates
 */
 HandleReturnKey:
-  lda processreturn     // Already processing the enter key?
-  bne !exit+
-  eor #$80
+  bfs processreturn:!exit+
+  sef processreturn
+  eor #BIT8
   sta processreturn
-  lda currentmenu       // Are we playing?
-  cmp #MENU_GAME
-  bne !endreturn+
+  jne currentmenu:#MENU_GAME:!endreturn+
   lda showcursor        // Are we accepting input?
   beq !endreturn+
 
-  lda movetoindex       // First check moveto
-  cmp #$80
-  bne !processmove+     // if moveto has a value, process the move
-
-  lda movefromindex     // moveto is empty. Does movefrom have a value?
-  cmp #$80
-  bne !validatefrom+    // Yes, validate it
+  jne movetoindex:#BIT8:!processmove+
+  jne movefromindex:#BIT8:!validatefrom+
 
   jmp !endreturn+       // Nope. Don't do anything until we have a movefrom value
 !validatefrom:
@@ -354,14 +317,12 @@ HandleReturnKey:
   jmp !endreturn+
 !processmove:
   jsr ValidateMove
-  lda moveisvalid
-  cmp #$00
-  beq !endreturn+
+  jeq moveisvalid:#$00:!endreturn+
 !movepiece:
   jsr MovePiece
   jsr ChangePlayers
 !endreturn:
-  Toggle(processreturn)
+  clf processreturn
 !exit:
   rts
 
@@ -372,8 +333,7 @@ HandleDeleteKey:
   ldy cursorxpos        // Is the cursor at the beginning of input?
   cpy #$00
   beq !exit+            // Yea. just exit since we can't delete anymore.
-  lda #$20              // Put a space in the current location
-  sta (inputlocationvector),y
+  stb #$20:(inputlocationvector),y
   dec cursorxpos
 !exit:
   rts
@@ -382,18 +342,14 @@ HandleDeleteKey:
 Deal with a row selection. This is the second part of the board coordinate.
 */
 HandleRowSelection:
-  lda cursorxpos        // Don't have a column selection yet?
-  cmp #$00
-  beq !exit+
+  jeq cursorxpos:#$00:!exit+
   lda currentkey
   sec
   sbc #$31              // Store the row 0 based instead of 1 based.
   tay
   lda rowlookup, y      // Invert the row numbers
   pha
-  lda inputselection
-  cmp #INPUT_MOVE_FROM
-  bne !moveto+
+  jne inputselection:#INPUT_MOVE_FROM:!moveto+
   pla
   sta movefrom + $01
   jsr ComputeMoveFromOffset
@@ -412,16 +368,12 @@ Deal with a column selection. This is the first part of the board coordinate
 for movefrom and moveto.
 */
 HandleColumnSelection:
-  lda cursorxpos        // Already have a column selection?
-  cmp #$01
-  beq !exit+
+  jeq cursorxpos:#$01:!exit+
   lda currentkey
   sec
   sbc #$01              // Make the column number 0 based
   pha
-  lda inputselection    // Are we working with movefrom or moveto?
-  cmp #INPUT_MOVE_FROM
-  bne !moveto+
+  jne inputselection:#INPUT_MOVE_FROM:!moveto+
   pla
   sta movefrom
   jmp !continue+
@@ -455,14 +407,10 @@ StartGame:
   jsr ShowGameMenu
 
 !playgame:
-  lda numplayers
-  cmp #TWO_PLAYERS
-  beq !twoplayers+
+  jeq numplayers:#TWO_PLAYERS:!twoplayers+
 
 !oneplayer:
-  lda currentplayer
-  cmp player1color
-  beq !playersturn+
+  jeq currentplayer:player1color:!playersturn+
 !computersturn:
   jsr ShowThinking
   jmp !exit+
@@ -486,6 +434,8 @@ ShowGameMenu:
   jsr UpdateCaptureCounts
   jsr ShowCaptured
   jsr UpdateCaptureCounts
+  jsr CheckKingInCheck
+  jsr ShowKingInCheck
 
   CopyMemory(ForfeitStart, ScreenAddress(ForfeitPos), ForfeitEnd - ForfeitStart)
   FillMemory(ColorAddress(ForfeitPos), ForfeitEnd - ForfeitStart, WHITE)
@@ -569,7 +519,7 @@ StartMenu:
   FillMemory(ColorAddress(QuitGamePos), QuitEnd - QuitStart, WHITE)
 
   // Display the music play/stop menu option
-  jmp DisplayMuteMenu
+  jmp DisplayUnmuteMenu
 
 /*
 Show the Quit menu and the available options
@@ -698,8 +648,7 @@ DisplayMoveFromPrompt:
   CopyMemory(MoveFromStart, ScreenAddress(MovePos), MoveFromEnd - MoveFromStart)
   FillMemory(ColorAddress(MovePos), MoveFromEnd - MoveFromStart, WHITE)
 
-  lda #INPUT_MOVE_FROM
-  sta inputselection
+  SetInputSelection(INPUT_MOVE_FROM)
 
   jsr ResetInput
 
@@ -713,45 +662,54 @@ DisplayMoveToPrompt:
   CopyMemory(MoveToStart, ScreenAddress(MovePos), MoveToEnd - MoveToStart)
   FillMemory(ColorAddress(MovePos), MoveToEnd - MoveToStart, WHITE)
 
-  lda #INPUT_MOVE_TO
-  sta inputselection
+  SetInputSelection(INPUT_MOVE_TO)
 
   jsr ResetInput
 
   rts
 
 /*
+If the current player's king is in check, display a helpful message
+*/
+ShowKingInCheck:
+  jeq currentplayer:#WHITES_TURN:!white+
+
+!black:
+  ldx #BLACK
+  jmp !continue+
+
+!white:
+  ldx #WHITE
+
+!continue:
+  jne incheckflags, x:#ENABLE:!exit+
+  CopyMemory(KingInCheckStart, ScreenAddress(KingInCheckPos), KingInCheckEnd - KingInCheckStart)
+  FillMemory(ColorAddress(KingInCheckPos), KingInCheckEnd - KingInCheckStart, WHITE)
+
+!exit:
+  rts
+
+/*
 Figure out whose turn it is and update the status lines.
 */
 UpdateCurrentPlayer:
-  lda #$3c
-  sta subseconds        // Reset the value of subseconds
-  lda numplayers        // Is it head-to-head or player-vs-computer?
-  cmp #ONE_PLAYER
-  beq !oneplayer+
+  stb #$3c:subseconds   // Reset subsecond count
+  jeq numplayers:#ONE_PLAYER:!oneplayer+
 
 !twoplayers:
-  lda #WHITE
-  sta ColorAddress(PlayerNumberPos)
-  lda player1color
-  cmp currentplayer
-  beq !playeronesturn+
+  stb #WHITE:ColorAddress(PlayerNumberPos)
+  jeq player1color:currentplayer:!playeronesturn+
 
 !playertwosturn:
-  lda #'2'
-  sta ScreenAddress(PlayerNumberPos)
+  stb #'2':ScreenAddress(PlayerNumberPos)
   jmp !playersturn+
 !playeronesturn:
-  lda #'1'
-  sta ScreenAddress(PlayerNumberPos)
+  stb #'1':ScreenAddress(PlayerNumberPos)
   jmp !playersturn+
 
 !oneplayer:
-  lda #BLACK
-  sta ColorAddress(PlayerNumberPos)
-  lda player1color      // Is it the player's turn?
-  cmp currentplayer
-  beq !playersturn+     // Yep
+  stb #BLACK:ColorAddress(PlayerNumberPos)
+  jeq player1color:currentplayer:!playersturn+
 
 !computersturn:
   CopyMemory(ComputerStart, ScreenAddress(TurnValuePos), ComputerEnd - ComputerStart)

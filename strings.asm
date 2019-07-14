@@ -192,6 +192,10 @@ CapturedQueenStart:
   .text " Queens  X   "
 CapturedQueenEnd:
 
+KingInCheckStart:
+  .text "King in check"
+KingInCheckEnd:
+
 AboutTextStart:
   .byte $e0, $e0, $e0, $e0, $70
   .fill $06, $40

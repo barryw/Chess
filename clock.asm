@@ -2,25 +2,17 @@
 If the game has started, show the clock for the current player
 */
 ShowClock:
-  lda currentmenu       // Are we in a game?
-  cmp #MENU_GAME
-  beq !checksubseconds+
-  rts
+  jne currentmenu:#MENU_GAME:!return+
 
 !checksubseconds:
-  lda subseconds        // Has the subsecond clock started?
-  cmp #$3b
-  beq !showclock+
-  rts
+  jne subseconds:#$3b:!return+
 
 !showclock:
   FillMemory(ColorAddress(HoursPos), $08, WHITE)
   lda #':'
   sta ScreenAddress(Colon1Pos)
   sta ScreenAddress(Colon2Pos)
-  lda currentplayer
-  cmp #WHITES_TURN      // Whose turn is it?
-  beq !showwhiteclock+
+  jeq currentplayer:#WHITES_TURN:!showwhiteclock+
 
 !showblackclock:
   ldx #BLACK_CLOCK_POS  // Set the position to show the black clock
@@ -30,20 +22,22 @@ ShowClock:
   ldx #WHITE_CLOCK_POS  // Set the position to show the white clock
 
 !doshow:
+  wfc printmutex
+  sef printmutex
+
   ldy #$00
 !showloop:
-  lda timers, x         // Get the correct position in the timers structure
-  sta num1              // White clock is the first 3 bytes, black the last 3
-  lda timerpositions, y
-  sta printvector
+  stb timers, x:num1
+  stb timerpositions, y:printvector
   iny
-  lda timerpositions, y
-  sta printvector + 1
+  stb timerpositions, y:printvector + $01
   jsr PrintByte         // Print the 2 byte BCD digit for this position
   inx
   iny
   cpx #$03              // hours, minutes and seconds
   bne !showloop-
+
+  clf printmutex
 
 !return:
   rts
@@ -52,20 +46,14 @@ ShowClock:
 Update the clock for the current player
 */
 UpdateClock:
-  lda currentmenu       // Are we in a game?
-  cmp #MENU_GAME
-  bne !return+
-  lda playclockrunning  // Is the play clock running?
-  bpl !return+
+  jne currentmenu:#MENU_GAME:!return+
+  bfc playclockrunning:!return+
 
 !updateclock:
   dec subseconds
   bne !return+
-  lda #$3c
-  sta subseconds
-  lda currentplayer     // Whose turn is it?
-  cmp #WHITES_TURN
-  beq !updatewhiteclock+
+  stb #$3c:subseconds
+  jeq currentplayer:#WHITES_TURN:!updatewhiteclock+
 
 !updateblackclock:
   ldx #BLACK_CLOCK_POS  // Black player is up
@@ -88,7 +76,7 @@ UpdateClock:
   inx
   cpx #$02
   bne !updatetimers-
+  cld
 
 !return:
-  cld
   rts

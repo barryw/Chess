@@ -66,7 +66,7 @@ numplayers:
 player1color:
   .byte $00
 
-// Whether to play music or not. 1 = play, 0 = mute
+// Whether to play music or not. $80 = play, $00 = mute
 playmusic:
   .byte $00
 
@@ -136,6 +136,9 @@ fillmutex:
 copymutex:
   .byte $00
 
+printmutex:
+  .byte $00
+
 // Whether to show the flashing cursor to wait for the movefrom/moveto coordinates
 showcursor:
   .byte $00
@@ -162,11 +165,11 @@ moveto:
 
 // Store the offset in BoardState for the piece to move here
 movefromindex:
-  .byte $80
+  .byte BIT8
 
 // Store the offset in BoardState for the location to move to here
 movetoindex:
-  .byte $80
+  .byte BIT8
 
 // This is a lookup table to translate row numbers into their
 // inverse. This is needed due to the way BoardState is arranged.
@@ -190,3 +193,7 @@ pieceflashtimer:
 // A flag indicating whether a piece should be flashed
 flashpiece:
   .byte $00
+
+// A flag to indicate when a player's king is in check. Black is first.
+incheckflags:
+  .word $0000

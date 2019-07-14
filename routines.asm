@@ -29,8 +29,7 @@ storex:
 Disable all sprites
 */
 DisableSprites:
-  lda #$00
-  sta vic.SPENA
+  stb #$00:vic.SPENA
   rts
 
 /*
@@ -164,9 +163,7 @@ when the computer is determining its best move.
 ShowThinking:
   CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, WHITE)
-  lda #$80
-  sta playclockrunning
-  sta spinnerenabled
+  Enable(spinnerenabled)
   rts
 
 /*
@@ -174,22 +171,19 @@ Hide the "Thinking" message when the computer is ready to move
 */
 HideThinking:
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, BLACK)
-  lda #$00
-  sta playclockrunning
-  sta spinnerenabled
+  Disable(spinnerenabled)
   rts
 
 /*
 Update the counts of captured pieces for the current player
 */
 UpdateCaptureCounts:
-  Disable(playclockrunning)
+  wfc printmutex
+  sef printmutex
 
   StoreWord(printvector, ScreenAddress(CapturedCountStart))
   ldy #$00
-  lda currentplayer
-  cmp #WHITES_TURN
-  beq !whitecaptured+
+  jeq currentplayer:#WHITES_TURN:!whitecaptured+
 !blackcaptured:
   StoreWord(capturedvector, blackcaptured)
   jmp !print+
@@ -206,9 +200,7 @@ UpdateCaptureCounts:
   iny
   cpy #$05
   bne !print-
-
-  Enable(playclockrunning)
-
+  clf printmutex
   rts
 
 /*
@@ -269,7 +261,7 @@ ResetPlayer:
   sta movefrom + $01
   sta moveto
   sta moveto + $01
-  lda #$80
+  lda #BIT8
   sta movefromindex
   sta movetoindex
   rts
@@ -279,10 +271,8 @@ Validate that the selected movefrom location contains a piece of the correct col
 */
 ValidateFrom:
   ldx movefromindex     // Get the piece at the selected location
-  lda BoardState, x
-  cmp #EMPTY_PIECE      // Is it an empty square?
-  beq !emptysquare+
-  and #$80
+  jeq BoardState, x:#EMPTY_PIECE:!emptysquare+
+  and #BIT8
   clc
   rol
   rol
@@ -290,8 +280,7 @@ ValidateFrom:
   bne !notyourpiece+
 
   ldx movefromindex
-  lda BoardState, x
-  sta selectedpiece
+  stb BoardState, x:selectedpiece
 
   jsr FlashPieceOn      // Start flashing the selected piece
 
@@ -307,10 +296,8 @@ ValidateFrom:
   FillMemory(ColorAddress(ErrorPos), NoPieceEnd - NoPieceStart, WHITE)
 !clearinput:
   jsr ResetInput
-  lda #$80
-  sta movefromindex
-  lda #$00
-  sta selectedpiece
+  stb #BIT8:movefromindex
+  stb #$00:selectedpiece
 
 !exit:
   rts
@@ -319,10 +306,11 @@ ValidateFrom:
 Validate that the selected moveto location is valid for the piece selected
 */
 ValidateMove:
-  Disable(moveisvalid)
+  clf moveisvalid
+
   ldx movetoindex
   lda BoardState, x     // See if we're trying to move on top of one of our own pieces
-  and #$80
+  and #BIT8
   rol
   rol
   cmp currentplayer
@@ -333,12 +321,11 @@ ValidateMove:
 
 !clearinput:
   jsr ResetInput
-  lda #$80
-  sta movetoindex
+  stb #BIT8:movetoindex
   jmp !exit+
 
 !validmove:
-  Enable(moveisvalid)
+  sef moveisvalid
 !exit:
   rts
 
@@ -352,7 +339,7 @@ MovePiece:
   lda BoardState, x     // Get the piece in the moveto location if there is one
   cmp #EMPTY_SPR        // If it's an empty sprite, just move the piece
   beq !movepiece+
-  and #$7f              // Strip color information
+  and #LOWER7           // Strip color information
   cmp #PAWN_SPR         // Capture a pawn?
   beq !capturepawn+
   cmp #KNIGHT_SPR       // A knight?
@@ -380,20 +367,16 @@ MovePiece:
 !capturequeen:
   ldx #CAP_QUEEN
 !capturepiece:
-  lda currentplayer
-  cmp #WHITES_TURN
-  bne !incrementblack+
+  jne currentplayer:#WHITES_TURN:!incrementblack+
   inc whitecaptured, x
   jmp !movepiece+
 !incrementblack:
   inc blackcaptured, x
 !movepiece:
-  lda selectedpiece
   ldx movetoindex       // Move it to the moveto location
-  sta BoardState, x
+  stb selectedpiece:BoardState, x
   ldx movefromindex
-  lda #EMPTY_SPR
-  sta BoardState, x
+  stb #EMPTY_SPR:BoardState, x
 !exit:
   rts
 
@@ -403,8 +386,10 @@ made a move.
 */
 ChangePlayers:
   lda currentplayer
-  eor #%00000001
+  eor #%00000001        // Swap the players
   sta currentplayer
+
+  clf playclockrunning
 
   jsr UpdateCaptureCounts
   jsr ResetPlayer
@@ -412,4 +397,12 @@ ChangePlayers:
   jsr UpdateCurrentPlayer
   jsr DisplayMoveFromPrompt
 
+  //sef playclockrunning
+
+  rts
+
+/*
+Check to see if the current player's king is in check.
+*/
+CheckKingInCheck:
   rts

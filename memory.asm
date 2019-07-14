@@ -1,85 +1,12 @@
 *=* "Memory"
-.macro PushStack() {
-  php
-  pha
-  txa
-  pha
-  tya
-  pha
-}
-
-.macro PopStack() {
-  pla
-  tay
-  pla
-  tax
-  pla
-  plp
-}
-
-// Toggle a flag
-.macro Toggle(address) {
-  lda address
-  eor #ENABLE
-  sta address
-}
-
-// Disable a flag
-.macro Disable(address) {
-  lda #DISABLE
-  sta address
-}
-
-// Enable a flag
-.macro Enable(address) {
-  lda #ENABLE
-  sta address
-}
-/*
-Store a 16 bit word
-*/
-.macro StoreWord(address, word) {
-  pha
-  lda #<word
-  sta address
-  lda #>word
-  sta address + $01
-  pla
-}
-
-/*
-Perform a memory copy
-
-Each parameter is 16 bits
-*/
-.macro CopyMemory(from_address, to_address, size) {
-  StoreWord(copy_from, from_address)
-  StoreWord(copy_to, to_address)
-  StoreWord(copy_size, size)
-  jsr CopyMemory
-}
-
-/*
-Fill a block of memory with a byte
-*/
-.macro FillMemory(address, size, value) {
-  StoreWord(fill_to, address)
-  StoreWord(fill_size, size)
-  lda #value
-  sta fill_value
-  jsr FillMemory
-}
 
 /*
 Fill memory with bytes. This is very similar to the memcopy routine
 below, but just stores a single value into a range of addresses.
 */
 FillMemory:
-  lda fillmutex
-  cmp #$00
-  bne FillMemory
-  lda #$01
-  sta fillmutex
+  wfc fillmutex         // Wait for mutex to be released
+  sef fillmutex         // Set the mutex
   ldy #0
   ldx fill_size + $01
   beq !frag_fill+
@@ -99,8 +26,8 @@ FillMemory:
   iny
   bne !frag_fill-
 !done_fill:
-  lda #$00
-  sta fillmutex
+  clf fillmutex         // Clear the mutex
+!exit:
   rts
 
 /*
@@ -109,11 +36,8 @@ Do the actual memory copy.
 Doesn't need to be on a page boundary. Can copy fragments as well.
 */
 CopyMemory:
-  lda copymutex
-  cmp #$00
-  bne CopyMemory
-  lda #$01
-  sta copymutex
+  wfc copymutex
+  sef copymutex
   ldy #0
   ldx copy_size + $01
   beq !frag+
@@ -134,8 +58,8 @@ CopyMemory:
   iny
   bne !frag-
 !done:
-  lda #$00
-  sta copymutex
+  clf copymutex
+!exit:
   rts
 
 /*
@@ -167,10 +91,10 @@ Enable the flashing of the selected piece
 */
 FlashPieceOn:
   ldx movefromindex     // Has a piece been selected?
-  bmi !exit+
+  bmi !exit+            // Nope. Just exit.
   lda BoardState, x     // Grab the piece that's in that location
   sta selectedpiece     // tuck it away for later
-  Enable(flashpiece)
+  sef flashpiece        // Turn flashing on
 !exit:
   rts
 
@@ -180,9 +104,9 @@ Disable the flashing of a selected piece
 FlashPieceOff:
   lda flashpiece
   bpl !exit+
-  lda selectedpiece
-  ldx movefromindex
+  lda selectedpiece     // Retrieve our stored piece
+  ldx movefromindex     // Stick it back in BoardState
   sta BoardState, x
-  Disable(flashpiece)
+  clf flashpiece        // Turn flashing off
 !exit:
   rts
