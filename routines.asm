@@ -397,6 +397,9 @@ ChangePlayers:
   jsr UpdateCurrentPlayer
   jsr DisplayMoveFromPrompt
 
+  // TODO: If I enable the play clock at this point
+  // the game hangs. There's a race condition in the
+  // call to PrintByte in the ShowClock routine
   //sef playclockrunning
 
   rts

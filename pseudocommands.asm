@@ -29,6 +29,11 @@ syntax very much resembles standard 6502 instructions.
   Enable(flag)
 }
 
+/* TGF: toggle flag */
+.pseudocommand tgf flag {
+  Toggle(flag)
+}
+
 /* WFS: wait for flag set */
 .pseudocommand wfs flag {
 !wait:
@@ -44,9 +49,7 @@ syntax very much resembles standard 6502 instructions.
 /* WFV: wait for value */
 .pseudocommand wfv address:value {
 !wait:
-  lda address
-  cmp value
-  bne !wait-
+  jne address:value:!wait-
 }
 
 /* JNE: jump if not equal */
