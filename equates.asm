@@ -29,7 +29,7 @@
 .const TITLE_COLOR_SCROLL_SPEED = $08
 
 // The speed that the spinner rotates. Higher is slower
-.const THINKING_SPINNER_SPEED = $0e
+.const THINKING_SPINNER_SPEED = $1e
 
 // The cursor flash speed
 .const CURSOR_FLASH_SPEED = $10
@@ -123,6 +123,7 @@
 
 .var CapturedCountStart = ScreenPos($26, CapturedPawnPos.y)
 
+.var InteractionLinePos = ScreenPos($1a, $07)
 .var ThinkingPos = ScreenPos($1c, $07)
 .var SpinnerPos = ScreenPos($25, ThinkingPos.y)
 .var MovePos = ScreenPos($1a, ThinkingPos.y)

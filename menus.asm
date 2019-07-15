@@ -652,6 +652,8 @@ DisplayMoveFromPrompt:
 
   jsr ResetInput
 
+  Enable(showcursor)
+
   rts
 
 /*

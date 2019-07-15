@@ -161,9 +161,11 @@ Display the "Thinking" message with an indeterminate progress bar. This is shown
 when the computer is determining its best move.
 */
 ShowThinking:
+  FillMemory(ScreenAddress(InteractionLinePos), $0e, $20)
   CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
   FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, WHITE)
   Enable(spinnerenabled)
+  Disable(showcursor)
   rts
 
 /*
@@ -244,7 +246,6 @@ ResetInput:
   sta (inputlocationvector), y
   iny
   sta (inputlocationvector), y
-  Enable(showcursor)    // Show the cursor
 
   rts
 
@@ -389,11 +390,14 @@ ChangePlayers:
   jsr ResetPlayer
   jsr FlipBoard
   jsr UpdateCurrentPlayer
+
+  jne numplayers:#ONE_PLAYER:!twoplayers+
+  jsr ShowThinking
+  jmp !return+
+!twoplayers:
   jsr DisplayMoveFromPrompt
 
-  // TODO: If I enable the play clock at this point
-  // the game hangs. There's a race condition in the
-  // call to PrintByte in the ShowClock routine
+!return:
   sef playclockrunning
 
   rts
