@@ -276,10 +276,10 @@ ValidateFrom:
   cmp currentplayer
   bne !notyourpiece+
 
+  jsr FlashPieceOn      // Start flashing the selected piece
+
   ldx movefromindex
   stb BoardState, x:selectedpiece
-
-  jsr FlashPieceOn      // Start flashing the selected piece
 
   jsr DisplayMoveToPrompt
 
