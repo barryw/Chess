@@ -427,6 +427,7 @@ Display the menu that's shown while the game is being played
 */
 ShowGameMenu:
   jsr ClearMenus
+
   SetMenu(MENU_GAME)
 
   jsr ShowStatus

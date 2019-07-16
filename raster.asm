@@ -49,9 +49,7 @@ irq:
   sta vic.SP7Y
 
   txa
-  asl                   // Multiply the row by 8 to get the correct position
-  asl                   // inside our 64 byte data structures
-  asl
+  mult8
   tax
   ldy #$00
 !updatesprites:

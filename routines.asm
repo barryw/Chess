@@ -9,8 +9,7 @@ place them on the first row. The multiplexer is responsible for moving them
 to subsequent rows.
 */
 SetupSprites:
-  lda #$ff
-  sta vic.SPENA
+  stb #$ff:vic.SPENA
   ldx #$00
   stx counter
   lda #PIECE_WIDTH
@@ -36,12 +35,8 @@ DisableSprites:
 Turn on the custom characters
 */
 SetupCharacters:
-  lda vic.VMCSB
-  and #$f0
-  ora #$0d
-  sta vic.VMCSB
-  lda #$35
-  sta $01
+  stb #$1d:vic.VMCSB
+  stb #$35:$01
 
   rts
 
@@ -68,8 +63,7 @@ SetupScreen:
   lda #$00
   sta vic.BGCOL0
   sta vic.EXTCOL
-  lda #$17
-  sta vic.VMCSB
+  stb #$17:vic.VMCSB
 
   ldx #$00
 !loop:
@@ -92,8 +86,7 @@ SetupScreen:
   ldx #$00
   ldy #$00
 !loop:
-  lda Columns, y
-  sta $07c1,x
+  stb Columns, y:$07c1, x
   inx
   inx
   inx
@@ -101,22 +94,14 @@ SetupScreen:
   cpy #$09
   bne !loop-
 
-  lda #'8'
-  sta $0440
-  lda #'7'
-  sta $04b8
-  lda #'6'
-  sta $0530
-  lda #'5'
-  sta $05a8
-  lda #'4'
-  sta $0620
-  lda #'3'
-  sta $0698
-  lda #'2'
-  sta $0710
-  lda #'1'
-  sta $0788
+  stb #'8':ScreenAddress(ScreenPos($18, $01))
+  stb #'7':ScreenAddress(ScreenPos($18, $04))
+  stb #'6':ScreenAddress(ScreenPos($18, $07))
+  stb #'5':ScreenAddress(ScreenPos($18, $0a))
+  stb #'4':ScreenAddress(ScreenPos($18, $0d))
+  stb #'3':ScreenAddress(ScreenPos($18, $10))
+  stb #'2':ScreenAddress(ScreenPos($18, $13))
+  stb #'1':ScreenAddress(ScreenPos($18, $16))
 
   // Display the title
   CopyMemory(TitleRow1Start, ScreenAddress(Title1Pos), TitleRow1End - TitleRow1Start)
@@ -189,8 +174,7 @@ UpdateCaptureCounts:
 !whitecaptured:
   StoreWord(capturedvector, whitecaptured)
 !print:
-  lda (capturedvector), y
-  sta num1
+  stb (capturedvector), y:num1
   jsr PrintByte
   lda printvector
   clc
@@ -206,9 +190,7 @@ Calculate the board offset for the movefrom coordinate
 */
 ComputeMoveFromOffset:
   lda movefrom + $01
-  asl
-  asl
-  asl
+  mult8
   clc
   adc movefrom
   sta movefromindex
@@ -220,9 +202,7 @@ Calculate the board offset for the moveto coordinate
 */
 ComputeMoveToOffset:
   lda moveto + $01
-  asl
-  asl
-  asl
+  mult8
   clc
   adc moveto
   sta movetoindex

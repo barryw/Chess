@@ -71,3 +71,10 @@ syntax very much resembles standard 6502 instructions.
   lda value
   sta address
 }
+
+/* MULT8: multiply the accumulator by 8 */
+.pseudocommand mult8 {
+  asl
+  asl
+  asl
+}

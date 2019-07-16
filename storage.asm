@@ -186,3 +186,6 @@ flashpiece:
 // A flag to indicate when a player's king is in check. Black is first.
 incheckflags:
   .word $0000
+
+pausetimer:
+  .byte $00, $00, $00
