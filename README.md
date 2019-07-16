@@ -88,8 +88,6 @@ The files `storage.asm` and `board.asm` contain variable storage and important d
 
 - screenbuffer, colorbuffer: A temporary area to hold data when the "About" menu is displayed.
 
-- fillmutex, copymutex: Mutex bytes to ensure that only 1 copy/fill operation happens at a time. Since we have interrupt and non-interrupt code doing memcopy/memfill, we need to ensure that they don't step on each other.
-
 - showcursor: Whether to display the cursor to allow input.
 
 - cursorxpos: Input consists of a 2 digit coordinate for movefrom and moveto (row and column), so this location will either be 0 or 1 to show which field is currently being set.
