@@ -182,14 +182,10 @@ HandleHKey:
   jmp ColorSelectMenu
 
 /*
-The M key is used to mute/unmute the music while on the main screen or during gameplay
+The M key is used to select medium difficulty
 */
 HandleMKey:
   lda currentmenu
-  cmp #MENU_MAIN
-  beq !music+
-  cmp #MENU_GAME
-  beq !music+
   cmp #MENU_LEVEL_SELECT
   beq !medium+
   rts
@@ -197,9 +193,6 @@ HandleMKey:
 !medium:
   stb #LEVEL_MEDIUM:difficulty
   jmp ColorSelectMenu
-
-!music:
-  jmp ToggleMusic
 
 /*
 Handle the pressing of the Q key. This is normally tied to the Quit option from the main menu
@@ -519,8 +512,7 @@ StartMenu:
   CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
   FillMemory(ColorAddress(QuitGamePos), QuitEnd - QuitStart, WHITE)
 
-  // Display the music play/stop menu option
-  jmp DisplayUnmuteMenu
+  rts
 
 /*
 Show the Quit menu and the available options

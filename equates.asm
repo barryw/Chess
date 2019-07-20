@@ -56,9 +56,8 @@
 .var Title2CharPos = ScreenPos($1e, $01)
 
 // Positions for main menu items
-.var PlayGamePos = ScreenPos($1a, Menu1Pos.y)
-.var MusicTogglePos = ScreenPos($1a, PlayGamePos.y + $01)
-.var AboutPos = ScreenPos($1a, MusicTogglePos.y + $01)
+.var PlayGamePos = ScreenPos($1a, Menu1Pos.y + $01)
+.var AboutPos = ScreenPos($1a, PlayGamePos.y + $01)
 .var QuitGamePos = ScreenPos($1a, AboutPos.y + $01)
 .var AboutTextPos = ScreenPos($00, $06)
 

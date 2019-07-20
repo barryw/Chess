@@ -124,6 +124,7 @@ PrintByte:
   tya
   pha
   lda num1
+  pha
   and #$f0              // Get the upper nybble first
   lsr
   lsr
@@ -133,7 +134,7 @@ PrintByte:
   ldy #$00
   sta (printvector),y
   iny
-  lda num1
+  pla
   and #$0f              // Get the lower nybble
   adc #$30
   sta (printvector),y

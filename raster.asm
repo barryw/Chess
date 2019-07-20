@@ -88,7 +88,6 @@ irq:
 These get called once per frame at the end of the frame
 */
 RunServiceRoutines:
-  jsr PlayMusic         // Play the music if it's turned on
   jsr ComputeBoard      // Recompute and draw the board
   jsr ColorCycleTitle   // Color cycle the title and make it look pretty
   jsr UpdateClock       // Update the play clock for whichever player is playing
@@ -134,15 +133,6 @@ FlashCursor:
   eor #ENABLE
   sta (inputlocationvector),y
 
-!return:
-  rts
-
-/*
-If the music is unmuted, play it. This will get called once per frame (60x a second).
-*/
-PlayMusic:
-  bfc playmusic:!return+
-  jsr music_play
 !return:
   rts
 
