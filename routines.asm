@@ -315,7 +315,8 @@ a piece in moveto, capture it first and then move the piece.
 */
 MovePiece:
   jsr FlashPieceOff     // Turn off the flashing of the selected piece
-  jeq selectedpiece:#EMPTY_SPR:!movepiece+
+  ldx movetoindex
+  jeq BoardState, x:#EMPTY_SPR:!movepiece+
   and #LOWER7           // Strip color information
   cmp #PAWN_SPR         // Capture a pawn?
   beq !capturepawn+
