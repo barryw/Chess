@@ -78,3 +78,14 @@ syntax very much resembles standard 6502 instructions.
   asl
   asl
 }
+
+/* CHK_MINE: check if the piece in the accumulator is mine */
+/* and branch to 'if_not' if it isn't */
+.pseudocommand chk_mine if_not {
+  and #BIT8
+  clc
+  rol
+  rol
+  cmp currentplayer
+  bne if_not
+}

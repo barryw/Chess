@@ -257,12 +257,7 @@ ValidateFrom:
   clf movefromisvalid
   ldx movefromindex     // Get the piece at the selected location
   jeq BoardState, x:#EMPTY_PIECE:!emptysquare+
-  and #BIT8             // Shift the color bit (the high bit) around to bit 0
-  clc                   // so that we can compare it to the current player
-  rol
-  rol
-  cmp currentplayer     // Does it belong to the current player?
-  bne !notyourpiece+
+  chk_mine !notyours+   // My piece?
 
   jsr FlashPieceOn      // Start flashing the selected piece
   jsr DisplayMoveToPrompt
@@ -270,7 +265,7 @@ ValidateFrom:
   sef movefromisvalid
 
   jmp !exit+
-!notyourpiece:
+!notyours:
   CopyMemory(NotYourPieceStart, ScreenAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart)
   FillMemory(ColorAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart, WHITE)
   jmp !clearinput+
@@ -288,15 +283,10 @@ ValidateFrom:
 Validate that the selected moveto location is valid for the piece selected
 */
 ValidateTo:
-  clf movetoisvalid       // Reset the valid move flag
+  clf movetoisvalid     // Reset the valid move flag
   ldx movetoindex       // Is the destination an empty square?
   jeq BoardState, x:#EMPTY_SPR:!validmove+
-  and #BIT8             // Is it one of our own pieces?
-  clc
-  rol
-  rol
-  cmp currentplayer
-  bne !validmove+
+  chk_mine !validmove+  // My piece?
 !alreadyyours:
   CopyMemory(AlreadyYoursStart, ScreenAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart)
   FillMemory(ColorAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart, WHITE)
