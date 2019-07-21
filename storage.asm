@@ -141,7 +141,11 @@ inputselection:
   .byte $00
 
 // $00 move is not valid, $80 move is valid
-moveisvalid:
+movefromisvalid:
+  .byte $00
+
+// $00 move is not valid, $80 move is valid
+movetoisvalid:
   .byte $00
 
 // The location of the piece the player wants to move

@@ -28,10 +28,6 @@ and as its last step sets the next raster to fire 24 lines lower. It also mainta
 'counter' which keeps track of what row we're on. When counter reaches 8, it gets reset to 0.
 */
 irq:
-  .if(DEBUG == true) {
-    inc vic.EXTCOL
-  }
-
   dec vic.VICIRQ
 
   PushStack()
@@ -55,14 +51,13 @@ irq:
 !updatesprites:
   stb BoardSprites, x:SPRPTR, y
   stb BoardColors, x:vic.SP0COL, y
-!continue:
   inx
   iny
   cpy #NUM_COLS
   bne !updatesprites-
 
+  // On the last row, run our service routines
   jne counter:#NUM_ROWS - 1:!skip+
-
   jsr RunServiceRoutines
 
 !skip:
@@ -75,10 +70,6 @@ irq:
 !nextirq:
   stx counter
   stb irqypos, x:vic.RASTER
-
-  .if(DEBUG == true) {
-    dec vic.EXTCOL
-  }
 
   PopStack()
 
@@ -102,12 +93,10 @@ RunServiceRoutines:
 If the player has selected a piece, flash it
 */
 FlashPiece:
-  lda flashpiece
-  bpl !exit+            // If no piece is selected, just exit
+  bfc flashpiece:!exit+
   dec pieceflashtimer
   bpl !exit+
-  lda #PIECE_FLASH_SPEED
-  sta pieceflashtimer
+  stb #PIECE_FLASH_SPEED:pieceflashtimer
   ldx movefromindex
   jeq BoardState, x:#EMPTY_SPR:!showpiece+
 !showempty:             // Flash OFF

@@ -3,6 +3,10 @@ If the game has started, show the clock for the current player
 */
 ShowClock:
   jne currentmenu:#MENU_GAME:!return+
+  bfc playclockrunning:!return+
+  lda subseconds
+  cmp #$01
+  bne !return+
 
 !showclock:
   FillMemory(ColorAddress(HoursPos), $08, WHITE)
@@ -20,8 +24,6 @@ ShowClock:
 
 !doshow:
   ldy #$00
-  CopyWord(printvector, temp1)
-  CopyWord(num1, temp2)
 !showloop:
   stb timers, x:num1
   stb timerpositions, y:printvector
@@ -32,8 +34,6 @@ ShowClock:
   iny
   cpy #$06              // hours, minutes and seconds
   bne !showloop-
-  CopyWord(temp2, num1)
-  CopyWord(temp1, printvector)
 !return:
   rts
 

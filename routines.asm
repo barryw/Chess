@@ -234,34 +234,40 @@ ResetInput:
 Reset everything for the current player
 */
 ResetPlayer:
-  lda #$00
+  lda #$00              // Clear out movefrom and moveto
   sta movefrom
   sta movefrom + $01
   sta moveto
   sta moveto + $01
+
   lda #BIT8
-  sta movefromindex
+  sta movefromindex     // Reset movefromindex and movetoindex
   sta movetoindex
+
+  lda #$00
+  sta movetoisvalid
+  sta movefromisvalid
+
   rts
 
 /*
 Validate that the selected movefrom location contains a piece of the correct color
 */
 ValidateFrom:
+  clf movefromisvalid
   ldx movefromindex     // Get the piece at the selected location
   jeq BoardState, x:#EMPTY_PIECE:!emptysquare+
-  and #BIT8
-  clc
+  and #BIT8             // Shift the color bit (the high bit) around to bit 0
+  clc                   // so that we can compare it to the current player
   rol
   rol
-  cmp currentplayer
+  cmp currentplayer     // Does it belong to the current player?
   bne !notyourpiece+
 
-  ldx movefromindex
-  stb BoardState, x:selectedpiece
-
-  jsr DisplayMoveToPrompt
   jsr FlashPieceOn      // Start flashing the selected piece
+  jsr DisplayMoveToPrompt
+
+  sef movefromisvalid
 
   jmp !exit+
 !notyourpiece:
@@ -274,7 +280,6 @@ ValidateFrom:
 !clearinput:
   jsr ResetInput
   stb #BIT8:movefromindex
-  stb #$00:selectedpiece
 
 !exit:
   rts
@@ -282,12 +287,12 @@ ValidateFrom:
 /*
 Validate that the selected moveto location is valid for the piece selected
 */
-ValidateMove:
-  clf moveisvalid
-
-  ldx movetoindex
-  lda BoardState, x     // See if we're trying to move on top of one of our own pieces
-  and #BIT8
+ValidateTo:
+  clf movetoisvalid       // Reset the valid move flag
+  ldx movetoindex       // Is the destination an empty square?
+  jeq BoardState, x:#EMPTY_SPR:!validmove+
+  and #BIT8             // Is it one of our own pieces?
+  clc
   rol
   rol
   cmp currentplayer
@@ -295,14 +300,12 @@ ValidateMove:
 !alreadyyours:
   CopyMemory(AlreadyYoursStart, ScreenAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart)
   FillMemory(ColorAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart, WHITE)
-
-!clearinput:
   jsr ResetInput
   stb #BIT8:movetoindex
   jmp !exit+
 
 !validmove:
-  sef moveisvalid
+  sef movetoisvalid       // Move is valid
 !exit:
   rts
 
@@ -312,8 +315,7 @@ a piece in moveto, capture it first and then move the piece.
 */
 MovePiece:
   jsr FlashPieceOff     // Turn off the flashing of the selected piece
-  ldx movetoindex
-  jeq BoardState, x:#EMPTY_SPR:!movepiece+
+  jeq selectedpiece:#EMPTY_SPR:!movepiece+
   and #LOWER7           // Strip color information
   cmp #PAWN_SPR         // Capture a pawn?
   beq !capturepawn+
@@ -364,11 +366,10 @@ ChangePlayers:
   eor #%00000001        // Swap the players
   sta currentplayer
 
-  clf playclockrunning
+  clf playclockrunning  // Turn off the play clock while we swap
 
   jsr UpdateCaptureCounts
   jsr ResetPlayer
-  jsr FlipBoard
   jsr UpdateCurrentPlayer
 
   jne numplayers:#ONE_PLAYER:!twoplayers+
@@ -378,7 +379,7 @@ ChangePlayers:
   jsr DisplayMoveFromPrompt
 
 !return:
-  sef playclockrunning
+  sef playclockrunning   // Turn the play clock back on
 
   rts
 

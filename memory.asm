@@ -82,10 +82,9 @@ FlipBoard:
 Enable the flashing of the selected piece
 */
 FlashPieceOn:
-  ldx movefromindex     // Has a piece been selected?
-  bmi !exit+            // Nope. Just exit.
-  lda BoardState, x     // Grab the piece that's in that location
-  sta selectedpiece     // tuck it away for later
+  bfs movefromindex:!exit+
+  ldx movefromindex
+  stb BoardState, x:selectedpiece
   sef flashpiece        // Turn flashing on
 !exit:
   rts
@@ -94,11 +93,8 @@ FlashPieceOn:
 Disable the flashing of a selected piece
 */
 FlashPieceOff:
-  lda flashpiece
-  bpl !exit+
-  lda selectedpiece     // Retrieve our stored piece
-  ldx movefromindex     // Stick it back in BoardState
-  sta BoardState, x
   clf flashpiece        // Turn flashing off
+  ldx movefromindex     // Stick it back in BoardState
+  stb selectedpiece:BoardState, x
 !exit:
   rts

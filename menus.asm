@@ -293,29 +293,29 @@ Handle the pressing of the return key. This key gets pressed when
 the player has typed in the entire movefrom or moveto coordinates
 */
 HandleReturnKey:
+  jne currentmenu:#MENU_GAME:!exit+
   bfs processreturn:!exit+
-  sef processreturn
-  eor #BIT8
-  sta processreturn
-  jne currentmenu:#MENU_GAME:!endreturn+
-  lda showcursor        // Are we accepting input?
-  beq !endreturn+
+  bfc showcursor:!exit+
 
-  jne movetoindex:#BIT8:!processmove+
-  jne movefromindex:#BIT8:!validatefrom+
+  sef processreturn     // Set the flag indicating that we're already processing
+                        // a press of the return key.
 
-  jmp !endreturn+       // Nope. Don't do anything until we have a movefrom value
+  bfs movefromisvalid:!validateto+
+  bfs movetoisvalid:!movepiece+
+
 !validatefrom:
+  bfs movefromindex:!endreturn+
   jsr ValidateFrom      // Make sure this is a valid move
   jmp !endreturn+
-!processmove:
-  jsr ValidateMove
-  jeq moveisvalid:#$00:!endreturn+
+!validateto:
+  bfs movetoindex:!endreturn+
+  jsr ValidateTo
+  bfc movetoisvalid:!endreturn+
 !movepiece:
   jsr MovePiece
   jsr ChangePlayers
 !endreturn:
-  clf processreturn
+  clf processreturn     // Clear the return processing flag
 !exit:
   rts
 
