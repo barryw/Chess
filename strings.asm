@@ -25,31 +25,23 @@ CopyrightStart:
 CopyrightEnd:
 
 PlayStart:
-  .text "[P] Play Game"
+  .text "[P]lay Game"
 PlayEnd:
 
-UnmuteStart:
-  .text "[M] Play Music"
-UnmuteEnd:
-
-MuteStart:
-  .text "[M] Stop Music"
-MuteEnd:
-
 AboutStart:
-  .text "[A] About"
+  .text "[A]bout"
 AboutEnd:
 
 QuitStart:
-  .text "[Q] Quit Game"
+  .text "[Q]uit Game"
 QuitEnd:
 
 YesStart:
-  .text "[Y] Yes"
+  .text "[Y]es"
 YesEnd:
 
 NoStart:
-  .text "[N] No"
+  .text "[N]o"
 NoEnd:
 
 ForfeitStart:
@@ -59,6 +51,10 @@ ForfeitEnd:
 QuitConfirmationStart:
   .text "Quit?"
 QuitConfirmationEnd:
+
+ForfeitConfirmationStart:
+  .text "Forfeit?"
+ForfeitConfirmationEnd:
 
 PlayerSelectStart:
   .text "Player Count"
@@ -85,11 +81,11 @@ ComputerStart:
 ComputerEnd:
 
 OnePlayerStart:
-  .text "[1] 1 Player"
+  .text "[1] Player"
 OnePlayerEnd:
 
 TwoPlayerStart:
-  .text "[2] 2 Players"
+  .text "[2] Players"
 TwoPlayerEnd:
 
 BackMenuStart:
@@ -145,12 +141,16 @@ NotYourPieceStart:
 NotYourPieceEnd:
 
 AlreadyYoursStart:
-  .text "Already yours"
+  .text "Already yours "
 AlreadyYoursEnd:
 
 InvalidMoveStart:
-  .text "Invalid Move"
+  .text " Invalid Move "
 InvalidMoveEnd:
+
+NoMovesStart:
+  .text "No Valid Moves"
+NoMovesEnd:
 
 CheckStart:
   .text "Check!"
