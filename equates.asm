@@ -89,6 +89,7 @@
 
 .var BackMenuPos = ScreenPos($1a, $17)
 
+.var ForfeitConfirmPos = ScreenPos($1c, $0a)
 .var QuitConfirmPos = ScreenPos($1e, $0a)
 .var PlayerSelectPos = ScreenPos($1b, $0a)
 .var LevelSelectPos = ScreenPos($1b, $0a)
@@ -210,6 +211,7 @@ values stored in BoardState
 .const MENU_COLOR_SELECT  = $04
 .const MENU_LEVEL_SELECT  = $05
 .const MENU_ABOUT_SHOWING = $06
+.const MENU_FORFEIT       = $07
 
 // We enable by setting bit 8
 .const ENABLE   = $80

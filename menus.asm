@@ -69,6 +69,10 @@ ReadKeyboard:
   bne !next+
   jmp HandleYKey
 !next:
+  cmp #KEY_Z
+  bne !next+
+  jmp HandleZKey
+!next:
   cmp #KEY_1
   bne !next+
   jmp Handle1Key
@@ -195,6 +199,24 @@ HandleMKey:
   jmp ColorSelectMenu
 
 /*
+Handle the pressing of the N key. This is normally tied to the Quit option
+*/
+HandleNKey:
+  jne currentmenu:#MENU_QUIT:!exit+
+  jsr StartMenu
+!exit:
+  rts
+
+/*
+Handle the pressing of the P key.
+*/
+HandlePKey:
+  jne currentmenu:#MENU_MAIN:!exit+
+  jsr PlayerSelectMenu
+!exit:
+  rts
+
+/*
 Handle the pressing of the Q key. This is normally tied to the Quit option from the main menu
 */
 HandleQKey:
@@ -215,20 +237,15 @@ HandleYKey:
   rts
 
 /*
-Handle the pressing of the N key. This is normally tied to the Quit option
+Handle the pressing of the Z key. This is used to forfeit an in-progress game.
 */
-HandleNKey:
-  jne currentmenu:#MENU_QUIT:!exit+
-  jsr StartMenu
-!exit:
-  rts
+HandleZKey:
+  jne currentmenu:#MENU_GAME:!exit+
 
-/*
-Handle the pressing of the P key.
-*/
-HandlePKey:
-  jne currentmenu:#MENU_MAIN:!exit+
-  jsr PlayerSelectMenu
+  //clf playclockrunning  // Stop the clock temporarily
+  //clf showcursor        // Disable the cursor
+  //jsr ForfeitMenu
+
 !exit:
   rts
 
@@ -515,6 +532,18 @@ StartMenu:
   rts
 
 /*
+Show the Forfeit confirmation and available options
+*/
+ForfeitMenu:
+  jsr ClearMenus
+  SetMenu(MENU_FORFEIT)
+
+  CopyMemory(ForfeitConfirmationStart, ScreenAddress(ForfeitConfirmPos), ForfeitConfirmationEnd - ForfeitConfirmationEnd)
+  FillMemory(ColorAddress(ForfeitConfirmPos), ForfeitConfirmationEnd - ForfeitConfirmationStart, WHITE)
+
+  jmp ShowYesNoOptions
+
+/*
 Show the Quit menu and the available options
 */
 QuitMenu:
@@ -525,6 +554,9 @@ QuitMenu:
   CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
   FillMemory(ColorAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart, WHITE)
 
+  jmp ShowYesNoOptions
+
+ShowYesNoOptions:
   // Yes option
   CopyMemory(YesStart, ScreenAddress(YesPos), YesEnd - YesStart)
   FillMemory(ColorAddress(YesPos), YesEnd - YesStart, WHITE)

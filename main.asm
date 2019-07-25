@@ -37,6 +37,7 @@ start:
 #import "clock.asm"
 #import "board.asm"
 #import "routines.asm"
+#import "moves.asm"
 #import "raster.asm"
 #import "storage.asm"
 #import "strings.asm"

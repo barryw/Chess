@@ -82,10 +82,15 @@ syntax very much resembles standard 6502 instructions.
 /* CHK_MINE: check if the piece in the accumulator is mine */
 /* and branch to 'if_not' if it isn't */
 .pseudocommand chk_mine if_not {
+  pcol
+  cmp currentplayer
+  bne if_not
+}
+
+/* PCOL: get the color for the piece stored in .a */
+.pseudocommand pcol {
   and #BIT8
   clc
   rol
   rol
-  cmp currentplayer
-  bne if_not
 }

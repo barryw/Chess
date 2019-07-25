@@ -200,10 +200,7 @@ ComputeBoard:
                         // The remaining 7 bits are the sprite pointer
   sta BoardSprites, x   // Set the pointer for this sprite
   lda currentpiece
-  and #BIT8             // Strip the lower 7 bits to get color information
-  clc
-  rol
-  rol
+  pcol                  // Get the piece's color
   sta BoardColors, x
   inx
   cpx #BIT7             // Have we processed the entire board?
