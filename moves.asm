@@ -1,8 +1,29 @@
 /*
-Check to see if the selected piece has any moves.
+Check to see if the selected piece has any moves. We don't even want the player to
+be able to select a piece if it can't move anywhere.
+
+Carry Clear = no moves
+Carry Set = 1 or more valid moves
 */
 HasValidMoves:
+  ldx movefromindex
+  lda BoardState, x
 
+  sec
+
+  rts
+
+/*
+Check to make sure the selected piece can move to the moveto location.
+
+Carry Clear = invalid move
+Carry Set = valid move
+*/
+ValidateMove:
+
+  sec
+
+  rts
 
 /*
 Validate that the selected movefrom location contains a piece of the correct color
@@ -10,22 +31,30 @@ Validate that the selected movefrom location contains a piece of the correct col
 ValidateFrom:
   clf movefromisvalid
   ldx movefromindex     // Get the piece at the selected location
-  jeq BoardState, x:#EMPTY_PIECE:!emptysquare+
+  chk_empty !emptysquare+
   chk_mine !notyours+   // My piece?
 
+  jsr HasValidMoves     // Does this piece have valid moves?
+  bcs !moveisvalid+
+  jmp !novalidmoves+
+
+!moveisvalid:
   jsr FlashPieceOn      // Start flashing the selected piece
   jsr DisplayMoveToPrompt
-
-  sef movefromisvalid
+  sef movefromisvalid   // Set the 'movefromisvalid' flag
 
   jmp !exit+
+!emptysquare:
+  CopyMemory(NoPieceStart, ScreenAddress(ErrorPos), NoPieceEnd - NoPieceStart)
+  FillMemory(ColorAddress(ErrorPos), NoPieceEnd - NoPieceStart, WHITE)
+  jmp !clearinput+
 !notyours:
   CopyMemory(NotYourPieceStart, ScreenAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart)
   FillMemory(ColorAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart, WHITE)
   jmp !clearinput+
-!emptysquare:
-  CopyMemory(NoPieceStart, ScreenAddress(ErrorPos), NoPieceEnd - NoPieceStart)
-  FillMemory(ColorAddress(ErrorPos), NoPieceEnd - NoPieceStart, WHITE)
+!novalidmoves:
+  CopyMemory(NoMovesStart, ScreenAddress(ErrorPos), NoMovesEnd - NoMovesStart)
+  FillMemory(ColorAddress(ErrorPos), NoMovesEnd - NoMovesStart, WHITE)
 !clearinput:
   jsr ResetInput
   stb #BIT8:movefromindex
@@ -39,7 +68,7 @@ Validate that the selected moveto location is valid for the piece selected
 ValidateTo:
   clf movetoisvalid     // Reset the valid move flag
   ldx movetoindex       // Is the destination an empty square?
-  jeq BoardState, x:#EMPTY_SPR:!checkvalid+
+  chk_empty !checkvalid+ // Empty square?
   chk_mine !checkvalid+  // My piece?
 !alreadyyours:
   CopyMemory(AlreadyYoursStart, ScreenAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart)
@@ -60,23 +89,13 @@ ValidateTo:
   rts
 
 /*
-Check to make sure the selected piece can move to the moveto location.
-
-Carry Clear = invalid move
-Carry Set = valid move
-*/
-ValidateMove:
-
-  rts
-
-/*
 After we've validated that this is a valid move, do the bit shuffling. If there's
 a piece in moveto, capture it first and then move the piece.
 */
 MovePiece:
   jsr FlashPieceOff     // Turn off the flashing of the selected piece
   ldx movetoindex
-  jeq BoardState, x:#EMPTY_SPR:!movepiece+
+  chk_empty !movepiece+ // If there's no piece in moveto, just move our piece
   and #LOWER7           // Strip color information
   cmp #PAWN_SPR         // Capture a pawn?
   beq !capturepawn+
@@ -116,4 +135,10 @@ MovePiece:
   ldx movefromindex     // Empty the movefrom location
   stb #EMPTY_SPR:BoardState, x
 !exit:
+  rts
+
+/*
+Check to see if the current player's king is in check.
+*/
+CheckKingInCheck:
   rts

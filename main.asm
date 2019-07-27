@@ -5,7 +5,7 @@ BasicUpstart2(start)
 //
 
 // Create the D64 image
-.disk [filename="C64Chess.d64", name="C64 CHESS", id="2021!"]
+.disk [filename="C64Chess.d64", name="C64 CHESS", id=" 2A"]
 {
   [name="C64 CHESS", type="prg", segments="Default"]
 }
@@ -41,6 +41,6 @@ start:
 #import "raster.asm"
 #import "storage.asm"
 #import "strings.asm"
-#import "menus.asm"
 #import "opening_moves.asm"
 #import "characters.asm"
+#import "menus.asm"

@@ -30,7 +30,7 @@ To get around this, a technique called "sprite multiplexing" is used whereby the
 
 #### How do I build it?
 
-It's all built with KickAssembler, which really is a Kick Ass Assembler! It makes it very easy to build 6502/6510 code and has a nice java-like language built in.
+It's all built with KickAssembler, which really is a Kick Ass Assembler! It makes it very easy to build 6502/6510 code and has a nice java-like language built in. You can download your own copy here: http://theweb.dk/KickAssembler/Main.html
 
 There's a docker image containing KickAssembler that you can use. You will need to have `Make` and `docker` installed to run this.
 
@@ -99,6 +99,8 @@ The files `storage.asm` and `board.asm` contain variable storage and important d
 - rowlookup: The rows that the player enters starts from 1 at the bottom of the board and increses to 8 at the top. The BoardState memory starts from the top and goes to the bottom. This introduces a bit of a disconnect, so this lookup table allows us to invert the table so that we can more easily compute movefrom and moveto offsets within BoardState.
 
 - selectedpiece: When the player has chosen the piece to move, we stash the data from BoardState for that piece here. That way we can flash it between EMPTY_SPR and the actual piece until they've chosen the moveto coordinate.
+
+If you notice weird instructions like `sef`, `jne`, etc, don't worry; these are just pseudocommands: http://theweb.dk/KickAssembler/webhelp/content/ch07s03.html
 
 #### Current status
 

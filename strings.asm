@@ -168,28 +168,23 @@ CapturedUnderlineStart:
 CapturedUnderlineEnd:
 
 CapturedPawnStart:
-  .byte $1e
-  .text " Pawns   X   "
+  .text @"\$1e Pawns   X   "
 CapturedPawnEnd:
 
 CapturedKnightStart:
-  .byte $25
-  .text " Knights X   "
+  .text @"\$25 Knights X   "
 CapturedKnightEnd:
 
 CapturedBishopStart:
-  .byte $23
-  .text " Bishops X   "
+  .text @"\$23 Bishops X   "
 CapturedBishopEnd:
 
 CapturedRookStart:
-  .byte $1f
-  .text " Rooks   X   "
+  .text @"\$1f Rooks   X   "
 CapturedRookEnd:
 
 CapturedQueenStart:
-  .byte $22
-  .text " Queens  X   "
+  .text @"\$22 Queens  X   "
 CapturedQueenEnd:
 
 KingInCheckStart:
@@ -199,9 +194,7 @@ KingInCheckEnd:
 AboutTextStart:
   .byte $e0, $e0, $e0, $e0, $70
   .fill $06, $40
-  .byte $73
-  .text "About C64 Chess"
-  .byte $6b
+  .text @"\$73About C64 Chess\$6b"
   .fill $07, $40
   .byte $6e, $e0, $e0, $e0, $e0
   .byte $e0, $e0, $e0, $e0, $1c

@@ -45,8 +45,8 @@ irq:
   sta vic.SP7Y
 
   txa
-  mult8
-  tax
+  mult8                 // We multiply the row counter by 8 to get the correct
+  tax                   // location in BoardSprites and BoardColors
   ldy #$00
 !updatesprites:
   stb BoardSprites, x:SPRPTR, y
@@ -68,7 +68,7 @@ irq:
   ldx #$00
 
 !nextirq:
-  stx counter
+  stx counter           // Set up the row for the next interrupt
   stb irqypos, x:vic.RASTER
 
   PopStack()
@@ -98,7 +98,7 @@ FlashPiece:
   bpl !exit+
   stb #PIECE_FLASH_SPEED:pieceflashtimer
   ldx movefromindex
-  jeq BoardState, x:#EMPTY_SPR:!showpiece+
+  chk_empty !showpiece+
 !showempty:             // Flash OFF
   stb #EMPTY_SPR:BoardState, x
   jmp !exit+

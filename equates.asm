@@ -42,6 +42,9 @@
 .const RESET_VECTOR = $fffc
 .const IRQ_VECTOR = $fffe
 
+// The row where questions are asked
+.const QUESTION_ROW = $0a
+
 // Struct for describing positions on a screen
 .struct ScreenPos{x,y}
 
@@ -52,8 +55,8 @@
 .var Title1Pos = ScreenPos($1c, $00)
 .var Title2Pos = ScreenPos(Title1Pos.x, Title1Pos.y + $01)
 .var CopyrightPos = ScreenPos($1a, Title2Pos.y + $01)
-.var Title1CharPos = ScreenPos($1e, $00)
-.var Title2CharPos = ScreenPos($1e, $01)
+.var Title1CharPos = ScreenPos($1e, Title1Pos.y)
+.var Title2CharPos = ScreenPos($1e, Title2Pos.y)
 
 // Positions for main menu items
 .var PlayGamePos = ScreenPos($1a, Menu1Pos.y + $01)
@@ -81,7 +84,7 @@
 // Positions for game menu items
 .var ForfeitPos = ScreenPos($1a, $17)
 
-.var EmptyQuestionPos = ScreenPos($1a, $0a)
+.var EmptyQuestionPos = ScreenPos($1a, QUESTION_ROW)
 .var Empty1Pos = ScreenPos($1a, Menu1Pos.y)
 .var Empty2Pos = ScreenPos($1a, Menu1Pos.y + $01)
 .var Empty3Pos = ScreenPos($1a, Menu1Pos.y + $02)
@@ -89,11 +92,11 @@
 
 .var BackMenuPos = ScreenPos($1a, $17)
 
-.var ForfeitConfirmPos = ScreenPos($1c, $0a)
-.var QuitConfirmPos = ScreenPos($1e, $0a)
-.var PlayerSelectPos = ScreenPos($1b, $0a)
-.var LevelSelectPos = ScreenPos($1b, $0a)
-.var ColorSelectPos = ScreenPos($1a, $0a)
+.var ForfeitConfirmPos = ScreenPos($1c, QUESTION_ROW)
+.var QuitConfirmPos = ScreenPos($1e, QUESTION_ROW)
+.var PlayerSelectPos = ScreenPos($1b, QUESTION_ROW)
+.var LevelSelectPos = ScreenPos($1b, QUESTION_ROW)
+.var ColorSelectPos = ScreenPos($1a, QUESTION_ROW)
 
 .var TurnPos = ScreenPos($1a, $04)
 .var TimePos = ScreenPos($1a, $05)

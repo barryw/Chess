@@ -275,9 +275,3 @@ ChangePlayers:
   sef playclockrunning   // Turn the play clock back on
 
   rts
-
-/*
-Check to see if the current player's king is in check.
-*/
-CheckKingInCheck:
-  rts

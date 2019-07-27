@@ -87,6 +87,13 @@ syntax very much resembles standard 6502 instructions.
   bne if_not
 }
 
+/* CHK_EMPTY: check if a square is empty and branch if it is */
+/* .x should be loaded with the index offset for a movefrom */
+/* or a moveto location */
+.pseudocommand chk_empty branch {
+  jeq BoardState, x:#EMPTY_SPR:branch
+}
+
 /* PCOL: get the color for the piece stored in .a */
 .pseudocommand pcol {
   and #BIT8
