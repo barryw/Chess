@@ -1,6 +1,3 @@
-#importonce
-#import "board.asm"
-
 *=* "Routines"
 
 /*
@@ -143,50 +140,6 @@ PrintByte:
   rts
 
 /*
-Display the "Thinking" message with an indeterminate progress bar. This is shown
-when the computer is determining its best move.
-*/
-ShowThinking:
-  FillMemory(ScreenAddress(InteractionLinePos), $0e, $20)
-  CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
-  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, WHITE)
-  Enable(spinnerenabled)
-  Disable(showcursor)
-  rts
-
-/*
-Hide the "Thinking" message when the computer is ready to move
-*/
-HideThinking:
-  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, BLACK)
-  Disable(spinnerenabled)
-  rts
-
-/*
-Update the counts of captured pieces for the current player
-*/
-UpdateCaptureCounts:
-  StoreWord(printvector, ScreenAddress(CapturedCountStart))
-  ldy #$00
-  jeq currentplayer:#WHITES_TURN:!whitecaptured+
-!blackcaptured:
-  StoreWord(capturedvector, blackcaptured)
-  jmp !print+
-!whitecaptured:
-  StoreWord(capturedvector, whitecaptured)
-!print:
-  stb (capturedvector), y:num1
-  jsr PrintByte
-  lda printvector
-  clc
-  adc #$28
-  sta printvector
-  iny
-  cpy #$05
-  bne !print-
-  rts
-
-/*
 Calculate the board offset for the movefrom coordinate
 */
 ComputeMoveFromOffset:
@@ -247,31 +200,5 @@ ResetPlayer:
   lda #$00
   sta movetoisvalid
   sta movefromisvalid
-
-  rts
-
-/*
-Swap the board and swap players. This is called after a player has
-made a move.
-*/
-ChangePlayers:
-  lda currentplayer
-  eor #%00000001        // Swap the players
-  sta currentplayer
-
-  clf playclockrunning  // Turn off the play clock while we swap
-
-  jsr UpdateCaptureCounts
-  jsr ResetPlayer
-  jsr UpdateCurrentPlayer
-
-  jne numplayers:#ONE_PLAYER:!twoplayers+
-  jsr ShowThinking
-  jmp !return+
-!twoplayers:
-  jsr DisplayMoveFromPrompt
-
-!return:
-  sef playclockrunning   // Turn the play clock back on
 
   rts
