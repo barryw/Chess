@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Update version.asm with new version from cog
 # Usage: update-version.sh <version>
 # Example: update-version.sh 0.2.0
@@ -14,12 +14,9 @@ fi
 MAJOR=$(echo "$VERSION" | cut -d. -f1)
 MINOR=$(echo "$VERSION" | cut -d. -f2)
 
-# Update version.asm
-sed -i.bak "s/^\.const VERSION_MAJOR = .*/.const VERSION_MAJOR = ${MAJOR}/" version.asm
-sed -i.bak "s/^\.const VERSION_MINOR = .*/.const VERSION_MINOR = ${MINOR}/" version.asm
-
-# Clean up backup files
-rm -f version.asm.bak
+# Update version.asm (Alpine sed uses -i without extension argument)
+sed -i "s/^\.const VERSION_MAJOR = .*/.const VERSION_MAJOR = ${MAJOR}/" version.asm
+sed -i "s/^\.const VERSION_MINOR = .*/.const VERSION_MINOR = ${MINOR}/" version.asm
 
 # Stage the change
 git add version.asm
