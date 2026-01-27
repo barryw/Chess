@@ -179,6 +179,33 @@ suites {
       assert(c == true, "Knight L-move should be valid")
     }
 
+    test("validate-during-flash-off", "Move validates even when piece is flashing off", tags = "validate,knight,regression") {
+      ; REGRESSION TEST: Bug where ValidateTo failed during piece flash "off" phase
+      ; The flash code temporarily sets Board88[movefromindex] to EMPTY_SPR.
+      ; ValidateTo must restore the piece before validation.
+
+      ; Set up position: knight at b1, kings at e1/e8
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      ; Simulate flash state: selectedpiece holds the knight, but Board88 is EMPTY
+      [selectedpiece] = $b2          ; WHITE_KNIGHT saved during flash
+      [movefromindex] = $71          ; from b1
+      [Board88] + $71 = $30          ; EMPTY - flash "off" phase!
+
+      ; Target square for the move
+      [movetoindex] = $52            ; to c3 (empty)
+
+      ; Call ValidateTo (the function players use, not just ValidateMove)
+      jsr([ValidateTo], stop_on_rts = true, fail_on_brk = true)
+
+      ; The move should be valid - ValidateTo should restore piece before validation
+      assert([movetoisvalid] == $80, "Move should be valid even during flash off")
+
+      ; Board88 should now have the piece restored
+      assert([Board88] + $71 == $b2, "Piece should be restored to Board88")
+    }
+
     test("validate-knight-illegal", "Knight cannot move straight", tags = "validate,knight") {
       ; White knight at b1, try to move to b3 (invalid - straight)
       [Board88] + $71 = $b2          ; WHITE_KNIGHT at b1
