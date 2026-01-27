@@ -104,7 +104,6 @@ steps:
           -d "{\"tag_name\": \"$NEW_VERSION\", \"name\": \"C64 Chess $NEW_VERSION\", \"body\": \"## C64 Chess $NEW_VERSION\\n\\nDownload the D64 disk image and load it in your favorite C64 emulator!\\n\\n**Files:**\\n- C64Chess.d64 - Disk image\\n- main.prg - Raw PRG file\"}")
 
         RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
-        UPLOAD_URL=$(echo "$RELEASE_RESPONSE" | jq -r '.upload_url' | sed 's/{?name,label}//')
         echo "Created release ID: $RELEASE_ID"
 
         if [ "$RELEASE_ID" = "null" ]; then
@@ -114,9 +113,10 @@ steps:
         fi
 
         # Upload artifacts to GitHub
+        UPLOAD_URL="https://uploads.github.com/repos/${CI_REPO}/releases/${RELEASE_ID}/assets"
         for FILE in C64Chess.d64 main.prg; do
           if [ -f "$FILE" ]; then
-            echo "Uploading $FILE..."
+            echo "Uploading $FILE to $UPLOAD_URL..."
             curl -s -X POST \
               -H "Authorization: token $GITHUB_TOKEN" \
               -H "Content-Type: application/octet-stream" \
