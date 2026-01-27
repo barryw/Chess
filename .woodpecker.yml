@@ -6,6 +6,14 @@ when:
 labels:
   platform: linux/amd64
 
+# Full clone needed for cog to access commit history and tags
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      depth: 0
+      tags: true
+
 steps:
   # Check that commits follow conventional commit format
   - name: check-commits
