@@ -1343,6 +1343,10 @@ ValidateTo:
   jmp !exit+
 
 !checkvalid:
+  // Restore piece to Board88 before validation (flashing may have cleared it)
+  ldx movefromindex
+  lda selectedpiece
+  sta Board88, x
   jsr ValidateMoveWithCheck  // Are we good? (includes check verification)
   bcs !isvalid+              // If the move is good, set the carry flag
   PrintAt(InvalidMoveText, ErrorPos, WHITE)
