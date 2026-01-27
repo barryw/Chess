@@ -83,15 +83,16 @@ steps:
         NEW_VERSION=$(cat .new_version)
         echo "Creating release for version $NEW_VERSION"
 
-        # Configure git with token auth
+        # Configure git with token auth via netrc
         git config --global user.email "ci@woodpecker.local"
         git config --global user.name "Woodpecker CI"
         git config --global --add safe.directory /woodpecker/src
-        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CI_REPO}.git"
+        echo "machine github.com login x-access-token password $GITHUB_TOKEN" > ~/.netrc
+        chmod 600 ~/.netrc
 
         # Create and push tag
         git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
-        git push origin "$NEW_VERSION"
+        git push https://github.com/${CI_REPO}.git "$NEW_VERSION"
 
         echo "Creating release via GitHub API..."
 
