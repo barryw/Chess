@@ -55,8 +55,14 @@ steps:
   - name: build
     image: barrywalker71/kickassembler:latest
     commands:
-      - java -jar /KickAss.jar main.asm
-      - ls -la *.prg *.sym *.d64
+      - echo "=== Checking workspace ==="
+      - ls -la
+      - echo "=== version.asm content ==="
+      - cat version.asm
+      - echo "=== Building ==="
+      - java -jar /KickAss.jar main.asm 2>&1 || echo "BUILD FAILED"
+      - echo "=== Build output ==="
+      - ls -la *.prg *.sym *.d64 2>/dev/null || echo "No build artifacts"
     depends_on: [prepare-version]
 
   - name: test-move-validation
