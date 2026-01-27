@@ -60,7 +60,10 @@ steps:
   - name: test-move-validation
     image: ghcr.io/barryw/sim6502:v3.4.1
     commands:
+      - echo "CI_WORKSPACE=$CI_WORKSPACE"
+      - ls -la $CI_WORKSPACE/*.prg $CI_WORKSPACE/*.sym || echo "No prg/sym files found"
       - ln -sf $CI_WORKSPACE /code
+      - ls -la /code/*.prg /code/*.sym || echo "No prg/sym in /code"
       - /app/Sim6502TestRunner -s /code/tests/move_validation.6502
     depends_on: [build]
 
