@@ -251,3 +251,313 @@ ResetPlayer:
   sta movefromisvalid
 
   rts
+
+/*
+==============================================================================
+PIECE LIST MANAGEMENT ROUTINES
+
+These routines maintain the WhitePieceList and BlackPieceList arrays which
+track the 0x88 positions of each player's pieces. This enables O(n) scanning
+where n = actual pieces rather than O(128) board scanning.
+
+Key insight: We use a SWAP-AND-SHRINK strategy for captures. When a piece is
+captured, we swap it with the last active piece and decrement the count.
+This keeps all active pieces contiguous at the start of the list.
+==============================================================================
+*/
+
+/*
+Initialize piece lists from current Board88 state.
+Call this at game start or after loading a position.
+
+This scans Board88 once and populates both piece lists.
+Runtime: ~300 cycles (once per game)
+*/
+InitPieceLists:
+  // Clear both lists
+  ldx #15
+  lda #$ff
+!clear_loop:
+  sta WhitePieceList, x
+  sta BlackPieceList, x
+  dex
+  bpl !clear_loop-
+
+  // Reset counts
+  lda #$00
+  sta WhitePieceCount
+  sta BlackPieceCount
+
+  // Scan Board88 for pieces
+  ldx #$00              // Board88 index
+!scan_loop:
+  // 0x88 validity check
+  txa
+  and #OFFBOARD_MASK
+  bne !next_square+
+
+  // Check if occupied
+  lda Board88, x
+  cmp #EMPTY_SPR
+  beq !next_square+
+
+  // Got a piece - determine color
+  and #BIT8
+  bne !white_piece+
+
+  // Black piece: add to BlackPieceList
+  ldy BlackPieceCount
+  txa
+  sta BlackPieceList, y
+  inc BlackPieceCount
+  jmp !next_square+
+
+!white_piece:
+  // White piece: add to WhitePieceList
+  ldy WhitePieceCount
+  txa
+  sta WhitePieceList, y
+  inc WhitePieceCount
+
+!next_square:
+  inx
+  cpx #BOARD_SIZE
+  bne !scan_loop-
+
+  rts
+
+/*
+Update piece list when a piece moves.
+Call BEFORE updating Board88.
+
+Input:
+  movefromindex = source square (0x88)
+  movetoindex   = destination square (0x88)
+  currentplayer = which player is moving (0=black, 1=white)
+
+This finds the piece in the appropriate list and updates its position.
+If there's a capture, we also remove the captured piece from opponent's list.
+Runtime: ~80 cycles average
+*/
+UpdatePieceListForMove:
+  // First, check if this is a capture (destination has enemy piece)
+  ldx movetoindex
+  lda Board88, x
+  cmp #EMPTY_SPR
+  beq !no_capture+
+
+  // Capture! Remove enemy piece from their list
+  // Enemy is opposite of currentplayer
+  lda currentplayer
+  beq !capture_white+
+
+  // Current is white, capturing black piece
+  jsr RemoveFromBlackPieceList
+  jmp !no_capture+
+
+!capture_white:
+  // Current is black, capturing white piece
+  jsr RemoveFromWhitePieceList
+
+!no_capture:
+  // Now update the moving piece's position in its list
+  lda currentplayer
+  beq !update_black+
+
+  // White piece moving
+  jsr UpdateWhitePiecePosition
+  rts
+
+!update_black:
+  jsr UpdateBlackPiecePosition
+  rts
+
+/*
+Remove piece at movetoindex from White piece list.
+Uses swap-and-shrink: swap target with last piece, decrement count.
+*/
+RemoveFromWhitePieceList:
+  lda movetoindex
+  ldx #$00
+!find_loop:
+  cpx WhitePieceCount
+  beq !not_found+       // Safety: piece not in list
+  cmp WhitePieceList, x
+  beq !found+
+  inx
+  bne !find_loop-       // Always branches (X can't be 0 after INX from 0)
+
+!found:
+  // Swap with last piece and shrink
+  dec WhitePieceCount
+  ldy WhitePieceCount
+  lda WhitePieceList, y // Get last piece's position
+  sta WhitePieceList, x // Put it where removed piece was
+  lda #$ff
+  sta WhitePieceList, y // Clear the old last slot
+!not_found:
+  rts
+
+/*
+Remove piece at movetoindex from Black piece list.
+*/
+RemoveFromBlackPieceList:
+  lda movetoindex
+  ldx #$00
+!find_loop:
+  cpx BlackPieceCount
+  beq !not_found+
+  cmp BlackPieceList, x
+  beq !found+
+  inx
+  bne !find_loop-
+
+!found:
+  dec BlackPieceCount
+  ldy BlackPieceCount
+  lda BlackPieceList, y
+  sta BlackPieceList, x
+  lda #$ff
+  sta BlackPieceList, y
+!not_found:
+  rts
+
+/*
+Update white piece position from movefromindex to movetoindex.
+*/
+UpdateWhitePiecePosition:
+  lda movefromindex
+  ldx #$00
+!find_loop:
+  cpx WhitePieceCount
+  beq !not_found+
+  cmp WhitePieceList, x
+  beq !found+
+  inx
+  bne !find_loop-
+
+!found:
+  lda movetoindex
+  sta WhitePieceList, x
+!not_found:
+  rts
+
+/*
+Update black piece position from movefromindex to movetoindex.
+*/
+UpdateBlackPiecePosition:
+  lda movefromindex
+  ldx #$00
+!find_loop:
+  cpx BlackPieceCount
+  beq !not_found+
+  cmp BlackPieceList, x
+  beq !found+
+  inx
+  bne !find_loop-
+
+!found:
+  lda movetoindex
+  sta BlackPieceList, x
+!not_found:
+  rts
+
+/*
+Handle en passant capture for piece lists.
+Call when en passant capture is detected (after UpdatePieceListForMove).
+
+Input: A = square of captured pawn (NOT the landing square)
+
+En passant is special because the captured piece is not on movetoindex.
+*/
+RemovePawnEnPassant:
+  sta piecelist_idx     // Save the square
+  // Determine which color pawn was captured
+  lda currentplayer
+  beq !remove_white_pawn+
+
+  // White captured black pawn
+  lda piecelist_idx
+  ldx #$00
+!find_black:
+  cpx BlackPieceCount
+  beq !done+
+  cmp BlackPieceList, x
+  beq !found_black+
+  inx
+  bne !find_black-
+!found_black:
+  dec BlackPieceCount
+  ldy BlackPieceCount
+  lda BlackPieceList, y
+  sta BlackPieceList, x
+  lda #$ff
+  sta BlackPieceList, y
+  rts
+
+!remove_white_pawn:
+  lda piecelist_idx
+  ldx #$00
+!find_white:
+  cpx WhitePieceCount
+  beq !done+
+  cmp WhitePieceList, x
+  beq !found_white+
+  inx
+  bne !find_white-
+!found_white:
+  dec WhitePieceCount
+  ldy WhitePieceCount
+  lda WhitePieceList, y
+  sta WhitePieceList, x
+  lda #$ff
+  sta WhitePieceList, y
+!done:
+  rts
+
+/*
+Update piece list for castling rook move.
+Called after the king move is already processed in piece list.
+
+Input:
+  A = rook's original square (0x88)
+  X = rook's destination square (0x88)
+  currentplayer = which player is castling
+*/
+UpdateCastlingRook:
+  sta piecelist_idx     // Save from-square
+  stx temp1             // Save to-square (using temp1 as scratch)
+
+  lda currentplayer
+  beq !update_black_rook+
+
+  // White rook: find in WhitePieceList and update position
+  lda piecelist_idx     // Get from-square
+  ldx #$00
+!find_white_rook:
+  cpx WhitePieceCount
+  beq !castling_done+
+  cmp WhitePieceList, x
+  beq !found_white_rook+
+  inx
+  bne !find_white_rook-
+!found_white_rook:
+  lda temp1             // Get to-square
+  sta WhitePieceList, x
+  rts
+
+!update_black_rook:
+  lda piecelist_idx
+  ldx #$00
+!find_black_rook:
+  cpx BlackPieceCount
+  beq !castling_done+
+  cmp BlackPieceList, x
+  beq !found_black_rook+
+  inx
+  bne !find_black_rook-
+!found_black_rook:
+  lda temp1
+  sta BlackPieceList, x
+!castling_done:
+  rts

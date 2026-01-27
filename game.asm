@@ -117,9 +117,17 @@ HandleAKey:
   jmp HideAboutMenu
 
 /*
-The B key is used to go backwards in the menus as well as column select during the game
+The B key is used to go backwards in the menus, column select during the game,
+or Bishop selection during promotion
 */
 HandleBKey:
+  lda currentmenu
+  // Check for promotion (Bishop)
+  cmp #MENU_PROMOTION
+  bne !not_promotion+
+  lda #BISHOP_SPR
+  jmp DoPromotion
+!not_promotion:
   lda currentmenu
   cmp #MENU_PLAYER_SELECT
   beq !start+
@@ -176,13 +184,19 @@ HandleHKey:
   jmp ColorSelectMenu
 
 /*
-The M key is used to select medium difficulty
+The M key is used to select medium difficulty or return to main menu after game over
 */
 HandleMKey:
   lda currentmenu
+  cmp #MENU_GAME_OVER
+  beq !returnmainmenu+
   cmp #MENU_LEVEL_SELECT
   beq !medium+
   rts
+
+!returnmainmenu:
+  jsr DisableSprites
+  jmp StartMenu
 
 !medium:
   stb #LEVEL_MEDIUM:difficulty
@@ -190,8 +204,16 @@ HandleMKey:
 
 /*
 Handle the pressing of the N key. This is normally tied to the Quit option
+or Knight selection during promotion
 */
 HandleNKey:
+  // Check for promotion (Knight)
+  lda currentmenu
+  cmp #MENU_PROMOTION
+  bne !not_promotion+
+  lda #KNIGHT_SPR
+  jmp DoPromotion
+!not_promotion:
   jne currentmenu:#MENU_QUIT:!exit+
   jsr StartMenu
 !exit:
@@ -207,9 +229,50 @@ HandlePKey:
   rts
 
 /*
+Handle the pressing of the R key for Rook selection during promotion
+*/
+HandleRKey:
+  lda currentmenu
+  cmp #MENU_PROMOTION
+  bne !exit+
+  lda #ROOK_SPR
+  jmp DoPromotion
+!exit:
+  rts
+
+/*
+Complete pawn promotion by replacing the pawn with the selected piece
+Input: A = piece type sprite (QUEEN_SPR, ROOK_SPR, BISHOP_SPR, KNIGHT_SPR)
+*/
+DoPromotion:
+  // Add color bit based on current player
+  ldx currentplayer
+  beq !black_piece+
+  ora #BIT8               // White piece (bit 7 set)
+!black_piece:
+  ldx promotionsq         // Get the promotion square
+  sta Board88, x          // Replace pawn with new piece
+
+  // Clear promotion state
+  lda #$ff
+  sta promotionsq
+
+  // Return to game and continue
+  jsr ShowGameMenu
+  jmp ChangePlayers       // This will handle player swap and game state check
+
+/*
 Handle the pressing of the Q key. This is normally tied to the Quit option from the main menu
+or Queen selection during promotion
 */
 HandleQKey:
+  // Check for promotion (Queen)
+  lda currentmenu
+  cmp #MENU_PROMOTION
+  bne !not_promotion+
+  lda #QUEEN_SPR
+  jmp DoPromotion
+!not_promotion:
   jne currentmenu:#MENU_MAIN:!exit+
   jsr QuitMenu
 !exit:
@@ -328,6 +391,51 @@ ChangePlayers:
   jsr ResetPlayer
   jsr UpdateCurrentPlayer
 
+  // Check game state (check/checkmate/stalemate)
+  jsr CheckGameState
+  cmp #$00
+  bne !not_normal+       // Not normal - handle special state
+  jmp !continue_game+    // Normal - continue
+!not_normal:
+  cmp #$01
+  bne !not_check+
+  jmp !show_check+
+!not_check:
+  cmp #$02
+  bne !not_checkmate+
+  jmp !show_checkmate+
+!not_checkmate:
+  // Must be stalemate ($03)
+  jmp !show_stalemate+
+
+!show_check:
+  PrintAt(CheckText, ErrorPos, WHITE)
+  jmp !continue_game+
+
+!show_checkmate:
+  // Current player is in checkmate - the OTHER player wins
+  // (currentplayer was just swapped, so loser is currentplayer)
+  lda currentplayer
+  beq !black_loses+
+  // White is in checkmate - Black wins
+  PrintAt(BlackWinsText, MovePos, WHITE)
+  jmp !game_over+
+!black_loses:
+  // Black is in checkmate - White wins
+  PrintAt(WhiteWinsText, MovePos, WHITE)
+  jmp !game_over+
+
+!show_stalemate:
+  PrintAt(DrawText, MovePos, WHITE)
+  // Fall through to game_over
+
+!game_over:
+  SetMenu(MENU_GAME_OVER)
+  PrintAt(GameOverText, ForfeitPos, WHITE)
+  // Don't turn play clock back on - game is over
+  rts
+
+!continue_game:
   jne numplayers:#ONE_PLAYER:!twoplayers+
   jsr ShowThinking
   jmp !return+

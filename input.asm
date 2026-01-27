@@ -28,6 +28,14 @@ HandleReturnKey:
   bfc movetoisvalid:!endreturn+
 !movepiece:
   jsr MovePiece
+  // Check if pawn promotion is needed
+  lda promotionsq
+  cmp #$ff              // $ff = no promotion
+  beq !no_promotion+
+  // Promotion needed - show menu and wait
+  jsr PromotionMenu
+  jmp !endreturn+       // Don't change players yet - wait for promotion
+!no_promotion:
   jsr ChangePlayers
 !endreturn:
   clf processreturn     // Clear the return processing flag

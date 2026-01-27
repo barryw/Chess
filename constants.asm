@@ -146,6 +146,8 @@ values stored in Board88
 .const MENU_LEVEL_SELECT  = $05
 .const MENU_ABOUT_SHOWING = $06
 .const MENU_FORFEIT       = $07
+.const MENU_PROMOTION     = $08
+.const MENU_GAME_OVER     = $09
 
 //
 // Enable/Disable and Bit Constants
@@ -223,6 +225,25 @@ values stored in Board88
 .const scr_ptr = $21      // 2 bytes: pointer to screen memory
 .const col_ptr = $23      // 2 bytes: pointer to color memory
 .const print_color = $25  // 1 byte: text color
+
+// Move validation (IsSquareAttacked, piece validation)
+.const attack_sq = $26    // 1 byte: square being checked for attack
+.const attack_color = $27 // 1 byte: color attacking (0=black, 1=white)
+.const move_delta = $28   // 1 byte: calculated move delta (signed)
+.const ray_dir = $29      // 1 byte: current ray direction offset
+.const ray_sq = $2a       // 1 byte: current square in ray traversal
+.const piece_type = $2b   // 1 byte: piece type being validated
+
+//
+// Pawn Direction Constants (for move validation)
+//
+
+.const PAWN_PUSH_WHITE = $f0      // -16 (north)
+.const PAWN_PUSH_BLACK = $10      // +16 (south)
+.const PAWN_START_RANK_WHITE = 6  // Row 6 in 0x88 (rank 2)
+.const PAWN_START_RANK_BLACK = 1  // Row 1 in 0x88 (rank 7)
+.const PAWN_PROMO_RANK_WHITE = 0  // Row 0 in 0x88 (rank 8)
+.const PAWN_PROMO_RANK_BLACK = 7  // Row 7 in 0x88 (rank 1)
 
 //
 // Keyboard Constants

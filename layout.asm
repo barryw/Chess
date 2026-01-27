@@ -58,6 +58,11 @@
 .var PlayerSelectPos = ScreenPos($1b, QUESTION_ROW)
 .var LevelSelectPos = ScreenPos($1b, QUESTION_ROW)
 .var ColorSelectPos = ScreenPos($1a, QUESTION_ROW)
+.var PromotionSelectPos = ScreenPos($1b, QUESTION_ROW)
+.var PromoteQueenPos = ScreenPos($1a, Menu1Pos.y)
+.var PromoteRookPos = ScreenPos($1a, Menu1Pos.y + $01)
+.var PromoteBishopPos = ScreenPos($1a, Menu1Pos.y + $02)
+.var PromoteKnightPos = ScreenPos($1a, Menu1Pos.y + $03)
 
 .var TurnPos = ScreenPos($1a, $04)
 .var TimePos = ScreenPos($1a, $05)

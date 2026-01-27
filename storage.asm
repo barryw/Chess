@@ -212,3 +212,83 @@ castlerights:
 // 0x88 index of en passant target square, $ff = none available
 enpassantsq:
   .byte $ff
+
+//
+// Direction Offset Tables for Move Validation
+// These are 0x88 offsets (signed bytes)
+//
+
+// Orthogonal directions (rook, queen)
+OrthogonalOffsets:
+  .byte $f0, $10, $ff, $01    // N(-16), S(+16), W(-1), E(+1)
+OrthogonalOffsetsEnd:
+
+// Diagonal directions (bishop, queen)
+DiagonalOffsets:
+  .byte $ef, $f1, $0f, $11    // NW(-17), NE(-15), SW(+15), SE(+17)
+DiagonalOffsetsEnd:
+
+// All 8 directions (queen, king)
+AllDirectionOffsets:
+  .byte $ef, $f0, $f1, $ff, $01, $0f, $10, $11
+AllDirectionOffsetsEnd:
+
+// Knight move offsets
+KnightOffsets:
+  .byte $df, $e1, $ee, $f2, $0e, $12, $1f, $21
+  // -33, -31, -18, -14, +14, +18, +31, +33
+KnightOffsetsEnd:
+
+// Pawn capture offsets (indexed by color: 0=black, 1=white)
+// Black pawns capture SE(+17) and SW(+15)
+// White pawns capture NE(-15) and NW(-17)
+PawnCaptureOffsets:
+  .byte $0f, $11    // Black: SW(+15), SE(+17)
+  .byte $ef, $f1    // White: NW(-17), NE(-15)
+
+//
+// Promotion State
+//
+
+// Square where pawn is promoting ($ff = not promoting)
+promotionsq:
+  .byte $ff
+
+// Selected promotion piece type
+promotionpiece:
+  .byte $00
+
+//
+// Piece Lists for Optimized Move Generation
+// Each player has a list of up to 16 piece positions (0x88 indices)
+// $FF = slot is empty (piece captured)
+//
+// Slot assignment (matches starting position):
+//   0-7: Back rank pieces (R,N,B,Q,K,B,N,R)
+//   8-15: Pawns
+// This fixed mapping allows O(1) lookup when a specific piece is captured
+//
+
+// White piece positions (slots 0-15)
+// Initial: $70,$71,$72,$73,$74,$75,$76,$77 (back rank a1-h1)
+//          $60,$61,$62,$63,$64,$65,$66,$67 (pawns a2-h2)
+WhitePieceList:
+  .byte $70, $71, $72, $73, $74, $75, $76, $77  // Rook,Knight,Bishop,Queen,King,Bishop,Knight,Rook
+  .byte $60, $61, $62, $63, $64, $65, $66, $67  // Pawns a2-h2
+
+// Black piece positions (slots 0-15)
+// Initial: $00,$01,$02,$03,$04,$05,$06,$07 (back rank a8-h8)
+//          $10,$11,$12,$13,$14,$15,$16,$17 (pawns a7-h7)
+BlackPieceList:
+  .byte $00, $01, $02, $03, $04, $05, $06, $07  // Rook,Knight,Bishop,Queen,King,Bishop,Knight,Rook
+  .byte $10, $11, $12, $13, $14, $15, $16, $17  // Pawns a7-h7
+
+// Active piece counts (for quick iteration bounds)
+WhitePieceCount:
+  .byte 16
+BlackPieceCount:
+  .byte 16
+
+// Temp storage for piece list operations
+piecelist_idx:
+  .byte $00

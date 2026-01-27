@@ -264,6 +264,10 @@ MateText:
   .text "Mate!"
   .byte $00
 
+StalemateText:
+  .text "Stalemate!"
+  .byte $00
+
 CapturedText:
   .text "Captured"
   .byte $00
@@ -290,5 +294,41 @@ CapturedQueenText:
 
 KingInCheckText:
   .text "King in check"
+  .byte $00
+
+PromotionText:
+  .text "Promote to:"
+  .byte $00
+
+PromoteQueenText:
+  .text "(Q)ueen"
+  .byte $00
+
+PromoteRookText:
+  .text "(R)ook"
+  .byte $00
+
+PromoteBishopText:
+  .text "(B)ishop"
+  .byte $00
+
+PromoteKnightText:
+  .text "K(N)ight"
+  .byte $00
+
+WhiteWinsText:
+  .text "White Wins!"
+  .byte $00
+
+BlackWinsText:
+  .text "Black Wins!"
+  .byte $00
+
+DrawText:
+  .text "   Draw!   "
+  .byte $00
+
+GameOverText:
+  .text "[M] Main Menu"
   .byte $00
 

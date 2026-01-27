@@ -138,6 +138,30 @@ ColorSelectMenu:
   jmp ShowBackMenuItem
 
 /*
+Pawn promotion menu - shown when a pawn reaches the last rank
+*/
+PromotionMenu:
+  jsr ClearMenus
+  SetMenu(MENU_PROMOTION)
+
+  // Promotion select message
+  PrintAt(PromotionText, PromotionSelectPos, WHITE)
+
+  // Queen option
+  PrintAt(PromoteQueenText, PromoteQueenPos, WHITE)
+
+  // Rook option
+  PrintAt(PromoteRookText, PromoteRookPos, WHITE)
+
+  // Bishop option
+  PrintAt(PromoteBishopText, PromoteBishopPos, WHITE)
+
+  // Knight option
+  PrintAt(PromoteKnightText, PromoteKnightPos, WHITE)
+
+  rts
+
+/*
 Display the menu item to allow navigating backwards
 */
 ShowBackMenuItem:
