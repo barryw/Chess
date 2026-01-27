@@ -9,7 +9,7 @@ steps:
   - name: build
     image: barrywalker71/kickassembler:latest
     commands:
-      - java -jar /opt/kickassembler/KickAss.jar main.asm
+      - java -jar /KickAss.jar main.asm
       - ls -la *.prg *.sym
 
   - name: test-move-validation
