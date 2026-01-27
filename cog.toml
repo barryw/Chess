@@ -16,7 +16,18 @@ pre_bump_hooks = [
 post_bump_hooks = []
 
 [commit_types]
-# Using default conventional commit types (feat, fix, docs, etc.)
+# All commit types trigger at least a patch bump
+feat = { changelog_title = "Features", bump_minor = true }
+fix = { changelog_title = "Bug Fixes", bump_patch = true }
+docs = { changelog_title = "Documentation", bump_patch = true }
+style = { changelog_title = "Style", bump_patch = true }
+refactor = { changelog_title = "Refactoring", bump_patch = true }
+perf = { changelog_title = "Performance", bump_patch = true }
+test = { changelog_title = "Tests", bump_patch = true }
+build = { changelog_title = "Build", bump_patch = true }
+ci = { changelog_title = "CI/CD", bump_patch = true }
+chore = { changelog_title = "Chores", bump_patch = true }
+revert = { changelog_title = "Reverts", bump_patch = true }
 
 [changelog]
 path = "CHANGELOG.md"
