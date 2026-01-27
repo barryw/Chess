@@ -39,6 +39,10 @@ steps:
           cat version.asm
           # Save version for release step
           echo "$NEW_VERSION" > .new_version
+          # Generate changelog for release notes
+          echo "Generating changelog..."
+          cog changelog --at "$NEW_VERSION" > .changelog 2>/dev/null || echo "Release $NEW_VERSION" > .changelog
+          cat .changelog
         else
           echo "No version bump needed"
         fi
@@ -96,12 +100,16 @@ steps:
 
         echo "Creating release via GitHub API..."
 
+        # Read changelog and build release body
+        CHANGELOG=$(cat .changelog 2>/dev/null || echo "")
+        RELEASE_BODY=$(printf "## C64 Chess %s\n\n%s\n\n---\n**Downloads:**\n- C64Chess.d64 - Disk image\n- main.prg - Raw PRG file" "$NEW_VERSION" "$CHANGELOG")
+
         # Create the release on GitHub
         RELEASE_RESPONSE=$(curl -s -X POST \
           -H "Authorization: token $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github+json" \
-          "https://api.github.com/repos/${CI_REPO}/releases" \
-          -d "{\"tag_name\": \"$NEW_VERSION\", \"name\": \"C64 Chess $NEW_VERSION\", \"body\": \"## C64 Chess $NEW_VERSION\\n\\nDownload the D64 disk image and load it in your favorite C64 emulator!\\n\\n**Files:**\\n- C64Chess.d64 - Disk image\\n- main.prg - Raw PRG file\"}")
+          "https://api.github.com/repos/$CI_REPO/releases" \
+          -d "$(jq -n --arg tag "$NEW_VERSION" --arg name "C64 Chess $NEW_VERSION" --arg body "$RELEASE_BODY" '{tag_name: $tag, name: $name, body: $body}')")
 
         RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
         echo "Created release ID: $RELEASE_ID"
