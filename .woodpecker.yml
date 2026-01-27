@@ -28,24 +28,33 @@ steps:
       - |
         git config --global --add safe.directory /woodpecker/src
 
-        # Check if bump is needed
+        # Try cog auto bump first
         NEW_VERSION=$(cog bump --auto --dry-run 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
 
-        if [ -n "$NEW_VERSION" ]; then
-          echo "Version bump needed: $NEW_VERSION"
-          chmod +x scripts/update-version.sh
-          ./scripts/update-version.sh "$NEW_VERSION"
-          echo "version.asm updated:"
-          cat version.asm
-          # Save version for release step
-          echo "$NEW_VERSION" > .new_version
-          # Generate changelog for release notes (unreleased commits since last tag)
-          echo "Generating changelog..."
-          cog changelog 2>/dev/null | sed "s/^## Unreleased/## $NEW_VERSION/" > .changelog || echo "Release $NEW_VERSION" > .changelog
-          cat .changelog
-        else
-          echo "No version bump needed"
+        # If cog doesn't detect a bump, force patch increment
+        if [ -z "$NEW_VERSION" ]; then
+          echo "No conventional bump detected, forcing patch increment..."
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+          MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
+          MINOR=$(echo "$LATEST_TAG" | cut -d. -f2)
+          PATCH=$(echo "$LATEST_TAG" | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
         fi
+
+        echo "New version: $NEW_VERSION"
+        chmod +x scripts/update-version.sh
+        ./scripts/update-version.sh "$NEW_VERSION"
+        echo "version.asm updated:"
+        cat version.asm
+
+        # Save version for release step
+        echo "$NEW_VERSION" > .new_version
+
+        # Generate changelog for release notes
+        echo "Generating changelog..."
+        cog changelog 2>/dev/null | sed "s/^## Unreleased/## $NEW_VERSION/" > .changelog || echo "Release $NEW_VERSION" > .changelog
+        cat .changelog
     depends_on: [check-commits]
 
   - name: build
