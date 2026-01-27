@@ -58,17 +58,14 @@ steps:
     depends_on: [prepare-version]
 
   - name: test-move-validation
-    image: ghcr.io/barryw/sim6502:v3.4.1
+    image: ghcr.io/barryw/sim6502:v3.4.2
     commands:
-      - echo "CI_WORKSPACE=$CI_WORKSPACE"
-      - ls -la $CI_WORKSPACE/*.prg $CI_WORKSPACE/*.sym || echo "No prg/sym files found"
       - ln -sf $CI_WORKSPACE /code
-      - ls -la /code/*.prg /code/*.sym || echo "No prg/sym in /code"
       - /app/Sim6502TestRunner -s /code/tests/move_validation.6502
     depends_on: [build]
 
   - name: test-comprehensive
-    image: ghcr.io/barryw/sim6502:v3.4.1
+    image: ghcr.io/barryw/sim6502:v3.4.2
     commands:
       - ln -sf $CI_WORKSPACE /code
       - /app/Sim6502TestRunner -s /code/tests/comprehensive.6502
