@@ -1,0 +1,1033 @@
+; Chess Move Validation Unit Tests
+; Tests for IsSquareAttacked, ValidateMove, CheckKingInCheck, etc.
+;
+; Piece constants:
+;   EMPTY = $30, PAWN = $31, KNIGHT = $32, BISHOP = $33, ROOK = $34, QUEEN = $35, KING = $36
+;   WHITE pieces have +$80 (bit 7 set)
+;
+; 0x88 board layout:
+;   Row 0 (rank 8): $00-$07   Row 4 (rank 4): $40-$47
+;   Row 1 (rank 7): $10-$17   Row 5 (rank 3): $50-$57
+;   Row 2 (rank 6): $20-$27   Row 6 (rank 2): $60-$67
+;   Row 3 (rank 5): $30-$37   Row 7 (rank 1): $70-$77
+
+suites {
+  suite("Move Validation Tests") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    ; Setup block runs before EACH test - clears board and sets defaults
+    setup {
+      ; Clear entire 0x88 board (128 bytes) with empty squares
+      memfill([Board88], 128, $30)
+
+      ; Default king positions (can be overridden in individual tests)
+      [whitekingsq] = $74           ; e1
+      [blackkingsq] = $04           ; e8
+
+      ; Default castling rights (all enabled)
+      [castlerights] = $0f
+
+      ; No en passant by default
+      [enpassantsq] = $ff
+
+      ; White to move by default
+      [currentplayer] = $01
+    }
+
+    ; ========================================
+    ; IsSquareAttacked Tests
+    ; ========================================
+
+    test("attack-knight-1", "Knight attacks target square", tags = "attack,knight") {
+      ; Set up position: black knight at e4, white king at f6
+      [Board88] + $44 = $32          ; BLACK_KNIGHT at e4
+      [Board88] + $25 = $b6          ; WHITE_KING at f6
+      [whitekingsq] = $25
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      ; Test: Is f6 ($25) attacked by black (color 0)?
+      $26 = $25                       ; attack_sq = f6
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      ; Carry set = square is attacked
+      assert(c == true, "Knight should attack f6 from e4")
+    }
+
+    test("attack-knight-2", "Knight does NOT attack adjacent square", tags = "attack,knight") {
+      [Board88] + $44 = $32          ; BLACK_KNIGHT at e4
+      [Board88] + $34 = $b6          ; WHITE_KING at e5 (adjacent)
+      [whitekingsq] = $34
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      $26 = $34                       ; attack_sq = e5
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Knight should NOT attack adjacent square")
+    }
+
+    test("attack-rook-horizontal", "Rook attacks along rank", tags = "attack,rook") {
+      ; Set up: black rook at a4, target h4
+      [Board88] + $40 = $34          ; BLACK_ROOK at a4
+
+      $26 = $47                       ; attack_sq = h4
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Rook should attack along rank")
+    }
+
+    test("attack-rook-blocked", "Rook attack blocked by piece", tags = "attack,rook") {
+      ; Black rook at a4, blocker at d4, target h4
+      [Board88] + $40 = $34          ; BLACK_ROOK at a4
+      [Board88] + $43 = $31          ; BLACK_PAWN at d4 (blocker)
+
+      $26 = $47                       ; attack_sq = h4
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Rook attack should be blocked")
+    }
+
+    test("attack-bishop-diagonal", "Bishop attacks along diagonal", tags = "attack,bishop") {
+      ; Black bishop at c1, target h6 (diagonal: c1-d2-e3-f4-g5-h6)
+      [Board88] + $72 = $33          ; BLACK_BISHOP at c1
+
+      $26 = $27                       ; attack_sq = h6 ($27, not $25)
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Bishop should attack along diagonal")
+    }
+
+    test("attack-pawn-white", "White pawn attacks diagonally forward", tags = "attack,pawn") {
+      ; White pawn at e4, can attack d5 and f5
+      [Board88] + $44 = $b1          ; WHITE_PAWN at e4
+
+      $26 = $33                       ; attack_sq = d5
+      $27 = $01                       ; attack_color = white
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "White pawn should attack d5 from e4")
+    }
+
+    test("attack-pawn-wrong-direction", "Pawn does NOT attack backwards", tags = "attack,pawn") {
+      ; White pawn at e4 should NOT attack e3 (behind it)
+      [Board88] + $44 = $b1          ; WHITE_PAWN at e4
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      ; Check if e5 (in front) is attacked - should be NO (pawns attack diagonally)
+      $26 = $34                       ; attack_sq = e5 (straight ahead)
+      $27 = $01                       ; attack_color = white
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Pawn should NOT attack straight ahead")
+    }
+
+    test("check-king-not-in-check", "King not in check", tags = "check") {
+      ; Kings far apart, no attackers
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [currentplayer] = $01          ; White to move
+
+      jsr([CheckKingInCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "White king should NOT be in check")
+    }
+
+    test("check-king-in-check-by-rook", "King in check by rook", tags = "check") {
+      ; White king at e1, black rook at e8 (same file = check)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8 (delivers check)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [currentplayer] = $01          ; White to move
+
+      jsr([CheckKingInCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "White king should be in check by rook")
+    }
+
+    ; ========================================
+    ; ValidateMove Tests - Knights
+    ; ========================================
+
+    test("validate-knight-legal", "Knight can make L-shaped move", tags = "validate,knight") {
+      ; White knight at b1, move to c3 (valid L-shape)
+      [Board88] + $71 = $b2          ; WHITE_KNIGHT at b1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $71          ; from b1
+      [movetoindex] = $52            ; to c3
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Knight L-move should be valid")
+    }
+
+    test("validate-knight-illegal", "Knight cannot move straight", tags = "validate,knight") {
+      ; White knight at b1, try to move to b3 (invalid - straight)
+      [Board88] + $71 = $b2          ; WHITE_KNIGHT at b1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $71          ; from b1
+      [movetoindex] = $51            ; to b3 (invalid)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Knight straight move should be invalid")
+    }
+
+    ; ========================================
+    ; ValidateMove Tests - Pawns
+    ; ========================================
+
+    test("validate-pawn-single-push", "Pawn can move one square forward", tags = "validate,pawn") {
+      ; White pawn at e2, move to e3
+      [Board88] + $64 = $b1          ; WHITE_PAWN at e2
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $64          ; from e2
+      [movetoindex] = $54            ; to e3
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Pawn single push should be valid")
+    }
+
+    test("validate-pawn-double-push", "Pawn can move two squares from start", tags = "validate,pawn") {
+      ; White pawn at e2 (starting rank), move to e4
+      [Board88] + $64 = $b1          ; WHITE_PAWN at e2
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $64          ; from e2
+      [movetoindex] = $44            ; to e4
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Pawn double push from start should be valid")
+    }
+
+    test("validate-pawn-capture", "Pawn can capture diagonally", tags = "validate,pawn") {
+      ; White pawn at e4, black pawn at d5 - can capture
+      [Board88] + $44 = $b1          ; WHITE_PAWN at e4
+      [Board88] + $33 = $31          ; BLACK_PAWN at d5
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $44          ; from e4
+      [movetoindex] = $33            ; to d5 (capture)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Pawn diagonal capture should be valid")
+    }
+
+    test("validate-pawn-blocked", "Pawn cannot push through piece", tags = "validate,pawn") {
+      ; White pawn at e2, blocker at e3
+      [Board88] + $64 = $b1          ; WHITE_PAWN at e2
+      [Board88] + $54 = $31          ; BLACK_PAWN at e3 (blocker)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $64          ; from e2
+      [movetoindex] = $54            ; to e3 (blocked)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Pawn should not push through blocker")
+    }
+
+    test("check-move-leaves-king-exposed", "Move exposing king to check is invalid", tags = "validate,check") {
+      ; White king at e1, white rook at e4, black rook at e8
+      ; Moving white rook away would expose king to check
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $44 = $b4          ; WHITE_ROOK at e4 (shields king)
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8 (would give check)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [movefromindex] = $44          ; from e4 (white rook)
+      [movetoindex] = $40            ; to a4 (exposes king!)
+
+      jsr([ValidateMoveWithCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Move exposing king should be invalid")
+    }
+
+    ; ========================================
+    ; Castling Tests
+    ; ========================================
+
+    test("validate-castle-kingside", "Kingside castling is valid", tags = "validate,castling") {
+      ; White king at e1, rook at h1, squares f1/g1 empty
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $77 = $b4          ; WHITE_ROOK at h1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [castlerights] = $01           ; White kingside only
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $76            ; to g1 (O-O)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Kingside castling should be valid")
+    }
+
+    test("validate-castle-blocked", "Castling blocked by piece", tags = "validate,castling") {
+      ; White king at e1, rook at h1, knight at f1 blocks
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $77 = $b4          ; WHITE_ROOK at h1
+      [Board88] + $75 = $b2          ; WHITE_KNIGHT at f1 (blocker)
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [castlerights] = $01
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $76            ; to g1
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Castling should be blocked by piece")
+    }
+
+    test("validate-castle-through-check", "Castling through check is invalid", tags = "validate,castling") {
+      ; White king at e1, black rook controls f1 (king passes through check)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $77 = $b4          ; WHITE_ROOK at h1
+      [Board88] + $05 = $34          ; BLACK_ROOK at f8 (controls f1)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [castlerights] = $01
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $76            ; to g1
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Cannot castle through check")
+    }
+
+    test("validate-castle-queenside-white", "White queenside castling is valid", tags = "validate,castling") {
+      ; White king at e1, rook at a1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $70 = $b4          ; WHITE_ROOK at a1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [castlerights] = $02           ; White queenside
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $72            ; to c1 (O-O-O)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "White queenside castling should be valid")
+    }
+
+    test("validate-castle-queenside-black", "Black queenside castling is valid", tags = "validate,castling") {
+      ; Black king at e8, rook at a8
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+      [Board88] + $00 = $34          ; BLACK_ROOK at a8
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+
+      [currentplayer] = $00          ; Black to move
+      [castlerights] = $08           ; Black queenside
+
+      [movefromindex] = $04          ; from e8
+      [movetoindex] = $02            ; to c8 (O-O-O)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Black queenside castling should be valid")
+    }
+
+    test("validate-castle-kingside-black", "Black kingside castling is valid", tags = "validate,castling") {
+      ; Black king at e8, rook at h8
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+      [Board88] + $07 = $34          ; BLACK_ROOK at h8
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+
+      [currentplayer] = $00          ; Black to move
+      [castlerights] = $04           ; Black kingside
+
+      [movefromindex] = $04          ; from e8
+      [movetoindex] = $06            ; to g8 (O-O)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Black kingside castling should be valid")
+    }
+
+    test("validate-castle-no-rights", "Castling without rights is invalid", tags = "validate,castling") {
+      ; White king at e1, rook at h1, but no castling rights
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $77 = $b4          ; WHITE_ROOK at h1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [castlerights] = $00           ; No castling rights
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $76            ; to g1
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Castling without rights should be invalid")
+    }
+
+    ; ========================================
+    ; En Passant Tests
+    ; ========================================
+
+    test("validate-enpassant-white", "White en passant capture is valid", tags = "validate,enpassant") {
+      ; White pawn at e5, black pawn just moved d7-d5, en passant square is d6
+      [Board88] + $34 = $b1          ; WHITE_PAWN at e5
+      [Board88] + $33 = $31          ; BLACK_PAWN at d5 (just double-pushed)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [enpassantsq] = $23            ; En passant target: d6
+
+      [movefromindex] = $34          ; from e5
+      [movetoindex] = $23            ; to d6 (en passant)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "White en passant should be valid")
+    }
+
+    test("validate-enpassant-black", "Black en passant capture is valid", tags = "validate,enpassant") {
+      ; Black pawn at d4, white pawn just moved e2-e4, en passant square is e3
+      [Board88] + $43 = $31          ; BLACK_PAWN at d4
+      [Board88] + $44 = $b1          ; WHITE_PAWN at e4 (just double-pushed)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [currentplayer] = $00          ; Black to move
+      [enpassantsq] = $54            ; En passant target: e3
+
+      [movefromindex] = $43          ; from d4
+      [movetoindex] = $54            ; to e3 (en passant)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Black en passant should be valid")
+    }
+
+    test("validate-enpassant-no-square", "Diagonal pawn move without en passant is invalid", tags = "validate,enpassant") {
+      ; White pawn at e5, try diagonal move but no en passant square
+      [Board88] + $34 = $b1          ; WHITE_PAWN at e5
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [enpassantsq] = $ff            ; No en passant
+
+      [movefromindex] = $34          ; from e5
+      [movetoindex] = $23            ; to d6 (no piece, no en passant)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Diagonal move to empty with no en passant should be invalid")
+    }
+
+    test("validate-pawn-cannot-capture-forward", "Pawn cannot capture forward", tags = "validate,pawn") {
+      ; White pawn at e4, black pawn at e5 - cannot capture forward
+      [Board88] + $44 = $b1          ; WHITE_PAWN at e4
+      [Board88] + $34 = $31          ; BLACK_PAWN at e5
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $44          ; from e4
+      [movetoindex] = $34            ; to e5 (blocked by enemy)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Pawn cannot capture forward")
+    }
+
+    test("validate-black-pawn-push", "Black pawn can move one square forward", tags = "validate,pawn") {
+      ; Black pawn at e7, move to e6
+      [Board88] + $14 = $31          ; BLACK_PAWN at e7
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [currentplayer] = $00          ; Black to move
+
+      [movefromindex] = $14          ; from e7
+      [movetoindex] = $24            ; to e6
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Black pawn single push should be valid")
+    }
+
+    test("validate-black-pawn-double", "Black pawn double push from start", tags = "validate,pawn") {
+      ; Black pawn at e7 (starting rank), move to e5
+      [Board88] + $14 = $31          ; BLACK_PAWN at e7
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [currentplayer] = $00          ; Black to move
+
+      [movefromindex] = $14          ; from e7
+      [movetoindex] = $34            ; to e5
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Black pawn double push should be valid")
+    }
+
+    test("validate-pawn-double-not-from-start", "Pawn cannot double-push after leaving start rank", tags = "validate,pawn") {
+      ; White pawn at e3 (not starting rank), try double push
+      [Board88] + $54 = $b1          ; WHITE_PAWN at e3
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $54          ; from e3
+      [movetoindex] = $34            ; to e5 (2 squares, but not from rank 2)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Pawn cannot double push from non-starting rank")
+    }
+
+    ; ========================================
+    ; More IsSquareAttacked Tests
+    ; ========================================
+
+    test("attack-pawn-black", "Black pawn attacks diagonally forward", tags = "attack,pawn") {
+      ; Black pawn at e5, attacks d4 and f4
+      [Board88] + $34 = $31          ; BLACK_PAWN at e5
+
+      $26 = $43                       ; attack_sq = d4
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Black pawn should attack d4 from e5")
+    }
+
+    test("attack-queen-diagonal", "Queen attacks diagonally", tags = "attack,queen") {
+      ; Black queen at d4, target h8 (diagonal)
+      [Board88] + $43 = $35          ; BLACK_QUEEN at d4
+
+      $26 = $07                       ; attack_sq = h8
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Queen should attack diagonally")
+    }
+
+    test("attack-queen-orthogonal", "Queen attacks orthogonally", tags = "attack,queen") {
+      ; Black queen at d4, target d1 (vertical)
+      [Board88] + $43 = $35          ; BLACK_QUEEN at d4
+
+      $26 = $73                       ; attack_sq = d1
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Queen should attack orthogonally")
+    }
+
+    test("attack-rook-vertical", "Rook attacks along file", tags = "attack,rook") {
+      ; Black rook at e8, target e1
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8
+
+      $26 = $74                       ; attack_sq = e1
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Rook should attack along file")
+    }
+
+    test("attack-king-adjacent", "King attacks adjacent square", tags = "attack,king") {
+      ; Black king at e4, attacks f4
+      [Board88] + $44 = $36          ; BLACK_KING at e4
+      [blackkingsq] = $44
+
+      $26 = $45                       ; attack_sq = f4
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "King should attack adjacent square")
+    }
+
+    test("attack-not-attacked", "Square not attacked by any piece", tags = "attack") {
+      ; Sparse board, check an empty area
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      $26 = $44                       ; attack_sq = e4 (middle of empty board)
+      $27 = $00                       ; attack_color = black
+
+      jsr([IsSquareAttacked], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Empty middle square should not be attacked")
+    }
+
+    ; ========================================
+    ; ValidateMove Tests - Bishops, Rooks, Queens, Kings
+    ; ========================================
+
+    test("validate-bishop-diagonal", "Bishop can move diagonally", tags = "validate,bishop") {
+      [Board88] + $72 = $b3          ; WHITE_BISHOP at c1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $72          ; from c1
+      [movetoindex] = $45            ; to f4 (diagonal)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Bishop diagonal move should be valid")
+    }
+
+    test("validate-bishop-blocked", "Bishop blocked by piece", tags = "validate,bishop") {
+      [Board88] + $72 = $b3          ; WHITE_BISHOP at c1
+      [Board88] + $63 = $b1          ; WHITE_PAWN at d2 (blocker)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $72          ; from c1
+      [movetoindex] = $45            ; to f4 (blocked)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Bishop should be blocked")
+    }
+
+    test("validate-rook-horizontal", "Rook can move horizontally", tags = "validate,rook") {
+      [Board88] + $70 = $b4          ; WHITE_ROOK at a1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $70          ; from a1
+      [movetoindex] = $73            ; to d1 (horizontal)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Rook horizontal move should be valid")
+    }
+
+    test("validate-rook-vertical", "Rook can move vertically", tags = "validate,rook") {
+      [Board88] + $70 = $b4          ; WHITE_ROOK at a1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $70          ; from a1
+      [movetoindex] = $40            ; to a4 (vertical)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Rook vertical move should be valid")
+    }
+
+    test("validate-queen-diagonal", "Queen can move diagonally", tags = "validate,queen") {
+      [Board88] + $73 = $b5          ; WHITE_QUEEN at d1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $73          ; from d1
+      [movetoindex] = $46            ; to g4 (diagonal)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Queen diagonal move should be valid")
+    }
+
+    test("validate-queen-orthogonal", "Queen can move orthogonally", tags = "validate,queen") {
+      [Board88] + $73 = $b5          ; WHITE_QUEEN at d1
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $73          ; from d1
+      [movetoindex] = $43            ; to d4 (vertical)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Queen vertical move should be valid")
+    }
+
+    test("validate-king-one-square", "King can move one square", tags = "validate,king") {
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $64            ; to e2 (one square up)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "King one square move should be valid")
+    }
+
+    test("validate-king-two-squares-not-castle", "King cannot move two squares (non-castle)", tags = "validate,king") {
+      ; King at e1, try to move to e3 (two squares, not castling)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [castlerights] = $00           ; No castling (so 2-square move is definitely invalid)
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $54            ; to e3 (two squares forward)
+
+      jsr([ValidateMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "King cannot move 2 squares (non-castle)")
+    }
+
+    ; ========================================
+    ; Game State Tests - Simple
+    ; ========================================
+
+    test("gamestate-normal", "Normal game state - not in check, has moves", tags = "gamestate") {
+      ; Just two kings, white can move
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      ; Set up piece lists
+      [WhitePieceList] + $00 = $74   ; King at e1
+      [WhitePieceCount] = $01
+
+      [BlackPieceList] + $00 = $04   ; King at e8
+      [BlackPieceCount] = $01
+
+      jsr([CheckGameState], stop_on_rts = true, fail_on_brk = true)
+
+      assert(a == $00, "Game state should be normal (0)")
+    }
+
+    test("gamestate-check", "In check but has moves", tags = "gamestate,check") {
+      ; White king at e1, black rook delivers check, but king can escape
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8 (check!)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      ; Set up piece lists
+      [WhitePieceList] + $00 = $74
+      [WhitePieceCount] = $01
+
+      [BlackPieceList] + $00 = $07
+      [BlackPieceList] + $01 = $04
+      [BlackPieceCount] = $02
+
+      jsr([CheckGameState], stop_on_rts = true, fail_on_brk = true)
+
+      assert(a == $01, "Game state should be check (1)")
+    }
+
+    ; ========================================
+    ; Pinned Piece Tests
+    ; ========================================
+
+    test("check-pinned-piece-invalid", "Pinned piece cannot move off pin line", tags = "validate,pin") {
+      ; White king e1, white bishop e4, black rook e8
+      ; Bishop is pinned on the e-file
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $44 = $b3          ; WHITE_BISHOP at e4 (pinned)
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8 (pinner)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [movefromindex] = $44          ; from e4
+      [movetoindex] = $35            ; to f5 (off the pin line)
+
+      jsr([ValidateMoveWithCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "Pinned piece cannot move off pin line")
+    }
+
+    test("check-pinned-piece-along-pin", "Pinned piece can move along pin line", tags = "validate,pin") {
+      ; White king e1, white rook e4, black rook e8
+      ; White rook is pinned but can move to e5 (still on e-file)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $44 = $b4          ; WHITE_ROOK at e4 (pinned)
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8 (pinner)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [movefromindex] = $44          ; from e4
+      [movetoindex] = $34            ; to e5 (along pin line)
+
+      jsr([ValidateMoveWithCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Pinned piece can move along pin line")
+    }
+
+    test("check-pinned-captures-pinner", "Pinned piece can capture pinner", tags = "validate,pin") {
+      ; White king e1, white rook e4, black rook e8
+      ; White rook can capture the black rook (removes pin)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $44 = $b4          ; WHITE_ROOK at e4 (pinned)
+      [Board88] + $04 = $34          ; BLACK_ROOK at e8 (pinner)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [movefromindex] = $44          ; from e4
+      [movetoindex] = $04            ; to e8 (capture pinner!)
+
+      jsr([ValidateMoveWithCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "Pinned piece can capture pinner")
+    }
+
+    test("check-king-into-check", "King cannot move into check", tags = "validate,king,check") {
+      ; White king at e1, black rook at f8 (controls f-file)
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $05 = $34          ; BLACK_ROOK at f8 (controls f1)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [blackkingsq] = $07
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $75            ; to f1 (into check!)
+
+      jsr([ValidateMoveWithCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "King cannot move into check")
+    }
+
+    test("check-king-captures-defended", "King cannot capture defended piece", tags = "validate,king,check") {
+      ; White king at e1, black pawn at f2 defended by black bishop
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $65 = $31          ; BLACK_PAWN at f2
+      [Board88] + $47 = $33          ; BLACK_BISHOP at h4 (defends f2)
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      [movefromindex] = $74          ; from e1
+      [movetoindex] = $65            ; to f2 (capture defended pawn)
+
+      jsr([ValidateMoveWithCheck], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == false, "King cannot capture defended piece")
+    }
+
+    ; ========================================
+    ; Performance Tests
+    ; ========================================
+
+    test("perf-has-legal-moves-opening", "PlayerHasAnyLegalMoves fast in opening position", tags = "performance", timeout = 50000) {
+      ; Full opening position - 16 white pieces
+      ; Back rank (rank 1)
+      [Board88] + $70 = $b4          ; WHITE_ROOK
+      [Board88] + $71 = $b2          ; WHITE_KNIGHT
+      [Board88] + $72 = $b3          ; WHITE_BISHOP
+      [Board88] + $73 = $b5          ; WHITE_QUEEN
+      [Board88] + $74 = $b6          ; WHITE_KING
+      [Board88] + $75 = $b3          ; WHITE_BISHOP
+      [Board88] + $76 = $b2          ; WHITE_KNIGHT
+      [Board88] + $77 = $b4          ; WHITE_ROOK
+      ; Pawns (rank 2)
+      [Board88] + $60 = $b1
+      [Board88] + $61 = $b1
+      [Board88] + $62 = $b1
+      [Board88] + $63 = $b1
+      [Board88] + $64 = $b1
+      [Board88] + $65 = $b1
+      [Board88] + $66 = $b1
+      [Board88] + $67 = $b1
+
+      ; Black pieces
+      [Board88] + $00 = $34          ; BLACK_ROOK
+      [Board88] + $01 = $32          ; BLACK_KNIGHT
+      [Board88] + $02 = $33          ; BLACK_BISHOP
+      [Board88] + $03 = $35          ; BLACK_QUEEN
+      [Board88] + $04 = $36          ; BLACK_KING
+      [Board88] + $05 = $33          ; BLACK_BISHOP
+      [Board88] + $06 = $32          ; BLACK_KNIGHT
+      [Board88] + $07 = $34          ; BLACK_ROOK
+      ; Black pawns
+      [Board88] + $10 = $31
+      [Board88] + $11 = $31
+      [Board88] + $12 = $31
+      [Board88] + $13 = $31
+      [Board88] + $14 = $31
+      [Board88] + $15 = $31
+      [Board88] + $16 = $31
+      [Board88] + $17 = $31
+
+      ; Set up white piece list (16 pieces)
+      [WhitePieceList] + $00 = $70
+      [WhitePieceList] + $01 = $71
+      [WhitePieceList] + $02 = $72
+      [WhitePieceList] + $03 = $73
+      [WhitePieceList] + $04 = $74
+      [WhitePieceList] + $05 = $75
+      [WhitePieceList] + $06 = $76
+      [WhitePieceList] + $07 = $77
+      [WhitePieceList] + $08 = $60
+      [WhitePieceList] + $09 = $61
+      [WhitePieceList] + $0a = $62
+      [WhitePieceList] + $0b = $63
+      [WhitePieceList] + $0c = $64
+      [WhitePieceList] + $0d = $65
+      [WhitePieceList] + $0e = $66
+      [WhitePieceList] + $0f = $67
+      [WhitePieceCount] = $10        ; 16 pieces
+
+      [BlackPieceList] + $00 = $00
+      [BlackPieceList] + $01 = $01
+      [BlackPieceList] + $02 = $02
+      [BlackPieceList] + $03 = $03
+      [BlackPieceList] + $04 = $04
+      [BlackPieceList] + $05 = $05
+      [BlackPieceList] + $06 = $06
+      [BlackPieceList] + $07 = $07
+      [BlackPieceList] + $08 = $10
+      [BlackPieceList] + $09 = $11
+      [BlackPieceList] + $0a = $12
+      [BlackPieceList] + $0b = $13
+      [BlackPieceList] + $0c = $14
+      [BlackPieceList] + $0d = $15
+      [BlackPieceList] + $0e = $16
+      [BlackPieceList] + $0f = $17
+      [BlackPieceCount] = $10
+
+      jsr([PlayerHasAnyLegalMoves], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "White should have legal moves in opening")
+      assert(cycles < 50000, "Opening position scan under 50k cycles")
+    }
+
+    test("perf-has-legal-moves-endgame", "PlayerHasAnyLegalMoves fast in endgame", tags = "performance", timeout = 15000) {
+      ; Minimal endgame: just two kings
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      ; Just 1 white piece (king)
+      [WhitePieceList] + $00 = $74
+      [WhitePieceCount] = $01
+
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      jsr([PlayerHasAnyLegalMoves], stop_on_rts = true, fail_on_brk = true)
+
+      assert(c == true, "White should have legal moves")
+      assert(cycles < 15000, "Endgame scan under 15k cycles (only 2 pieces)")
+    }
+
+    ; ========================================
+    ; Checkmate/Stalemate Detection Tests
+    ; ========================================
+
+    test("gamestate-checkmate", "CheckGameState detects checkmate", tags = "gamestate,checkmate", timeout = 50000, trace = true) {
+      ; Back-rank checkmate position
+      ; Black king h8 ($07), white rook a8 ($00) delivers check
+      ; White rook a7 ($10) covers 7th rank preventing escape
+      ; White king elsewhere (f1 = $75)
+      [Board88] + $07 = $36          ; BLACK_KING at h8
+      [Board88] + $00 = $b4          ; WHITE_ROOK at a8 (delivers check)
+      [Board88] + $10 = $b4          ; WHITE_ROOK at a7 (covers 7th rank)
+      [Board88] + $75 = $b6          ; WHITE_KING at f1
+      [whitekingsq] = $75
+      [blackkingsq] = $07
+
+      ; Set up piece lists - black has only king
+      [BlackPieceList] + $00 = $07   ; King at h8
+      [BlackPieceCount] = $01        ; 1 piece
+
+      [WhitePieceList] + $00 = $75   ; King at f1
+      [WhitePieceList] + $01 = $00   ; Rook at a8
+      [WhitePieceList] + $02 = $10   ; Rook at a7
+      [WhitePieceCount] = $03        ; 3 pieces
+
+      [currentplayer] = $00          ; Black to move (is in checkmate)
+
+      jsr([CheckGameState], stop_on_rts = true, fail_on_brk = true)
+
+      ; A = 2 means checkmate
+      assert(a == $02, "Should detect checkmate (A=2)")
+    }
+
+    test("gamestate-stalemate", "CheckGameState detects stalemate", tags = "gamestate,stalemate", timeout = 50000, trace = true) {
+      ; Stalemate: black king a8, white queen b6, white king c7
+      ; King cannot move but is not in check
+      [Board88] + $00 = $36          ; BLACK_KING at a8
+      [Board88] + $21 = $b5          ; WHITE_QUEEN at b6
+      [Board88] + $12 = $b6          ; WHITE_KING at c7
+      [blackkingsq] = $00
+      [whitekingsq] = $12
+
+      ; Set up piece lists
+      [BlackPieceList] + $00 = $00   ; King at a8
+      [BlackPieceCount] = $01
+
+      [WhitePieceList] + $00 = $12   ; King at c7
+      [WhitePieceList] + $01 = $21   ; Queen at b6
+      [WhitePieceCount] = $02
+
+      [currentplayer] = $00          ; Black to move (is in stalemate)
+
+      jsr([CheckGameState], stop_on_rts = true, fail_on_brk = true)
+
+      ; A = 3 means stalemate
+      assert(a == $03, "Should detect stalemate (A=3)")
+    }
+
+    test("gamestate-normal", "CheckGameState detects normal position", tags = "gamestate") {
+      ; Simple position - white king and rook vs black king
+      [Board88] + $74 = $b6          ; WHITE_KING at e1
+      [Board88] + $70 = $b4          ; WHITE_ROOK at a1
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+
+      ; Set up piece lists
+      [WhitePieceList] + $00 = $74   ; King at e1
+      [WhitePieceList] + $01 = $70   ; Rook at a1
+      [WhitePieceCount] = $02
+
+      [BlackPieceList] + $00 = $04   ; King at e8
+      [BlackPieceCount] = $01
+
+      jsr([CheckGameState], stop_on_rts = true, fail_on_brk = true)
+
+      ; A = 0 means normal
+      assert(a == $00, "Should detect normal position (A=0)")
+    }
+
+    test("gamestate-check", "CheckGameState detects check", tags = "gamestate,check") {
+      ; Black king in check but can escape
+      [Board88] + $04 = $36          ; BLACK_KING at e8
+      [Board88] + $74 = $b4          ; WHITE_ROOK at e1 (delivers check)
+      [Board88] + $77 = $b6          ; WHITE_KING at h1
+      [blackkingsq] = $04
+      [whitekingsq] = $77
+
+      ; Set up piece lists
+      [BlackPieceList] + $00 = $04   ; King at e8
+      [BlackPieceCount] = $01
+
+      [WhitePieceList] + $00 = $77   ; King at h1
+      [WhitePieceList] + $01 = $74   ; Rook at e1
+      [WhitePieceCount] = $02
+
+      [currentplayer] = $00          ; Black to move
+
+      jsr([CheckGameState], stop_on_rts = true, fail_on_brk = true)
+
+      ; A = 1 means in check (but has moves)
+      assert(a == $01, "Should detect check (A=1)")
+    }
+  }
+}

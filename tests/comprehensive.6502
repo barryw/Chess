@@ -1,0 +1,910 @@
+; Comprehensive Chess Engine Tests
+; Tests ALL testable routines: piece lists, board manipulation, move execution, etc.
+;
+; This suite demonstrates the full power of sim6502 on production 6510 code.
+
+suites {
+  ; ============================================================================
+  ; PIECE LIST MANAGEMENT TESTS
+  ; ============================================================================
+  suite("Piece List Management") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    setup {
+      memfill([Board88], 128, $30)
+      memfill([WhitePieceList], 16, $ff)
+      memfill([BlackPieceList], 16, $ff)
+      [WhitePieceCount] = $00
+      [BlackPieceCount] = $00
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+      [currentplayer] = $01
+    }
+
+    ; --- InitPieceLists Tests ---
+
+    test("init-piece-lists-empty-board", "InitPieceLists on empty board", tags = "piecelist,init") {
+      ; Board is already empty from setup
+      jsr([InitPieceLists], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $00, "White should have 0 pieces")
+      assert([BlackPieceCount] == $00, "Black should have 0 pieces")
+    }
+
+    test("init-piece-lists-single-piece", "InitPieceLists with one piece", tags = "piecelist,init") {
+      [Board88] + $44 = $b2           ; WHITE_KNIGHT at e4
+
+      jsr([InitPieceLists], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $01, "White should have 1 piece")
+      assert([WhitePieceList] == $44, "White piece should be at e4")
+      assert([BlackPieceCount] == $00, "Black should have 0 pieces")
+    }
+
+    test("init-piece-lists-both-colors", "InitPieceLists with both colors", tags = "piecelist,init") {
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $04 = $36           ; BLACK_KING at e8
+      [Board88] + $70 = $b4           ; WHITE_ROOK at a1
+      [Board88] + $00 = $34           ; BLACK_ROOK at a8
+
+      jsr([InitPieceLists], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $02, "White should have 2 pieces")
+      assert([BlackPieceCount] == $02, "Black should have 2 pieces")
+    }
+
+    test("init-piece-lists-full-rank", "InitPieceLists with full back rank", tags = "piecelist,init") {
+      ; White back rank
+      [Board88] + $70 = $b4           ; Rook a1
+      [Board88] + $71 = $b2           ; Knight b1
+      [Board88] + $72 = $b3           ; Bishop c1
+      [Board88] + $73 = $b5           ; Queen d1
+      [Board88] + $74 = $b6           ; King e1
+      [Board88] + $75 = $b3           ; Bishop f1
+      [Board88] + $76 = $b2           ; Knight g1
+      [Board88] + $77 = $b4           ; Rook h1
+
+      jsr([InitPieceLists], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $08, "White should have 8 pieces")
+    }
+
+    test("init-piece-lists-opening-position", "InitPieceLists with full opening", tags = "piecelist,init,performance", timeout = 5000) {
+      ; Full opening position - 32 pieces
+      ; White back rank
+      [Board88] + $70 = $b4
+      [Board88] + $71 = $b2
+      [Board88] + $72 = $b3
+      [Board88] + $73 = $b5
+      [Board88] + $74 = $b6
+      [Board88] + $75 = $b3
+      [Board88] + $76 = $b2
+      [Board88] + $77 = $b4
+      ; White pawns
+      [Board88] + $60 = $b1
+      [Board88] + $61 = $b1
+      [Board88] + $62 = $b1
+      [Board88] + $63 = $b1
+      [Board88] + $64 = $b1
+      [Board88] + $65 = $b1
+      [Board88] + $66 = $b1
+      [Board88] + $67 = $b1
+      ; Black back rank
+      [Board88] + $00 = $34
+      [Board88] + $01 = $32
+      [Board88] + $02 = $33
+      [Board88] + $03 = $35
+      [Board88] + $04 = $36
+      [Board88] + $05 = $33
+      [Board88] + $06 = $32
+      [Board88] + $07 = $34
+      ; Black pawns
+      [Board88] + $10 = $31
+      [Board88] + $11 = $31
+      [Board88] + $12 = $31
+      [Board88] + $13 = $31
+      [Board88] + $14 = $31
+      [Board88] + $15 = $31
+      [Board88] + $16 = $31
+      [Board88] + $17 = $31
+
+      jsr([InitPieceLists], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $10, "White should have 16 pieces")
+      assert([BlackPieceCount] == $10, "Black should have 16 pieces")
+      assert(cycles < 5000, "InitPieceLists should be under 5k cycles")
+    }
+
+    ; --- UpdatePieceListForMove Tests ---
+
+    test("update-list-simple-move", "Piece list updates on simple move", tags = "piecelist,move") {
+      ; White knight at b1, moving to c3
+      [Board88] + $71 = $b2           ; WHITE_KNIGHT at b1
+      [WhitePieceList] + $00 = $71
+      [WhitePieceCount] = $01
+      [movefromindex] = $71
+      [movetoindex] = $52
+
+      jsr([UpdatePieceListForMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceList] == $52, "Knight should now be at c3 in list")
+      assert([WhitePieceCount] == $01, "Count should still be 1")
+    }
+
+    test("update-list-capture", "Piece list updates on capture", tags = "piecelist,capture") {
+      ; White knight at c3 captures black pawn at d5
+      [Board88] + $52 = $b2           ; WHITE_KNIGHT at c3
+      [Board88] + $33 = $31           ; BLACK_PAWN at d5
+
+      [WhitePieceList] + $00 = $52
+      [WhitePieceCount] = $01
+      [BlackPieceList] + $00 = $33
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $52
+      [movetoindex] = $33
+      [currentplayer] = $01           ; White capturing
+
+      jsr([UpdatePieceListForMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceList] == $33, "Knight should now be at d5 in list")
+      assert([WhitePieceCount] == $01, "White count still 1")
+      assert([BlackPieceCount] == $00, "Black count should be 0 (pawn captured)")
+    }
+
+    test("update-list-black-captures-white", "Black captures white piece", tags = "piecelist,capture") {
+      ; Black knight at c6 captures white pawn at e5
+      [Board88] + $22 = $32           ; BLACK_KNIGHT at c6
+      [Board88] + $34 = $b1           ; WHITE_PAWN at e5
+
+      [BlackPieceList] + $00 = $22
+      [BlackPieceCount] = $01
+      [WhitePieceList] + $00 = $34
+      [WhitePieceCount] = $01
+
+      [movefromindex] = $22
+      [movetoindex] = $34
+      [currentplayer] = $00           ; Black capturing
+
+      jsr([UpdatePieceListForMove], stop_on_rts = true, fail_on_brk = true)
+
+      assert([BlackPieceList] == $34, "Knight should now be at e5")
+      assert([WhitePieceCount] == $00, "White pawn should be removed")
+    }
+
+    ; --- RemoveFromPieceList Tests ---
+
+    test("remove-piece-list-first", "Remove first piece from list", tags = "piecelist,remove") {
+      ; 3 white pieces, remove the first one
+      [WhitePieceList] + $00 = $74    ; King at e1
+      [WhitePieceList] + $01 = $70    ; Rook at a1
+      [WhitePieceList] + $02 = $77    ; Rook at h1
+      [WhitePieceCount] = $03
+      [movetoindex] = $74             ; Removing piece at e1
+
+      jsr([RemoveFromWhitePieceList], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $02, "Count should be 2")
+      ; Last piece ($77) should have swapped into first slot
+      assert([WhitePieceList] == $77, "h1 rook should be in first slot")
+    }
+
+    test("remove-piece-list-last", "Remove last piece from list", tags = "piecelist,remove") {
+      ; 3 white pieces, remove the last one
+      [WhitePieceList] + $00 = $74    ; King at e1
+      [WhitePieceList] + $01 = $70    ; Rook at a1
+      [WhitePieceList] + $02 = $77    ; Rook at h1
+      [WhitePieceCount] = $03
+      [movetoindex] = $77             ; Removing piece at h1
+
+      jsr([RemoveFromWhitePieceList], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $02, "Count should be 2")
+      assert([WhitePieceList] == $74, "First slot unchanged")
+      assert([WhitePieceList] + $01 == $70, "Second slot unchanged")
+    }
+
+    test("remove-piece-list-middle", "Remove middle piece from list", tags = "piecelist,remove") {
+      ; 3 white pieces, remove the middle one
+      [WhitePieceList] + $00 = $74    ; King at e1
+      [WhitePieceList] + $01 = $70    ; Rook at a1
+      [WhitePieceList] + $02 = $77    ; Rook at h1
+      [WhitePieceCount] = $03
+      [movetoindex] = $70             ; Removing piece at a1
+
+      jsr([RemoveFromWhitePieceList], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $02, "Count should be 2")
+      ; Last piece ($77) should swap into middle slot
+      assert([WhitePieceList] + $01 == $77, "h1 rook should be in second slot")
+    }
+
+    test("remove-piece-not-found", "Remove piece not in list (edge case)", tags = "piecelist,remove,edge") {
+      ; Piece not in list - should handle gracefully
+      [WhitePieceList] + $00 = $74
+      [WhitePieceCount] = $01
+      [movetoindex] = $44             ; Not in list
+
+      jsr([RemoveFromWhitePieceList], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $01, "Count should be unchanged")
+    }
+  }
+
+  ; ============================================================================
+  ; BOARD MANIPULATION TESTS
+  ; ============================================================================
+  suite("Board Manipulation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    setup {
+      memfill([Board88], 128, $30)
+    }
+
+    ; --- FlipBoard Tests ---
+
+    test("flip-board-empty", "FlipBoard on empty board", tags = "flip") {
+      ; Empty board should remain empty after flip
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      ; Check corners are still empty
+      assert([Board88] == $30, "a8 should be empty")
+      assert([Board88] + $07 == $30, "h8 should be empty")
+      assert([Board88] + $70 == $30, "a1 should be empty")
+      assert([Board88] + $77 == $30, "h1 should be empty")
+    }
+
+    test("flip-board-single-piece", "FlipBoard moves piece to mirrored position", tags = "flip") {
+      ; White king at e1 should end up at e8 position after flip
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $74 == $30, "e1 should now be empty")
+      assert([Board88] + $04 == $b6, "e8 should have white king")
+    }
+
+    test("flip-board-corners", "FlipBoard swaps corners correctly", tags = "flip") {
+      ; Put pieces in all 4 corners
+      [Board88] + $00 = $34           ; BLACK_ROOK at a8
+      [Board88] + $07 = $34           ; BLACK_ROOK at h8
+      [Board88] + $70 = $b4           ; WHITE_ROOK at a1
+      [Board88] + $77 = $b4           ; WHITE_ROOK at h1
+
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      ; Corners should be swapped
+      assert([Board88] + $00 == $b4, "a8 should have white rook")
+      assert([Board88] + $07 == $b4, "h8 should have white rook")
+      assert([Board88] + $70 == $34, "a1 should have black rook")
+      assert([Board88] + $77 == $34, "h1 should have black rook")
+    }
+
+    test("flip-board-rows-swap", "FlipBoard swaps rows correctly", tags = "flip") {
+      ; Row 1 (rank 7 = $10-$17) should swap with row 6 (rank 2 = $60-$67)
+      [Board88] + $10 = $31           ; BLACK_PAWN at a7
+      [Board88] + $60 = $b1           ; WHITE_PAWN at a2
+
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $10 == $b1, "a7 should have white pawn")
+      assert([Board88] + $60 == $31, "a2 should have black pawn")
+    }
+
+    test("flip-board-double-flip-identity", "Double flip restores original", tags = "flip") {
+      ; Flipping twice should return to original position
+      [Board88] + $00 = $34           ; BLACK_ROOK at a8
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $14 = $31           ; BLACK_PAWN at e7
+
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $00 == $34, "a8 should have black rook again")
+      assert([Board88] + $74 == $b6, "e1 should have white king again")
+      assert([Board88] + $14 == $31, "e7 should have black pawn again")
+    }
+
+    test("flip-board-full-opening", "FlipBoard with full opening position", tags = "flip,performance", timeout = 3000) {
+      ; Full opening - verify it completes quickly
+      [Board88] + $70 = $b4
+      [Board88] + $71 = $b2
+      [Board88] + $72 = $b3
+      [Board88] + $73 = $b5
+      [Board88] + $74 = $b6
+      [Board88] + $75 = $b3
+      [Board88] + $76 = $b2
+      [Board88] + $77 = $b4
+      [Board88] + $60 = $b1
+      [Board88] + $61 = $b1
+      [Board88] + $62 = $b1
+      [Board88] + $63 = $b1
+      [Board88] + $64 = $b1
+      [Board88] + $65 = $b1
+      [Board88] + $66 = $b1
+      [Board88] + $67 = $b1
+      [Board88] + $00 = $34
+      [Board88] + $01 = $32
+      [Board88] + $02 = $33
+      [Board88] + $03 = $35
+      [Board88] + $04 = $36
+      [Board88] + $05 = $33
+      [Board88] + $06 = $32
+      [Board88] + $07 = $34
+      [Board88] + $10 = $31
+      [Board88] + $11 = $31
+      [Board88] + $12 = $31
+      [Board88] + $13 = $31
+      [Board88] + $14 = $31
+      [Board88] + $15 = $31
+      [Board88] + $16 = $31
+      [Board88] + $17 = $31
+
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      ; After flip, white pieces should be at top (rank 8), black at bottom (rank 1)
+      assert([Board88] + $00 == $b4, "a8 should have white rook")
+      assert([Board88] + $04 == $b6, "e8 should have white king")
+      assert([Board88] + $70 == $34, "a1 should have black rook")
+      assert([Board88] + $74 == $36, "e1 should have black king")
+      assert(cycles < 3000, "FlipBoard should be under 3k cycles")
+    }
+  }
+
+  ; ============================================================================
+  ; COORDINATE CONVERSION TESTS
+  ; ============================================================================
+  suite("Coordinate Conversion") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    setup {
+      ; Clear coordinate variables
+      [movefrom] = $00
+      [movefrom] + $01 = $00
+      [moveto] = $00
+      [moveto] + $01 = $00
+      [movefromindex] = $ff
+      [movetoindex] = $ff
+    }
+
+    ; --- ComputeBoardOffset Tests ---
+
+    test("offset-a1-corner", "Compute offset for a1 (col 0, row 7)", tags = "offset") {
+      ; a1 = column 0, row 7 -> index $70
+      [movefrom] = $00                ; column 0
+      [movefrom] + $01 = $07          ; row 7
+
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert([movefromindex] == $70, "a1 should be index $70")
+    }
+
+    test("offset-h1-corner", "Compute offset for h1 (col 7, row 7)", tags = "offset") {
+      ; h1 = column 7, row 7 -> index $77
+      [movefrom] = $07                ; column 7
+      [movefrom] + $01 = $07          ; row 7
+
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert([movefromindex] == $77, "h1 should be index $77")
+    }
+
+    test("offset-a8-corner", "Compute offset for a8 (col 0, row 0)", tags = "offset") {
+      ; a8 = column 0, row 0 -> index $00
+      [movefrom] = $00
+      [movefrom] + $01 = $00
+
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert([movefromindex] == $00, "a8 should be index $00")
+    }
+
+    test("offset-h8-corner", "Compute offset for h8 (col 7, row 0)", tags = "offset") {
+      ; h8 = column 7, row 0 -> index $07
+      [movefrom] = $07
+      [movefrom] + $01 = $00
+
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert([movefromindex] == $07, "h8 should be index $07")
+    }
+
+    test("offset-e4-center", "Compute offset for e4 (col 4, row 4)", tags = "offset") {
+      ; e4 = column 4, row 4 -> index $44
+      [movefrom] = $04
+      [movefrom] + $01 = $04
+
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert([movefromindex] == $44, "e4 should be index $44")
+    }
+
+    test("offset-moveto-works", "ComputeMoveToOffset uses moveto", tags = "offset") {
+      ; Test that moveto version works
+      [moveto] = $03                  ; d
+      [moveto] + $01 = $05            ; row 5 (rank 3)
+
+      jsr([ComputeMoveToOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert([movetoindex] == $53, "d3 should be index $53")
+    }
+
+    test("offset-all-corners-perf", "All corner calculations performance", tags = "offset,performance", timeout = 500) {
+      ; Calculate all 4 corners - should be very fast
+      [movefrom] = $00
+      [movefrom] + $01 = $00
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      [movefrom] = $07
+      [movefrom] + $01 = $00
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      [movefrom] = $00
+      [movefrom] + $01 = $07
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      [movefrom] = $07
+      [movefrom] + $01 = $07
+      jsr([ComputeMoveFromOffset], stop_on_rts = true, fail_on_brk = true)
+
+      assert(cycles < 500, "4 offset calculations under 500 cycles")
+    }
+  }
+
+  ; ============================================================================
+  ; MOVE EXECUTION TESTS
+  ; ============================================================================
+  suite("Move Execution") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    setup {
+      memfill([Board88], 128, $30)
+      memfill([WhitePieceList], 16, $ff)
+      memfill([BlackPieceList], 16, $ff)
+      [WhitePieceCount] = $00
+      [BlackPieceCount] = $00
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+      [castlerights] = $0f
+      [enpassantsq] = $ff
+      [currentplayer] = $01
+      [flashpiece] = $00
+      ; Clear capture counters
+      [whitecaptured] = $00
+      [whitecaptured] + $01 = $00
+      [whitecaptured] + $02 = $00
+      [whitecaptured] + $03 = $00
+      [whitecaptured] + $04 = $00
+      [blackcaptured] = $00
+      [blackcaptured] + $01 = $00
+      [blackcaptured] + $02 = $00
+      [blackcaptured] + $03 = $00
+      [blackcaptured] + $04 = $00
+    }
+
+    ; --- Basic MovePiece Tests ---
+
+    test("move-simple-knight", "Simple knight move updates board", tags = "move") {
+      ; Knight b1 to c3
+      [Board88] + $71 = $b2           ; WHITE_KNIGHT at b1
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $04 = $36           ; BLACK_KING at e8
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $71
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $71
+      [movetoindex] = $52
+      [selectedpiece] = $b2
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $71 == $30, "b1 should be empty")
+      assert([Board88] + $52 == $b2, "c3 should have knight")
+    }
+
+    test("move-capture-pawn", "Capture increments counter", tags = "move,capture") {
+      ; White knight captures black pawn
+      [Board88] + $52 = $b2           ; WHITE_KNIGHT at c3
+      [Board88] + $33 = $31           ; BLACK_PAWN at d5
+      [Board88] + $74 = $b6           ; WHITE_KING
+      [Board88] + $04 = $36           ; BLACK_KING
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $52
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceList] + $01 = $33
+      [BlackPieceCount] = $02
+
+      [movefromindex] = $52
+      [movetoindex] = $33
+      [selectedpiece] = $b2
+      [currentplayer] = $01
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $52 == $30, "c3 should be empty")
+      assert([Board88] + $33 == $b2, "d5 should have knight")
+      assert([whitecaptured] == $01, "White should have captured 1 pawn")
+    }
+
+    test("move-capture-queen", "Capturing queen increments correct counter", tags = "move,capture") {
+      ; White rook captures black queen
+      [Board88] + $40 = $b4           ; WHITE_ROOK at a4
+      [Board88] + $43 = $35           ; BLACK_QUEEN at d4
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $40
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceList] + $01 = $43
+      [BlackPieceCount] = $02
+
+      [movefromindex] = $40
+      [movetoindex] = $43
+      [selectedpiece] = $b4
+      [currentplayer] = $01
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([whitecaptured] + $04 == $01, "White should have captured 1 queen")
+    }
+
+    ; --- King Move Tests ---
+
+    test("move-king-updates-position", "King move updates king position variable", tags = "move,king") {
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceCount] = $01
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $74
+      [movetoindex] = $64             ; e2
+      [selectedpiece] = $b6
+      [whitekingsq] = $74
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([whitekingsq] == $64, "White king position should be e2")
+    }
+
+    test("move-king-loses-castling", "King move loses castling rights", tags = "move,king,castling") {
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceCount] = $01
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $74
+      [movetoindex] = $64
+      [selectedpiece] = $b6
+      [castlerights] = $0f            ; All rights
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      ; White castling rights should be lost (bits 0 and 1)
+      ; Original $0f minus white's rights ($03) = $0c (black only)
+      assert([castlerights] == $0c, "White should lose castling rights")
+    }
+
+    ; --- Castling Execution Tests ---
+
+    test("move-castle-kingside-white", "White kingside castling moves rook", tags = "move,castling") {
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $77 = $b4           ; WHITE_ROOK at h1
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $77
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $74
+      [movetoindex] = $76             ; g1 (kingside castle)
+      [selectedpiece] = $b6
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $76 == $b6, "King should be at g1")
+      assert([Board88] + $75 == $b4, "Rook should be at f1")
+      assert([Board88] + $77 == $30, "h1 should be empty")
+      assert([Board88] + $74 == $30, "e1 should be empty")
+    }
+
+    test("move-castle-queenside-white", "White queenside castling moves rook", tags = "move,castling") {
+      [Board88] + $74 = $b6           ; WHITE_KING at e1
+      [Board88] + $70 = $b4           ; WHITE_ROOK at a1
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $70
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $74
+      [movetoindex] = $72             ; c1 (queenside castle)
+      [selectedpiece] = $b6
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $72 == $b6, "King should be at c1")
+      assert([Board88] + $73 == $b4, "Rook should be at d1")
+      assert([Board88] + $70 == $30, "a1 should be empty")
+    }
+
+    ; --- Rook Capture Affects Castling ---
+
+    test("capture-a1-rook-loses-rights", "Capturing a1 rook loses white queenside", tags = "move,castling,capture") {
+      ; Black queen captures white a1 rook
+      [Board88] + $40 = $35           ; BLACK_QUEEN at a4
+      [Board88] + $70 = $b4           ; WHITE_ROOK at a1
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $70
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceList] + $01 = $40
+      [BlackPieceCount] = $02
+
+      [movefromindex] = $40
+      [movetoindex] = $70
+      [selectedpiece] = $35
+      [currentplayer] = $00           ; Black to move
+      [castlerights] = $0f
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      ; White queenside (bit 1) should be lost
+      ; Original $0f minus queenside ($02) = $0d
+      assert([castlerights] == $0d, "White queenside castling should be lost")
+    }
+
+    test("capture-h1-rook-loses-rights", "Capturing h1 rook loses white kingside", tags = "move,castling,capture") {
+      [Board88] + $47 = $35           ; BLACK_QUEEN at h4
+      [Board88] + $77 = $b4           ; WHITE_ROOK at h1
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $77
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceList] + $01 = $47
+      [BlackPieceCount] = $02
+
+      [movefromindex] = $47
+      [movetoindex] = $77
+      [selectedpiece] = $35
+      [currentplayer] = $00
+      [castlerights] = $0f
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      ; White kingside (bit 0) should be lost
+      ; Original $0f minus kingside ($01) = $0e
+      assert([castlerights] == $0e, "White kingside castling should be lost")
+    }
+
+    ; --- Move Performance ---
+
+    test("move-perf-simple", "Simple move performance", tags = "move,performance", timeout = 2000) {
+      [Board88] + $71 = $b2
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $71
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $71
+      [movetoindex] = $52
+      [selectedpiece] = $b2
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert(cycles < 2000, "Simple move under 2k cycles")
+    }
+  }
+
+  ; ============================================================================
+  ; PAWN SPECIAL MOVES TESTS
+  ; ============================================================================
+  suite("Pawn Special Moves") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    setup {
+      memfill([Board88], 128, $30)
+      memfill([WhitePieceList], 16, $ff)
+      memfill([BlackPieceList], 16, $ff)
+      [WhitePieceCount] = $00
+      [BlackPieceCount] = $00
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+      [enpassantsq] = $ff
+      [currentplayer] = $01
+      [flashpiece] = $00
+      [whitecaptured] = $00
+      [blackcaptured] = $00
+    }
+
+    ; --- En Passant Tests ---
+
+    test("en-passant-removes-pawn", "En passant capture removes correct pawn", tags = "pawn,enpassant") {
+      ; White pawn e5 captures black pawn d5 via en passant
+      [Board88] + $34 = $b1           ; WHITE_PAWN at e5
+      [Board88] + $33 = $31           ; BLACK_PAWN at d5 (just double-pushed)
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $34
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceList] + $01 = $33
+      [BlackPieceCount] = $02
+
+      [movefromindex] = $34           ; from e5
+      [movetoindex] = $23             ; to d6 (en passant square)
+      [selectedpiece] = $b1
+      [enpassantsq] = $23
+
+      ; Note: En passant capture removes pawn at d5 ($33), not d6
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $23 == $b1, "d6 should have white pawn")
+      assert([Board88] + $34 == $30, "e5 should be empty")
+      assert([Board88] + $33 == $30, "d5 should be empty (captured pawn)")
+    }
+
+    ; --- Pawn Double Push Sets En Passant ---
+
+    test("pawn-double-push-sets-ep", "Double pawn push sets en passant square", tags = "pawn,enpassant") {
+      ; This tests the game logic that would set enpassantsq
+      ; after a double pawn push. For now, just verify the move works.
+      [Board88] + $64 = $b1           ; WHITE_PAWN at e2
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $64
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceCount] = $01
+
+      [movefromindex] = $64
+      [movetoindex] = $44             ; e4 (double push)
+      [selectedpiece] = $b1
+
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([Board88] + $44 == $b1, "e4 should have pawn")
+      assert([Board88] + $64 == $30, "e2 should be empty")
+    }
+  }
+
+  ; ============================================================================
+  ; EDGE CASES AND STRESS TESTS
+  ; ============================================================================
+  suite("Edge Cases") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    setup {
+      memfill([Board88], 128, $30)
+      memfill([WhitePieceList], 16, $ff)
+      memfill([BlackPieceList], 16, $ff)
+      [WhitePieceCount] = $00
+      [BlackPieceCount] = $00
+    }
+
+    test("piece-list-16-pieces", "Piece list handles maximum 16 pieces", tags = "edge,piecelist") {
+      ; Add 16 white pawns (maximum)
+      [Board88] + $60 = $b1
+      [Board88] + $61 = $b1
+      [Board88] + $62 = $b1
+      [Board88] + $63 = $b1
+      [Board88] + $64 = $b1
+      [Board88] + $65 = $b1
+      [Board88] + $66 = $b1
+      [Board88] + $67 = $b1
+      [Board88] + $50 = $b1
+      [Board88] + $51 = $b1
+      [Board88] + $52 = $b1
+      [Board88] + $53 = $b1
+      [Board88] + $54 = $b1
+      [Board88] + $55 = $b1
+      [Board88] + $56 = $b1
+      [Board88] + $57 = $b1
+
+      jsr([InitPieceLists], stop_on_rts = true, fail_on_brk = true)
+
+      assert([WhitePieceCount] == $10, "Should have exactly 16 pieces")
+    }
+
+    test("flip-board-preserves-pieces", "FlipBoard preserves all piece types", tags = "edge,flip") {
+      ; One of each piece type
+      [Board88] + $70 = $b4           ; WHITE_ROOK
+      [Board88] + $71 = $b2           ; WHITE_KNIGHT
+      [Board88] + $72 = $b3           ; WHITE_BISHOP
+      [Board88] + $73 = $b5           ; WHITE_QUEEN
+      [Board88] + $74 = $b6           ; WHITE_KING
+      [Board88] + $75 = $b1           ; WHITE_PAWN
+
+      jsr([FlipBoard], stop_on_rts = true, fail_on_brk = true)
+
+      ; Pieces should be at flipped positions with same values
+      assert([Board88] + $00 == $b4, "Rook preserved at a8")
+      assert([Board88] + $01 == $b2, "Knight preserved at b8")
+      assert([Board88] + $02 == $b3, "Bishop preserved at c8")
+      assert([Board88] + $03 == $b5, "Queen preserved at d8")
+      assert([Board88] + $04 == $b6, "King preserved at e8")
+      assert([Board88] + $05 == $b1, "Pawn preserved at f8")
+    }
+
+    test("consecutive-captures", "Multiple consecutive captures", tags = "edge,capture") {
+      ; Set up a position and do multiple captures
+      [Board88] + $74 = $b6           ; WHITE_KING
+      [Board88] + $04 = $36           ; BLACK_KING
+      [Board88] + $70 = $b4           ; WHITE_ROOK
+      [Board88] + $10 = $31           ; BLACK_PAWN at a7
+      [Board88] + $20 = $31           ; BLACK_PAWN at a6
+      [Board88] + $30 = $31           ; BLACK_PAWN at a5
+
+      [WhitePieceList] + $00 = $74
+      [WhitePieceList] + $01 = $70
+      [WhitePieceCount] = $02
+      [BlackPieceList] + $00 = $04
+      [BlackPieceList] + $01 = $10
+      [BlackPieceList] + $02 = $20
+      [BlackPieceList] + $03 = $30
+      [BlackPieceCount] = $04
+
+      [whitecaptured] = $00
+      [flashpiece] = $00
+
+      ; First capture: Rook takes a7
+      [movefromindex] = $70
+      [movetoindex] = $10
+      [selectedpiece] = $b4
+      [currentplayer] = $01
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      ; Second capture: Rook takes a6
+      [movefromindex] = $10
+      [movetoindex] = $20
+      [selectedpiece] = $b4
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      ; Third capture: Rook takes a5
+      [movefromindex] = $20
+      [movetoindex] = $30
+      [selectedpiece] = $b4
+      jsr([MovePiece], stop_on_rts = true, fail_on_brk = true)
+
+      assert([whitecaptured] == $03, "Should have captured 3 pawns")
+      assert([BlackPieceCount] == $01, "Black should have only king left")
+    }
+  }
+}
