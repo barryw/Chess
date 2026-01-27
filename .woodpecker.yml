@@ -18,8 +18,9 @@ steps:
   - name: check-commits
     image: alpine:latest
     commands:
-      - apk add --no-cache curl tar
-      - curl -sSL https://github.com/cocogitto/cocogitto/releases/latest/download/cocogitto-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin
+      - apk add --no-cache curl tar jq
+      - COG_URL=$(curl -sL "https://api.github.com/repos/cocogitto/cocogitto/releases/latest" | jq -r '.assets[] | select(.name | contains("x86_64-unknown-linux-musl")) | .browser_download_url')
+      - curl -sSL "$COG_URL" | tar xz -C /usr/local/bin
       - cog --version
       - cog check --from-latest-tag || cog check || echo "No conventional commits yet - will enforce after initial tag"
 
@@ -28,8 +29,9 @@ steps:
     image: alpine:latest
     commands:
       - |
-        apk add --no-cache curl tar git
-        curl -sSL https://github.com/cocogitto/cocogitto/releases/latest/download/cocogitto-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin
+        apk add --no-cache curl tar git jq
+        COG_URL=$(curl -sL "https://api.github.com/repos/cocogitto/cocogitto/releases/latest" | jq -r '.assets[] | select(.name | contains("x86_64-unknown-linux-musl")) | .browser_download_url')
+        curl -sSL "$COG_URL" | tar xz -C /usr/local/bin
         cog --version
         git config --global --add safe.directory /woodpecker/src
 
