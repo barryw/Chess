@@ -101,6 +101,9 @@
 // The location to display movement errors
 .var ErrorPos = ScreenPos($1a, ThinkingPos.y + $02)
 
+// Version display - lower right corner
+.var VersionPos = ScreenPos($24, $18)
+
 // These are indexes into the storage area that tracks
 // how many of each piece has been captured for white
 // and black

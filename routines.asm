@@ -128,6 +128,9 @@ SetupScreen:
   CopyMemory(CopyrightStart, ScreenAddress(CopyrightPos), CopyrightEnd - CopyrightStart)
   FillMemory(ColorAddress(CopyrightPos), CopyrightEnd - CopyrightStart, WHITE)
 
+  // Display version in lower right corner
+  PrintAt(VersionText, VersionPos, LIGHT_GREY)
+
   jmp StartMenu
 
 /*

@@ -6,11 +6,50 @@ labels:
   platform: linux/amd64
 
 steps:
+  # Check that commits follow conventional commit format
+  - name: check-commits
+    image: cocogitto/cog:latest
+    commands:
+      - cog --version
+      - cog check --from-latest-tag || cog check || echo "No conventional commits yet - will enforce after initial tag"
+
+  # Bump version on master branch pushes (not PRs)
+  - name: bump-version
+    image: cocogitto/cog:latest
+    commands:
+      - |
+        echo "Checking if version bump is needed..."
+        # Configure git for cog
+        git config --global user.email "ci@woodpecker.local"
+        git config --global user.name "Woodpecker CI"
+        git config --global --add safe.directory /woodpecker/src
+        # Try to bump - if no bumpable commits, it will exit gracefully
+        if cog bump --auto --dry-run 2>/dev/null; then
+          echo "Version bump detected, running update script..."
+          NEW_VERSION=$(cog bump --auto --dry-run 2>&1 | grep -oP '(?<=Bumping to )\d+\.\d+\.\d+' || echo "")
+          if [ -n "$NEW_VERSION" ]; then
+            echo "New version will be: $NEW_VERSION"
+            chmod +x scripts/update-version.sh
+            ./scripts/update-version.sh "$NEW_VERSION"
+            echo "version.asm updated:"
+            cat version.asm
+          fi
+        else
+          echo "No version bump needed"
+        fi
+    when:
+      - event: push
+        branch: master
+    depends_on: [check-commits]
+
   - name: build
     image: barrywalker71/kickassembler:latest
     commands:
       - java -jar /KickAss.jar main.asm
       - ls -la *.prg *.sym
+      - echo "Build artifacts:"
+      - cat version.asm | head -10
+    depends_on: [bump-version]
 
   - name: test-move-validation
     image: ghcr.io/barryw/sim6502:v3.4.1

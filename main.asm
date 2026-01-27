@@ -29,6 +29,7 @@ start:
 #import "macros.asm"
 #import "pseudocommands.asm"
 #import "constants.asm"
+#import "version.asm"
 #import "layout.asm"
 #import "memory.asm"
 #import "functions.asm"

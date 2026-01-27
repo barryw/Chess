@@ -805,6 +805,48 @@ suites {
   }
 
   ; ============================================================================
+  ; VERSION DISPLAY TESTS
+  ; ============================================================================
+  suite("Version Display") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("version-text-format", "VersionText has correct v#.# format", tags = "version") {
+      ; VersionText should be: 'v' + major_digit + '.' + minor_digit + null
+      ; Format: $76 (v), $30+major, $2e (.), $30+minor, $00 (null)
+
+      ; Use PrintString as a no-op JSR (it just needs any JSR)
+      ; Set up minimal pointers so it doesn't crash
+      [$1f] = <[VersionText]
+      [$20] = >[VersionText]
+      [$21] = $00
+      [$22] = $04
+      [$23] = $00
+      [$24] = $d8
+      [$25] = $01
+
+      jsr([PrintString], stop_on_rts = true, fail_on_brk = true)
+
+      ; First byte should be 'v' ($76)
+      assert([VersionText] == $76, "First byte should be 'v'")
+
+      ; Third byte should be '.' ($2e)
+      assert([VersionText] + $02 == $2e, "Third byte should be '.'")
+
+      ; Fifth byte should be null terminator
+      assert([VersionText] + $04 == $00, "Fifth byte should be null terminator")
+
+      ; Major digit should be '0'-'9' ($30-$39)
+      assert([VersionText] + $01 >= $30, "Major should be >= '0'")
+      assert([VersionText] + $01 <= $39, "Major should be <= '9'")
+
+      ; Minor digit should be '0'-'9' ($30-$39)
+      assert([VersionText] + $03 >= $30, "Minor should be >= '0'")
+      assert([VersionText] + $03 <= $39, "Minor should be <= '9'")
+    }
+  }
+
+  ; ============================================================================
   ; EDGE CASES AND STRESS TESTS
   ; ============================================================================
   suite("Edge Cases") {
