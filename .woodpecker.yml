@@ -1,6 +1,7 @@
 when:
   - event: push
   - event: pull_request
+  - event: tag
 
 labels:
   platform: linux/amd64
@@ -12,6 +13,9 @@ steps:
     commands:
       - cog --version
       - cog check --from-latest-tag || cog check || echo "No conventional commits yet - will enforce after initial tag"
+    when:
+      - event: push
+      - event: pull_request
 
   # Bump version on master branch pushes (not PRs)
   - name: bump-version
@@ -46,7 +50,7 @@ steps:
     image: barrywalker71/kickassembler:latest
     commands:
       - java -jar /KickAss.jar main.asm
-      - ls -la *.prg *.sym
+      - ls -la *.prg *.sym *.d64
       - echo "Build artifacts:"
       - cat version.asm | head -10
     depends_on: [bump-version]
@@ -64,3 +68,25 @@ steps:
       - ln -sf $CI_WORKSPACE /code
       - /app/Sim6502TestRunner -s /code/tests/comprehensive.6502
     depends_on: [build]
+
+  # Create release with d64 artifact on tag push
+  - name: release
+    image: woodpeckerci/plugin-release:latest
+    settings:
+      api_key:
+        from_secret: gitea_token
+      files:
+        - "C64Chess.d64"
+        - "main.prg"
+      title: "C64 Chess ${CI_COMMIT_TAG}"
+      note: |
+        ## C64 Chess ${CI_COMMIT_TAG}
+
+        Download the D64 disk image and load it in your favorite C64 emulator!
+
+        **Files:**
+        - `C64Chess.d64` - Disk image (use with VICE or real hardware)
+        - `main.prg` - Raw PRG file
+    when:
+      - event: tag
+    depends_on: [test-move-validation, test-comprehensive]

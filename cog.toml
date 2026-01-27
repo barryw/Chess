@@ -4,7 +4,8 @@
 # To install git hooks, run: cog install-hook --all
 # This enforces conventional commit format on all commits.
 
-from_latest_tag = false
+from_latest_tag = true
+tag_prefix = ""
 ignore_merge_commits = false
 ignore_fixup_commits = true
 disable_changelog = false
