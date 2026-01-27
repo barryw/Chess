@@ -95,21 +95,12 @@ steps:
 
         echo "Creating release via GitHub API..."
 
-        # Simple release body
-        RELEASE_BODY="## C64 Chess $NEW_VERSION
-
-Download the D64 disk image and load it in your favorite C64 emulator!
-
-**Files:**
-- \`C64Chess.d64\` - Disk image (use with VICE or real hardware)
-- \`main.prg\` - Raw PRG file"
-
         # Create the release on GitHub
         RELEASE_RESPONSE=$(curl -s -X POST \
           -H "Authorization: token $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github+json" \
           "https://api.github.com/repos/${CI_REPO}/releases" \
-          -d "{\"tag_name\": \"$NEW_VERSION\", \"name\": \"C64 Chess $NEW_VERSION\", \"body\": $(echo "$RELEASE_BODY" | jq -Rs .)}")
+          -d "{\"tag_name\": \"$NEW_VERSION\", \"name\": \"C64 Chess $NEW_VERSION\", \"body\": \"## C64 Chess $NEW_VERSION\\n\\nDownload the D64 disk image and load it in your favorite C64 emulator!\\n\\n**Files:**\\n- C64Chess.d64 - Disk image\\n- main.prg - Raw PRG file\"}")
 
         RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
         UPLOAD_URL=$(echo "$RELEASE_RESPONSE" | jq -r '.upload_url' | sed 's/{?name,label}//')
