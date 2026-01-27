@@ -16,7 +16,7 @@ pre_bump_hooks = [
 post_bump_hooks = []
 
 [commit_types]
-# All commit types trigger at least a patch bump
+# All commit types trigger version bumps
 feat = { changelog_title = "Features", bump_minor = true }
 fix = { changelog_title = "Bug Fixes", bump_patch = true }
 docs = { changelog_title = "Documentation", bump_patch = true }

@@ -16,21 +16,25 @@ clone:
 steps:
   # Check that commits follow conventional commit format
   - name: check-commits
-    image: simbachain/cocogitto:latest
+    image: alpine:latest
     commands:
+      - apk add --no-cache curl tar
+      - curl -sSL https://github.com/cocogitto/cocogitto/releases/latest/download/cocogitto-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin
       - cog --version
       - cog check --from-latest-tag || cog check || echo "No conventional commits yet - will enforce after initial tag"
 
   # Determine version and update version.asm BEFORE build
   - name: prepare-version
-    image: simbachain/cocogitto:latest
+    image: alpine:latest
     commands:
       - |
+        apk add --no-cache curl tar git
+        curl -sSL https://github.com/cocogitto/cocogitto/releases/latest/download/cocogitto-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin
+        cog --version
         git config --global --add safe.directory /woodpecker/src
 
-        # Get new version from cog (all commit types now trigger bumps)
-        NEW_VERSION=$(cog bump --auto --dry-run 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')
-
+        # All commit types now trigger bumps via cog.toml config
+        NEW_VERSION=$(cog bump --auto --dry-run 2>&1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')
         echo "New version: $NEW_VERSION"
         chmod +x scripts/update-version.sh
         ./scripts/update-version.sh "$NEW_VERSION"
@@ -49,14 +53,8 @@ steps:
   - name: build
     image: barrywalker71/kickassembler:latest
     commands:
-      - pwd
-      - ls -la
-      - echo "=== version.asm ==="
-      - cat version.asm
-      - echo "=== Building ==="
       - java -jar /KickAss.jar main.asm
-      - echo "=== Build output ==="
-      - ls -la *.prg *.sym *.d64 || echo "No build artifacts found!"
+      - ls -la *.prg *.sym *.d64
     depends_on: [prepare-version]
 
   - name: test-move-validation
