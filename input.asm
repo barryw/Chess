@@ -77,20 +77,18 @@ for movefrom and moveto.
 */
 HandleColumnSelection:
   jeq cursorxpos:#$01:!exit+
-  lda currentkey
+  lda currentkey        // KEY_A-KEY_H = $01-$08 = screen codes A-H
+  pha                   // Save for display (already correct screen code)
   sec
-  sbc #$01              // Make the column number 0 based
-  pha
+  sbc #$01              // Make the column number 0 based for storage
+  tax                   // Save column in X (jne clobbers A)
   jne inputselection:#INPUT_MOVE_FROM:!moveto+
-  pla
-  sta movefrom
+  stx movefrom
   jmp !continue+
 !moveto:
-  pla
-  sta moveto
+  stx moveto
 !continue:
-  clc
-  adc #$41              // Make the column selection uppercase
+  pla                   // Restore original key (screen code A-H)
   sta currentkey
   jsr DisplayCoordinate
   inc cursorxpos        // Move the cursor over 1 place
@@ -102,8 +100,8 @@ Display either the row or the column
 */
 DisplayCoordinate:
   jsr ClearError
-  lda currentkey
   StoreWord(inputlocationvector, ScreenAddress(CursorPos))
+  lda currentkey        // Load AFTER StoreWord (which clobbers A)
   ldy cursorxpos
   sta (inputlocationvector), y
   rts

@@ -62,43 +62,61 @@ SetupScreen:
   sta vic.EXTCOL
   stb #$17:vic.VMCSB
 
+  // Clear color RAM to black and fill screen with background char
   ldx #$00
-!loop:
-  lda Board,x
+  lda #$00
+!clearcolor:
   sta vic.CLRRAM,x
-  lda Board+$0100,x
   sta vic.CLRRAM+$0100,x
-  lda Board+$0200,x
   sta vic.CLRRAM+$0200,x
-  lda Board+$0300,x
   sta vic.CLRRAM+$0300,x
+  inx
+  bne !clearcolor-
+
+  ldx #$00
   lda #$e0
+!fillscreen:
   sta $0400,x
   sta $0500,x
   sta $0600,x
   sta $0700,x
   inx
-  bne !loop-
+  bne !fillscreen-
 
+  // Generate the checkerboard pattern (replaces ~960 bytes of static data)
+  jsr GenerateBoardColors
+
+  // Column letters at bottom (A-H)
   ldx #$00
   ldy #$00
 !loop:
   stb Columns, y:$07c1, x
+  lda #WHITE
+  sta $dbc1, x            // Color RAM for bottom row
   inx
   inx
   inx
   iny
-  cpy #$09
+  cpy #$08
   bne !loop-
 
+  // Row numbers (8-1) on the right side with their colors
   stb #'8':ScreenAddress(ScreenPos($18, $01))
+  stb #WHITE:ColorAddress(ScreenPos($18, $01))
   stb #'7':ScreenAddress(ScreenPos($18, $04))
+  stb #WHITE:ColorAddress(ScreenPos($18, $04))
   stb #'6':ScreenAddress(ScreenPos($18, $07))
+  stb #WHITE:ColorAddress(ScreenPos($18, $07))
   stb #'5':ScreenAddress(ScreenPos($18, $0a))
+  stb #WHITE:ColorAddress(ScreenPos($18, $0a))
   stb #'4':ScreenAddress(ScreenPos($18, $0d))
+  stb #WHITE:ColorAddress(ScreenPos($18, $0d))
   stb #'3':ScreenAddress(ScreenPos($18, $10))
+  stb #WHITE:ColorAddress(ScreenPos($18, $10))
   stb #'2':ScreenAddress(ScreenPos($18, $13))
+  stb #WHITE:ColorAddress(ScreenPos($18, $13))
   stb #'1':ScreenAddress(ScreenPos($18, $16))
+  stb #WHITE:ColorAddress(ScreenPos($18, $16))
 
   // Display the title
   CopyMemory(TitleRow1Start, ScreenAddress(Title1Pos), TitleRow1End - TitleRow1Start)
@@ -127,12 +145,14 @@ PrintByte:
   lsr
   lsr
   lsr
+  clc                   // Explicit clear before add
   adc #$30
   ldy #$00
   sta (printvector),y
   iny
   pla
   and #$0f              // Get the lower nybble
+  clc                   // Explicit clear before add
   adc #$30
   sta (printvector),y
   pla
@@ -140,28 +160,57 @@ PrintByte:
   rts
 
 /*
+Print a null-terminated string to screen with color.
+Inputs:
+  str_ptr   - pointer to null-terminated string
+  scr_ptr   - pointer to screen memory location
+  col_ptr   - pointer to color memory location
+  print_color - color to use for all characters
+*/
+PrintString:
+  ldy #$00
+!loop:
+  lda (str_ptr),y         // Get character from string
+  beq !done+              // $00 = end of string
+  sta (scr_ptr),y         // Write to screen RAM
+  lda print_color         // Get the color
+  sta (col_ptr),y         // Write to color RAM
+  iny
+  bne !loop-              // Loop (max 256 chars)
+!done:
+  rts
+
+/*
+Calculate board offset from coordinate pair.
+Input: X = 0 for movefrom, X = 2 for moveto
+Output: A = board index, stored in corresponding index variable
+*/
+ComputeBoardOffset:
+  lda movefrom + $01, x   // Get row (movefrom+1 or moveto+1)
+  mult8                   // row * 8
+  clc
+  adc movefrom, x         // + column
+  cpx #$00
+  bne !storeto+
+  sta movefromindex
+  rts
+!storeto:
+  sta movetoindex
+  rts
+
+/*
 Calculate the board offset for the movefrom coordinate
 */
 ComputeMoveFromOffset:
-  lda movefrom + $01
-  mult8
-  clc
-  adc movefrom
-  sta movefromindex
-
-  rts
+  ldx #$00
+  jmp ComputeBoardOffset
 
 /*
 Calculate the board offset for the moveto coordinate
 */
 ComputeMoveToOffset:
-  lda moveto + $01
-  mult8
-  clc
-  adc moveto
-  sta movetoindex
-
-  rts
+  ldx #$02
+  jmp ComputeBoardOffset
 
 /*
 Clear the error line

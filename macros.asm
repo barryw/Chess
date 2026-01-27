@@ -49,15 +49,13 @@ Enable a flag
   sta address
 }
 /*
-Store a 16 bit word
+Store a 16 bit word (clobbers A)
 */
 .macro StoreWord(address, word) {
-  pha
   lda #<word
   sta address
   lda #>word
   sta address + $01
-  pla
 }
 
 /*
@@ -91,6 +89,30 @@ Fill a block of memory with a byte
   lda #value
   sta fill_value
   jsr FillMemory
+}
+
+/*
+Print a null-terminated string at a screen position with color.
+Much more compact than CopyMemory + FillMemory combination.
+
+Usage: PrintAt(StringLabel, ScreenPosVar, COLOR)
+*/
+.macro PrintAt(string, screenpos, color) {
+  lda #<string
+  sta str_ptr
+  lda #>string
+  sta str_ptr+1
+  lda #<ScreenAddress(screenpos)
+  sta scr_ptr
+  lda #>ScreenAddress(screenpos)
+  sta scr_ptr+1
+  lda #<ColorAddress(screenpos)
+  sta col_ptr
+  lda #>ColorAddress(screenpos)
+  sta col_ptr+1
+  lda #color
+  sta print_color
+  jsr PrintString
 }
 
 /*

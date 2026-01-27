@@ -17,10 +17,6 @@ currentpiece:
 currentkey:
   .byte $00
 
-// Temp location for when the board is flipped
-fliptmp:
-  .fill $40, $00
-
 // Store the lines where we want to trigger our raster interrupt
 irqypos:
   .byte $30, $48, $60, $78, $90, $a8, $c0, $d8

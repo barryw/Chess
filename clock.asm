@@ -65,13 +65,14 @@ UpdateClock:
   adc #$01
   sta timers, x
   cmp #$60              // Have we hit 60 seconds/minutes/hours?
-  bne !return+
+  bne !done+            // Not yet, exit the loop
   lda #$00              // Yup. Reset seconds and increment minutes/hours
   sta timers, x
   inx
   cpx #$02
   bne !updatetimers-
-  cld
+!done:
+  cld                   // CRITICAL: Always clear decimal mode before returning
 
 !return:
   rts

@@ -35,65 +35,91 @@ BoardColors:
 Columns:
   .text "ABCDEFGH"
 
-// This draws the checkerboard using 2 different shades of gray
-// TODO: Render the board with code instead of using 1k of data
-Board:
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+/*
+Generate the checkerboard pattern in color RAM at runtime.
+This saves ~960 bytes of program space.
 
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+The board is 24x24 characters (8x8 chess squares, each 3x3 chars).
+Colors: $0f (light gray) and $0b (dark gray) alternate.
+*/
+GenerateBoardColors:
+  // Use zero page pointers for indirect addressing
+  // We'll use $fb/$fc for the color RAM pointer
+  lda #<vic.CLRRAM
+  sta $fb
+  lda #>vic.CLRRAM
+  sta $fc
 
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+  ldx #$00          // Screen row counter (0-23)
 
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+!rowloop:
+  // Determine starting color based on chess row (screen row / 3)
+  // Chess row 0,2,4,6 start light ($0f), rows 1,3,5,7 start dark ($0b)
+  txa
+  lsr               // Divide by 2
+  and #$03          // Keep low 2 bits after accounting for /3
+  // Actually simpler: check (row/3) & 1
+  txa
+  // Divide X by 3 using lookup or repeated subtraction
+  // For rows 0-2: chess row 0, for 3-5: row 1, etc.
+  cmp #$03
+  bcc !r0+
+  cmp #$06
+  bcc !r1+
+  cmp #$09
+  bcc !r2+
+  cmp #$0c
+  bcc !r3+
+  cmp #$0f
+  bcc !r4+
+  cmp #$12
+  bcc !r5+
+  cmp #$15
+  bcc !r6+
+  jmp !r7+
 
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+!r0:
+!r2:
+!r4:
+!r6:
+  lda #$0f          // Even chess rows start light
+  jmp !fillrow+
+!r1:
+!r3:
+!r5:
+!r7:
+  lda #$0b          // Odd chess rows start dark
 
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+!fillrow:
+  // A = starting color, fill 24 columns (8 squares * 3 chars)
+  ldy #$00
+!colloop:
+  // Write current color 3 times (one chess square width)
+  sta ($fb), y
+  iny
+  sta ($fb), y
+  iny
+  sta ($fb), y
+  iny
+  // Toggle color: $0f XOR $04 = $0b, $0b XOR $04 = $0f
+  eor #$04
+  // Repeat for 8 squares
+  cpy #$18          // 24 columns = 8 squares * 3 chars
+  bne !colloop-
 
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f
-  .byte $0f,$0b,$0b,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+  // Advance pointer by 40 (screen width)
+  lda $fb
+  clc
+  adc #$28
+  sta $fb
+  bcc !noinc+
+  inc $fc
+!noinc:
 
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-  .byte $0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b,$0b,$0f,$0f,$0f,$0b,$0b
-  .byte $0b,$0f,$0f,$0f,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+  // Next row
+  inx
+  cpx #$18          // 24 screen rows
+  bne !rowloop-
 
-  .byte $00,$01,$00,$00,$01,$00,$00,$01,$00,$00,$01,$00,$00,$01,$00,$00,$01,$00,$00,$01
-  .byte $00,$00,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+  rts
 

@@ -55,27 +55,23 @@ CopyMemory:
   rts
 
 /*
-Flip the board
+Flip the board in place - swaps positions 0-31 with 63-32.
+No temporary buffer needed, just uses the stack for one byte.
 */
 FlipBoard:
-  PushStack()
-  ldx #$3f
-  ldy #$00
+  ldx #$00              // Front index (0-31)
+  ldy #$3f              // Back index (63-32)
 !loop:
-  lda BoardState, x
-  sta fliptmp, y
-  iny
-  dex
-  cpx #$ff
+  lda BoardState, x     // Load from front
+  pha                   // Save on stack
+  lda BoardState, y     // Load from back
+  sta BoardState, x     // Store at front
+  pla                   // Restore front value
+  sta BoardState, y     // Store at back
+  inx                   // Move front forward
+  dey                   // Move back backward
+  cpx #$20              // Done when X reaches 32 (halfway)
   bne !loop-
-  ldx #$00
-!loop2:
-  lda fliptmp, x
-  sta BoardState, x
-  inx
-  cpx #$40
-  bne !loop2-
-  PopStack()
   rts
 
 /*

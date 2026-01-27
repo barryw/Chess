@@ -211,9 +211,5 @@ ComputeBoard:
 Busy loop while waiting for the VBlank. We want to do most of our work here
 */
 WaitForVblank:
-  pha
-  php
   wfv vic.RASTER:#$80
-  plp
-  pla
   rts

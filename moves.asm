@@ -45,16 +45,13 @@ ValidateFrom:
 
   jmp !exit+
 !emptysquare:
-  CopyMemory(NoPieceStart, ScreenAddress(ErrorPos), NoPieceEnd - NoPieceStart)
-  FillMemory(ColorAddress(ErrorPos), NoPieceEnd - NoPieceStart, WHITE)
+  PrintAt(NoPieceText, ErrorPos, WHITE)
   jmp !clearinput+
 !notyours:
-  CopyMemory(NotYourPieceStart, ScreenAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart)
-  FillMemory(ColorAddress(ErrorPos), NotYourPieceEnd - NotYourPieceStart, WHITE)
+  PrintAt(NotYourPieceText, ErrorPos, WHITE)
   jmp !clearinput+
 !novalidmoves:
-  CopyMemory(NoMovesStart, ScreenAddress(ErrorPos), NoMovesEnd - NoMovesStart)
-  FillMemory(ColorAddress(ErrorPos), NoMovesEnd - NoMovesStart, WHITE)
+  PrintAt(NoMovesText, ErrorPos, WHITE)
 !clearinput:
   jsr ResetInput
   stb #BIT8:movefromindex
@@ -71,8 +68,7 @@ ValidateTo:
   chk_empty !checkvalid+ // Empty square?
   chk_mine !checkvalid+  // My piece?
 !alreadyyours:
-  CopyMemory(AlreadyYoursStart, ScreenAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart)
-  FillMemory(ColorAddress(ErrorPos), AlreadyYoursEnd - AlreadyYoursStart, WHITE)
+  PrintAt(AlreadyYoursText, ErrorPos, WHITE)
   jsr ResetInput
   stb #BIT8:movetoindex
   jmp !exit+
@@ -80,8 +76,7 @@ ValidateTo:
 !checkvalid:
   jsr ValidateMove      // Are we good?
   bcs !isvalid+         // If the move is good, set the carry flag
-  CopyMemory(InvalidMoveStart, ScreenAddress(ErrorPos), InvalidMoveEnd - InvalidMoveStart)
-  FillMemory(ColorAddress(ErrorPos), InvalidMoveEnd - InvalidMoveStart, WHITE)
+  PrintAt(InvalidMoveText, ErrorPos, WHITE)
   jmp !exit+
 !isvalid:
   sef movetoisvalid

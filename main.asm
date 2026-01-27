@@ -30,7 +30,6 @@ start:
 #import "pseudocommands.asm"
 #import "constants.asm"
 #import "layout.asm"
-#import "math.asm"
 #import "memory.asm"
 #import "functions.asm"
 #import "keyboard.asm"

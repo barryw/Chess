@@ -9,8 +9,7 @@ when the computer is determining its best move.
 */
 ShowThinking:
   FillMemory(ScreenAddress(InteractionLinePos), $0e, $20)
-  CopyMemory(ThinkingStart, ScreenAddress(ThinkingPos), ThinkingEnd - ThinkingStart)
-  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, WHITE)
+  PrintAt(ThinkingText, ThinkingPos, WHITE)
   Enable(spinnerenabled)
   Disable(showcursor)
   rts
@@ -19,7 +18,7 @@ ShowThinking:
 Hide the "Thinking" message when the computer is ready to move
 */
 HideThinking:
-  FillMemory(ColorAddress(ThinkingPos), ThinkingEnd - ThinkingStart, BLACK)
+  FillMemory(ColorAddress(ThinkingPos), $08, BLACK)
   Disable(spinnerenabled)
   rts
 
@@ -52,11 +51,8 @@ Show the status line under the title and copyright. It includes which player is 
 as well as a play clock for that player.
 */
 ShowStatus:
-  CopyMemory(TurnStart, ScreenAddress(TurnPos), TurnEnd - TurnStart)
-  FillMemory(ColorAddress(TurnPos), TurnEnd - TurnStart, WHITE)
-
-  CopyMemory(TimeStart, ScreenAddress(TimePos), TimeEnd - TimeStart)
-  FillMemory(ColorAddress(TimePos), TimeEnd - TimeStart, WHITE)
+  PrintAt(TurnText, TurnPos, WHITE)
+  PrintAt(TimeText, TimePos, WHITE)
 
   FillMemory(ScreenAddress(StatusSepPos), $0e, $77)
   FillMemory(ColorAddress(StatusSepPos), $0e, WHITE)
@@ -67,26 +63,16 @@ ShowStatus:
 Show the portion of the screen that details which pieces have been captured by the current player
 */
 ShowCaptured:
-  CopyMemory(CapturedStart, ScreenAddress(CapturedPos), CapturedEnd - CapturedStart)
-  FillMemory(ColorAddress(CapturedPos), CapturedEnd - CapturedStart, WHITE)
+  PrintAt(CapturedText, CapturedPos, WHITE)
 
   CopyMemory(CapturedUnderlineStart, ScreenAddress(CapturedUnderlinePos), CapturedUnderlineEnd - CapturedUnderlineStart)
   FillMemory(ColorAddress(CapturedUnderlinePos), CapturedUnderlineEnd - CapturedUnderlineStart, WHITE)
 
-  CopyMemory(CapturedPawnStart, ScreenAddress(CapturedPawnPos), CapturedPawnEnd - CapturedPawnStart)
-  FillMemory(ColorAddress(CapturedPawnPos), CapturedPawnEnd - CapturedPawnStart, WHITE)
-
-  CopyMemory(CapturedKnightStart, ScreenAddress(CapturedKnightPos), CapturedKnightEnd - CapturedKnightStart)
-  FillMemory(ColorAddress(CapturedKnightPos), CapturedKnightEnd - CapturedKnightStart, WHITE)
-
-  CopyMemory(CapturedBishopStart, ScreenAddress(CapturedBishopPos), CapturedBishopEnd - CapturedBishopStart)
-  FillMemory(ColorAddress(CapturedBishopPos), CapturedBishopEnd - CapturedBishopStart, WHITE)
-
-  CopyMemory(CapturedRookStart, ScreenAddress(CapturedRookPos), CapturedRookEnd - CapturedRookStart)
-  FillMemory(ColorAddress(CapturedRookPos), CapturedRookEnd - CapturedRookStart, WHITE)
-
-  CopyMemory(CapturedQueenStart, ScreenAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart)
-  FillMemory(ColorAddress(CapturedQueenPos), CapturedQueenEnd - CapturedQueenStart, WHITE)
+  PrintAt(CapturedPawnText, CapturedPawnPos, WHITE)
+  PrintAt(CapturedKnightText, CapturedKnightPos, WHITE)
+  PrintAt(CapturedBishopText, CapturedBishopPos, WHITE)
+  PrintAt(CapturedRookText, CapturedRookPos, WHITE)
+  PrintAt(CapturedQueenText, CapturedQueenPos, WHITE)
 
   rts
 
@@ -105,8 +91,7 @@ ShowKingInCheck:
 
 !continue:
   jne incheckflags, x:#ENABLE:!exit+
-  CopyMemory(KingInCheckStart, ScreenAddress(KingInCheckPos), KingInCheckEnd - KingInCheckStart)
-  FillMemory(ColorAddress(KingInCheckPos), KingInCheckEnd - KingInCheckStart, WHITE)
+  PrintAt(KingInCheckText, KingInCheckPos, WHITE)
 
 !exit:
   rts
@@ -134,14 +119,12 @@ UpdateCurrentPlayer:
   jeq player1color:currentplayer:!playersturn+
 
 !computersturn:
-  CopyMemory(ComputerStart, ScreenAddress(TurnValuePos), ComputerEnd - ComputerStart)
-  FillMemory(ColorAddress(TurnValuePos), ComputerEnd - ComputerStart, WHITE)
+  PrintAt(ComputerText, TurnValuePos, WHITE)
   jsr ShowThinking      // Enable the spinner to show that the computer is thinking
   jmp !return+
 
 !playersturn:
-  CopyMemory(PlayerStart, ScreenAddress(TurnValuePos), PlayerEnd - PlayerStart)
-  FillMemory(ColorAddress(TurnValuePos), PlayerEnd - PlayerStart, WHITE)
+  PrintAt(PlayerText, TurnValuePos, WHITE)
   jsr HideThinking      // If it's the players turn, disable the spinner
 
 !return:
@@ -151,8 +134,7 @@ UpdateCurrentPlayer:
 Display the prompt to allow the player to enter the coordinates of the piece to move.
 */
 DisplayMoveFromPrompt:
-  CopyMemory(MoveFromStart, ScreenAddress(MovePos), MoveFromEnd - MoveFromStart)
-  FillMemory(ColorAddress(MovePos), MoveFromEnd - MoveFromStart, WHITE)
+  PrintAt(MoveFromText, MovePos, WHITE)
 
   SetInputSelection(INPUT_MOVE_FROM)
 
@@ -167,11 +149,13 @@ Display the prompt to allow the player to enter the coordinates of where to move
 selected piece.
 */
 DisplayMoveToPrompt:
-  CopyMemory(MoveToStart, ScreenAddress(MovePos), MoveToEnd - MoveToStart)
-  FillMemory(ColorAddress(MovePos), MoveToEnd - MoveToStart, WHITE)
+  PrintAt(MoveToText, MovePos, WHITE)
 
   SetInputSelection(INPUT_MOVE_TO)
 
   jsr ResetInput
 
+  Enable(showcursor)
+
   rts
+

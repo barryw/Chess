@@ -4,111 +4,98 @@
 *=* "Game"
 
 /*
-Read the keyboard and process the key presses
+Read the keyboard and process the key presses.
+Optimized dispatch using range checks and jump tables.
+Uses RTS trick for 6502-compatible indirect jumps.
 */
 ReadKeyboard:
   jsr Keyboard
   bcc !processkey+
   rts
+
 !processkey:
   sta currentkey
+
+  // Check special keys via X register (Return=2, Delete=1)
   cpx #$02
-  bne !next+
-  jmp HandleReturnKey
-!next:
+  beq !return+
   cpx #$01
-  bne !next+
-  jmp HandleDeleteKey
-!next:
+  beq !delete+
+
+  // Check column keys A-H ($01-$08) - use jump table
   cmp #KEY_A
-  bne !next+
-  jmp HandleAKey
-!next:
-  cmp #KEY_B
-  bne !next+
-  jmp HandleBKey
-!next:
-  cmp #KEY_C
-  bne !next+
-  jmp HandleCKey
-!next:
-  cmp #KEY_D
-  bne !next+
-  jmp HandleDKey
-!next:
-  cmp #KEY_E
-  bne !next+
-  jmp HandleEKey
-!next:
-  cmp #KEY_F
-  bne !next+
-  jmp HandleFKey
-!next:
-  cmp #KEY_G
-  bne !next+
-  jmp HandleGKey
-!next:
-  cmp #KEY_H
-  bne !next+
-  jmp HandleHKey
-!next:
-  cmp #KEY_M
-  bne !next+
-  jmp HandleMKey
-!next:
-  cmp #KEY_N
-  bne !next+
-  jmp HandleNKey
-!next:
-  cmp #KEY_P
-  bne !next+
-  jmp HandlePKey
-!next:
-  cmp #KEY_Q
-  bne !next+
-  jmp HandleQKey
-!next:
-  cmp #KEY_Y
-  bne !next+
-  jmp HandleYKey
-!next:
-  cmp #KEY_Z
-  bne !next+
-  jmp HandleZKey
-!next:
+  bcc !checkother+
+  cmp #KEY_H + 1
+  bcs !checkother+
+  // It's A-H: use indexed jump via RTS trick
+  sec
+  sbc #KEY_A              // Convert to 0-7
+  asl                     // *2 for word table
+  tax
+  lda ColumnKeyTable + 1, x
+  pha
+  lda ColumnKeyTable, x
+  pha
+  rts                     // "Return" to handler address
+
+!checkother:
+  // Check number keys 1-8 ($31-$38) - use jump table
   cmp #KEY_1
-  bne !next+
-  jmp Handle1Key
-!next:
-  cmp #KEY_2
-  bne !next+
-  jmp Handle2Key
-!next:
-  cmp #KEY_3
-  bne !next+
-  jmp Handle3Key
-!next:
-  cmp #KEY_4
-  bne !next+
-  jmp Handle4Key
-!next:
-  cmp #KEY_5
-  bne !next+
-  jmp Handle5Key
-!next:
-  cmp #KEY_6
-  bne !next+
-  jmp Handle6Key
-!next:
-  cmp #KEY_7
-  bne !next+
-  jmp Handle7Key
-!next:
-  cmp #KEY_8
-  bne !next+
-  jmp Handle8Key
-!next:
+  bcc !checkmenu+
+  cmp #KEY_8 + 1
+  bcs !checkmenu+
+  // It's 1-8: use indexed jump via RTS trick
+  sec
+  sbc #KEY_1              // Convert to 0-7
+  asl                     // *2 for word table
+  tax
+  lda NumberKeyTable + 1, x
+  pha
+  lda NumberKeyTable, x
+  pha
+  rts                     // "Return" to handler address
+
+!checkmenu:
+  // Menu keys: M, N, P, Q, Y, Z (not sequential, use compare chain)
+  cmp #KEY_M
+  beq !mkey+
+  cmp #KEY_N
+  beq !nkey+
+  cmp #KEY_P
+  beq !pkey+
+  cmp #KEY_Q
+  beq !qkey+
+  cmp #KEY_Y
+  beq !ykey+
+  cmp #KEY_Z
+  beq !zkey+
   rts
+
+!return:
+  jmp HandleReturnKey
+!delete:
+  jmp HandleDeleteKey
+!mkey:
+  jmp HandleMKey
+!nkey:
+  jmp HandleNKey
+!pkey:
+  jmp HandlePKey
+!qkey:
+  jmp HandleQKey
+!ykey:
+  jmp HandleYKey
+!zkey:
+  jmp HandleZKey
+
+// Jump tables for column and number keys (address - 1 for RTS trick)
+ColumnKeyTable:
+  .word HandleAKey - 1, HandleBKey - 1, HandleCKey - 1, HandleDKey - 1
+  .word HandleEKey - 1, HandleFKey - 1, HandleGKey - 1, HandleHKey - 1
+
+NumberKeyTable:
+  .word Handle1Key - 1, Handle2Key - 1, Handle3Key - 1, Handle4Key - 1
+  .word Handle5Key - 1, Handle6Key - 1, Handle7Key - 1, Handle8Key - 1
 
 /*
 The A key is used to display the About menu or as column select during the game
@@ -256,30 +243,21 @@ HandleZKey:
 The 1 key serves a few purposes: player selection, color selection and row selection during gameplay
 */
 Handle1Key:
-  lda currentmenu
-  cmp #MENU_PLAYER_SELECT
-  beq !playerselect+
-  cmp #MENU_COLOR_SELECT
-  beq !colorselect+
-  cmp #MENU_GAME
-  beq !rowselect+
-  rts
-
-!playerselect:
-  stb #ONE_PLAYER:numplayers
-  jmp LevelSelectMenu
-
-!colorselect:
-  stb #BLACK:player1color
-  jmp StartGame
-
-!rowselect:
-  jmp HandleRowSelection
+  ldx #$00                // X=0: ONE_PLAYER, BLACK, LevelSelectMenu
+  jmp HandleNumberKeyCommon
 
 /*
 The 2 key serves a few purposes: player selection, color selection and row selection during gameplay
 */
 Handle2Key:
+  ldx #$01                // X=1: TWO_PLAYERS, WHITE, ColorSelectMenu
+  // Fall through to HandleNumberKeyCommon
+
+/*
+Common handler for 1/2 keys in menus
+Input: X = 0 for key 1, X = 1 for key 2
+*/
+HandleNumberKeyCommon:
   lda currentmenu
   cmp #MENU_PLAYER_SELECT
   beq !playerselect+
@@ -290,11 +268,16 @@ Handle2Key:
   rts
 
 !playerselect:
-  stb #TWO_PLAYERS:numplayers
-  jmp ColorSelectMenu
+  inx                     // X becomes 1 (ONE_PLAYER) or 2 (TWO_PLAYERS)
+  stx numplayers
+  dex
+  beq !oneplayer+
+  jmp ColorSelectMenu     // 2 players -> color select
+!oneplayer:
+  jmp LevelSelectMenu     // 1 player -> level select
 
 !colorselect:
-  stb #WHITE:player1color
+  stx player1color        // X=0 (BLACK) or X=1 (WHITE)
   jmp StartGame
 
 !rowselect:

@@ -1,111 +1,176 @@
-![](c64chess.gif)
+![C64 Chess in action](c64chess.gif)
 
-         _____                              _                    __ _  _      _____ _
-        / ____|                            | |                  / /| || |    / ____| |
-       | |     ___  _ __ ___  _ __ ___   __| | ___  _ __ ___   / /_| || |_  | |    | |__   ___  ___ ___
-       | |    / _ \| '_ ` _ \| '_ ` _ \ / _` |/ _ \| '__/ _ \ | '_ \__   _| | |    | '_ \ / _ \/ __/ __|
-       | |___| (_) | | | | | | | | | | | (_| | (_) | | |  __/ | (_) | | |   | |____| | | |  __/\__ \__ \
-        \_____\___/|_| |_| |_|_| |_| |_|\__,_|\___/|_|  \___|  \___/  |_|    \_____|_| |_|\___||___/___/
+```
+     _____                              _                    __ _  _      _____ _
+    / ____|                            | |                  / /| || |    / ____| |
+   | |     ___  _ __ ___  _ __ ___   __| | ___  _ __ ___   / /_| || |_  | |    | |__   ___  ___ ___
+   | |    / _ \| '_ ` _ \| '_ ` _ \ / _` |/ _ \| '__/ _ \ | '_ \__   _| | |    | '_ \ / _ \/ __/ __|
+   | |___| (_) | | | | | | | | | | | (_| | (_) | | |  __/ | (_) | | |   | |____| | | |  __/\__ \__ \
+    \_____\___/|_| |_| |_|_| |_| |_|\__,_|\___/|_|  \___|  \___/  |_|    \_____|_| |_|\___||___/___/
+```
 
+> *Because apparently I hate myself and have too much free time.*
 
-#### Introduction
+## What Is This?
 
-This is my stab at an implementation of Chess for the Commodore 64 written in 6510 assembly language.
+A chess game for the Commodore 64, written in 6510 assembly language. Yes, really. In 2026. For a computer from 1982. I'm fine. Everything is fine.
 
-#### LOL! Why?!
+## Why Would Anyone Do This?
 
-I grew up using Commodore computers, starting with the VIC-20 and progressing through the 64, the 128 and finally an Amiga 500. I learned to program on them, first in BASIC and then a bit with 6510 assembly. These machines hold a special place in my heart.
+**Nostalgia is a hell of a drug.** I grew up on Commodore machines - VIC-20, C64, C128, Amiga 500. Learned BASIC, dabbled in assembly, and apparently never fully recovered.
 
-There's also a beauty in the simplicity of this machine that makes it fun and challenging to write for. When you have a machine with 65535 bytes of memory, you have to make them all count. It's not like the slop that gets thrown out on modern machines where you can drag in gigabytes of libraries without worry. On an 8 bit machine, you have to be very creative in how you allocate your memory.
+**The constraint is the point.** Modern development is drowning in dependencies. `npm install` downloads half the internet. Meanwhile, the C64 has 64KB of RAM and makes you fight for every byte. There's something beautifully brutal about that.
 
-Modern tool chains have also gotten to a point where it's much nicer to develop for these older machines. Back when these machines were popular, writing code for them was painful. There were no IDEs, and debugging was tricky. Now, you can edit your code in whatever editor you'd like, and there are tons of cross assemblers and cross compilers which can build your code and launch a C64 emulator like VICE for you. The edit, build, debug cycle is very short and it's easy to see the results of changes.
+**The tooling got good.** Back in the day, writing C64 code meant no IDE, primitive debugging, and a lot of crying. Now we have KickAssembler, VICE emulator, and the edit-build-run cycle takes seconds. It's almost *too* easy. (It's not. I'm lying. Send help.)
 
-#### Why chess?
+## Why Chess?
 
-The gameplay of chess lines up nicely with some of the limitations of the Commodore 64. It features an 8x8 board with mostly static pieces and doesn't require sound.
+Chess is perfect for the C64's limitations:
+- **8x8 board** - fits the 8-bit aesthetic perfectly
+- **Turn-based** - no need for 60fps buttery smoothness
+- **No sound required** - good, because SID programming is its own circle of hell
+- **32 pieces** - wait, that's a problem...
 
-One of the biggest limitations of the 64 is that it only has 8 hardware sprites. For a lot of games, this is enough, but for a chess game this poses a problem. Each side starts with 16 pieces, and so at the start of the game there are 32 pieces on the board - well beyond the 8 sprites the machine has.
+### The Sprite Problem
 
-To get around this, a technique called "sprite multiplexing" is used whereby the 8 sprites can be reused by changing them during a raster interrupt. In this case, each row on the chess board can contain up to 8 sprites and during the raster interrupt for each row, the sprites are moved and changed to represent the pieces on that row. It's pretty complex and challenging and requires precise timing to make it appear as though there are 32 sprites on the screen at once.
+The C64 has **8 hardware sprites**. Chess needs **32 pieces**. Math doesn't math.
 
-#### How do I build it?
+**Solution: Sprite Multiplexing** - a fancy term for "lying to the screen really fast." During raster interrupts, we reuse the same 8 sprites across different rows. The electron beam draws top-to-bottom, so by the time it reaches row 2, we've already repositioned the sprites. It's like a magic trick, except the magician is having a panic attack about cycle timing.
 
-It's all built with KickAssembler, which really is a Kick Ass Assembler! It makes it very easy to build 6502/6510 code and has a nice java-like language built in. You can download your own copy here: http://theweb.dk/KickAssembler/Main.html
+## Quick Start
 
-There's a docker image containing KickAssembler that you can use. You will need to have `Make` and `docker` installed to run this.
+### Prerequisites
+- Docker
+- Make
+- A tolerance for retro computing
+
+### Build
 
 ```bash
 make build
 ```
 
-This will output a file called `C64Chess.d64` that you can load into VICE or your 1541 Ultimate II+.
+Outputs `C64Chess.d64` - a disk image you can load into VICE or a real C64 with a 1541 Ultimate II+.
 
-If you're on a Mac and you have VICE installed in `/Applications/VICE/x64sc.app/` you can run
+### Run (macOS with VICE)
 
 ```bash
 make run
 ```
 
-Which will build the code and run it in VICE.
+Builds and launches in VICE. Requires VICE installed at `/Applications/VICE/x64sc.app/`.
 
-#### How is the code laid out?
+## Project Structure
 
-I've tried to put related things into the same files, but for the most part everything is brought in from `main.asm`. If you're going to make changes, be very careful that things don't overlap! The sprites, custom characters and music cannot move, so you'll need to make sure that everything is located around them.
+| File | What It Does |
+|------|--------------|
+| `main.asm` | Entry point - pulls everything together |
+| `game.asm` | Game flow, keyboard dispatch, player management |
+| `input.asm` | Coordinate input handling (A1-H8) |
+| `display.asm` | Screen updates, prompts, status display |
+| `menus.asm` | Menu system (main, player select, etc.) |
+| `moves.asm` | Move validation and piece movement |
+| `board.asm` | Board state and checkerboard pattern generation |
+| `raster.asm` | Sprite multiplexing via raster interrupts |
+| `sprites.asm` | Sprite rendering during interrupts |
+| `clock.asm` | Play clock (BCD arithmetic - *shudder*) |
+| `routines.asm` | Utility routines |
+| `memory.asm` | Memory operations (copy, fill, board flip) |
+| `keyboard.asm` | Keyboard scanning routine |
+| `constants.asm` | Constants, memory layout, zero page allocations |
+| `storage.asm` | Variable storage |
+| `macros.asm` | KickAssembler macros |
+| `pseudocommands.asm` | Custom pseudo-instructions (`jne`, `stb`, etc.) |
+| `strings.asm` | Text strings |
+| `characters.asm` | Custom character set |
+| `layout.asm` | Screen position calculations |
+| `opening_moves.asm` | Opening book (eventually) |
+| `vic.asm` | VIC-II register definitions |
 
-The chess pieces are rendered with sprites, which have to be multiplexed to get 32 pieces. This is very easy on a game like chess where the pieces are stationary. It's also nice that the chess board is 8x8 which lines up very nicely with limitations on an 8-bit machine like the 64.
+## Key Data Structures
 
-Raster interrupts are heavily used to do the sprite multiplexing. Every 24 scan lines the sprites are re-drawn to show the pieces for that row. The last row also triggers the once-per-frame subroutines (keyboard scan, title colors, music, play clock updates).
+### BoardState (64 bytes)
+The heart of the game. Each byte represents one square:
+- **Bits 0-6**: Sprite pointer (which piece)
+- **Bit 7**: Color (0=black, 1=white)
 
-#### Important memory locations
+Position 0 = top-left (A8), position 63 = bottom-right (H1).
 
-The files `storage.asm` and `board.asm` contain variable storage and important data structures. Here are some of the more important ones:
+### Zero Page ($02-$25)
+Precious zero page real estate, carefully allocated:
+- `$02-$0c`: Memory copy/fill pointers
+- `$0d-$12`: Math operations
+- `$13-$1a`: Display pointers
+- `$1b-$1e`: Temp storage
+- `$1f-$25`: String printing
 
-- BoardState: This is a 64 byte block that contains the piece and color information for every location on the board. When the game starts, the upper left corner of the board is offset 0 and the lower right is offset 63. The lower 7 bits of each byte contains the sprite pointer to the piece data, and the upper bit is the color information (1 = white, 0 = black). This makes it easy to compute which sprite should be displayed during every raster routine.
+The keyboard routine also squats on `$50-$5f`. Don't touch those.
 
-- BoardSprites, BoardColors: These are each 64 byte blocks of memory that split out the sprite pointers and color information for each piece on the board.
+### Sprite Multiplexing Tables
+- `irqypos`: Raster lines to trigger interrupts (4 lines before sprite Y)
+- `spriteypos`: Where sprites actually appear
 
-- Board: 1000 bytes of color information for the screen, including the board.
+## Custom Pseudo-Commands
 
-- moveto, movefrom: These contain the selected coordinates for the movefrom and moveto locations. Each is a 16 bit word containing the column in the first byte and the row in the second byte. These values are used to compute movetoindex and movefromindex.
+KickAssembler lets you create custom instructions. These appear throughout the code:
 
-- movetoindex, movefromindex: These are the computed offsets in BoardState based on the values in moveto and movefrom. These values have a range of 0-63 and are used to select the piece to move as well as its destination.
+| Command | What It Does |
+|---------|--------------|
+| `stb value:address` | Store byte (like `lda`/`sta` combined) |
+| `jne address:value:location` | Jump if not equal |
+| `jeq address:value:location` | Jump if equal |
+| `bfs flag:location` | Branch if flag set (bit 7) |
+| `bfc flag:location` | Branch if flag clear |
+| `sef flag` | Set flag (bit 7) |
+| `clf flag` | Clear flag |
+| `mult8` | Multiply accumulator by 8 |
 
-- counter: The board row that's currently being drawn (0-7). This is used to select values from BoardSprites and BoardColors for the current row so that sprites can be multiplexed and drawn. It's also used to figure out when we've drawn the last row so that we can trigger the calling of our interrupt subroutines.
+## Current Status
 
-- fliptmp: When the board is reeversed to show the current player's view, this 64 byte location is used as a holding area as the memory is reversed.
+**It's playable!** You can:
+- Select pieces (they flash to confirm)
+- Enter moves via coordinates (e.g., E2 to E4)
+- Move pieces around the board
+- Track captured pieces
+- See play time for each player
 
-- irqypos: A lookup table of raster lines where we'd like to trigger raster interrupts. These are triggered 4 lines before where we'd like the sprites to appear to give us time to render them.
+**Not yet implemented:**
+- Move validation (currently you can make illegal moves - honor system!)
+- Check/checkmate detection
+- AI opponent
+- Castling, en passant, pawn promotion
+- Opening book
+- Endgame scenarios
 
-- spriteypos: A lookup table of raster lines where we'd like our sprites to appear. These line up nicely with the board.
+## Known Issues
 
-- spinnerenabled: When the computer is taking its turn, this is enabled to display the "Thinking" indeterminate spinner.
+- The computer "thinks" but doesn't actually do anything yet. It's just vibes.
+- You can absolutely cheat. The game trusts you. Don't betray that trust.
 
-- spinnercurrent: Points to a location in `spinnerstart` to indicate which portion of the spinner is currently being displayed.
+## Technical Highlights
 
-- subseconds: A countdown timer that starts at 60 and gets decremented every frame. When it reaches 0, the seconds for the current player is incremented.
+- **~1000 bytes saved** through recent refactoring (generated checkerboard pattern, in-place board flip, consolidated routines)
+- **Cycle-accurate sprite multiplexing** - 8 rows of sprites, 32 pieces total
+- **BCD arithmetic** for the play clock (because regular math wasn't painful enough)
+- **RTS jump tables** for keyboard dispatch (6502 doesn't have indirect indexed jumps, so we improvise)
 
-- timers: This contains 6 bytes (hours, minutes, seconds) for each player. This is the play clock information for each player and increments when the player is currently playing.
+## Building Your Own C64 Software
 
-- whitecaptured, blackcaptured: Each is a 5 byte block containing counts of each type of captured piece (pawn, knight, rook, bishop, queen) for each player.
+Want to join this particular circle of masochism? Here's what I use:
 
-- screenbuffer, colorbuffer: A temporary area to hold data when the "About" menu is displayed.
+- **[KickAssembler](http://theweb.dk/KickAssembler/)** - Genuinely excellent 6502/6510 assembler
+- **[VICE](https://vice-emu.sourceforge.io/)** - The gold standard C64 emulator
+- **[Spritemate](https://www.spritemate.com/)** - Browser-based sprite editor
+- **[CharPad](https://subchristsoftware.itch.io/charpad-free-edition)** - Character set editor
 
-- showcursor: Whether to display the cursor to allow input.
+## Contributing
 
-- cursorxpos: Input consists of a 2 digit coordinate for movefrom and moveto (row and column), so this location will either be 0 or 1 to show which field is currently being set.
+Found a bug? Want to add something? PRs welcome. Just remember: every byte counts, and I will judge your register usage.
 
-- inputselection: If movefrom is being entered, this will be $00. If moveto is being entered, it will be $80
+## License
 
-- rowlookup: The rows that the player enters starts from 1 at the bottom of the board and increses to 8 at the top. The BoardState memory starts from the top and goes to the bottom. This introduces a bit of a disconnect, so this lookup table allows us to invert the table so that we can more easily compute movefrom and moveto offsets within BoardState.
+Do whatever you want with this. It's a chess game for a 44-year-old computer. I'm not precious about it.
 
-- selectedpiece: When the player has chosen the piece to move, we stash the data from BoardState for that piece here. That way we can flash it between EMPTY_SPR and the actual piece until they've chosen the moveto coordinate.
+---
 
-If you notice weird instructions like `sef`, `jne`, etc, don't worry; these are just pseudocommands: http://theweb.dk/KickAssembler/webhelp/content/ch07s03.html
-
-#### Current status
-
-It's still early days, so the game isn't even close to playable yet. My first goal is to get gameplay working to where players can take turns moving their pieces to any location and upping the captured count when pieces are captured. Once that's working reliably, I'll add in the logic to validate whether a move is legal before making it.
-
-Lastly I'm going to add in some "AI" to allow humans to play the computer.
-
-A stretch goal is to include pre-defined scenarios where play starts deep into a game and it's up to the player to win in X number of moves. This may prove difficult on a machine with 64k.
+*"640K ought to be enough for anybody."* - Not Bill Gates, but whoever said it clearly never tried sprite multiplexing.

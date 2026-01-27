@@ -16,8 +16,7 @@ ShowGameMenu:
   jsr CheckKingInCheck
   jsr ShowKingInCheck
 
-  CopyMemory(ForfeitStart, ScreenAddress(ForfeitPos), ForfeitEnd - ForfeitStart)
-  FillMemory(ColorAddress(ForfeitPos), ForfeitEnd - ForfeitStart, WHITE)
+  PrintAt(ForfeitText, ForfeitPos, WHITE)
 
   rts
 
@@ -43,16 +42,13 @@ StartMenu:
   SetMenu(MENU_MAIN)
 
   // Display the Play Game menu option
-  CopyMemory(PlayStart, ScreenAddress(PlayGamePos), PlayEnd - PlayStart)
-  FillMemory(ColorAddress(PlayGamePos), PlayEnd - PlayStart, WHITE)
+  PrintAt(PlayText, PlayGamePos, WHITE)
 
   // Display the About menu option
-  CopyMemory(AboutStart, ScreenAddress(AboutPos), AboutEnd - AboutStart)
-  FillMemory(ColorAddress(AboutPos), AboutEnd - AboutStart, WHITE)
+  PrintAt(AboutMenuText, AboutPos, WHITE)
 
   // Display the Quit Game menu option
-  CopyMemory(QuitStart, ScreenAddress(QuitGamePos), QuitEnd - QuitStart)
-  FillMemory(ColorAddress(QuitGamePos), QuitEnd - QuitStart, WHITE)
+  PrintAt(QuitText, QuitGamePos, WHITE)
 
   rts
 
@@ -63,8 +59,7 @@ ForfeitMenu:
   jsr ClearMenus
   SetMenu(MENU_FORFEIT)
 
-  CopyMemory(ForfeitConfirmationStart, ScreenAddress(ForfeitConfirmPos), ForfeitConfirmationEnd - ForfeitConfirmationEnd)
-  FillMemory(ColorAddress(ForfeitConfirmPos), ForfeitConfirmationEnd - ForfeitConfirmationStart, WHITE)
+  PrintAt(ForfeitConfirmText, ForfeitConfirmPos, WHITE)
 
   jmp ShowYesNoOptions
 
@@ -76,19 +71,16 @@ QuitMenu:
   SetMenu(MENU_QUIT)
 
   // Display Quit message
-  CopyMemory(QuitConfirmationStart, ScreenAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart)
-  FillMemory(ColorAddress(QuitConfirmPos), QuitConfirmationEnd - QuitConfirmationStart, WHITE)
+  PrintAt(QuitConfirmText, QuitConfirmPos, WHITE)
 
   jmp ShowYesNoOptions
 
 ShowYesNoOptions:
   // Yes option
-  CopyMemory(YesStart, ScreenAddress(YesPos), YesEnd - YesStart)
-  FillMemory(ColorAddress(YesPos), YesEnd - YesStart, WHITE)
+  PrintAt(YesText, YesPos, WHITE)
 
   // No option
-  CopyMemory(NoStart, ScreenAddress(NoPos), NoEnd - NoStart)
-  FillMemory(ColorAddress(NoPos), NoEnd - NoStart, WHITE)
+  PrintAt(NoText, NoPos, WHITE)
 
   rts
 
@@ -97,16 +89,13 @@ PlayerSelectMenu:
   SetMenu(MENU_PLAYER_SELECT)
 
   // Display the Player Selection message
-  CopyMemory(PlayerSelectStart, ScreenAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart)
-  FillMemory(ColorAddress(PlayerSelectPos), PlayerSelectEnd - PlayerSelectStart, WHITE)
+  PrintAt(PlayerSelectText, PlayerSelectPos, WHITE)
 
   // 1 player option
-  CopyMemory(OnePlayerStart, ScreenAddress(OnePlayerPos), OnePlayerEnd - OnePlayerStart)
-  FillMemory(ColorAddress(OnePlayerPos), OnePlayerEnd - OnePlayerStart, WHITE)
+  PrintAt(OnePlayerText, OnePlayerPos, WHITE)
 
   // 2 player option
-  CopyMemory(TwoPlayerStart, ScreenAddress(TwoPlayerPos), TwoPlayerEnd - TwoPlayerStart)
-  FillMemory(ColorAddress(TwoPlayerPos), TwoPlayerEnd - TwoPlayerStart, WHITE)
+  PrintAt(TwoPlayerText, TwoPlayerPos, WHITE)
 
   jmp ShowBackMenuItem
 
@@ -117,20 +106,16 @@ LevelSelectMenu:
   jsr ClearMenus
   SetMenu(MENU_LEVEL_SELECT)
 
-  CopyMemory(LevelSelectStart, ScreenAddress(LevelSelectPos), LevelSelectEnd - LevelSelectStart)
-  FillMemory(ColorAddress(LevelSelectPos), LevelSelectEnd - LevelSelectStart, WHITE)
+  PrintAt(LevelSelectText, LevelSelectPos, WHITE)
 
   // Easy menu option
-  CopyMemory(LevelEasyStart, ScreenAddress(EasyPos), LevelEasyEnd - LevelEasyStart)
-  FillMemory(ColorAddress(EasyPos), LevelEasyEnd - LevelEasyStart, WHITE)
+  PrintAt(LevelEasyText, EasyPos, WHITE)
 
   // Medium menu option
-  CopyMemory(LevelMediumStart, ScreenAddress(MediumPos), LevelMediumEnd - LevelMediumStart)
-  FillMemory(ColorAddress(MediumPos), LevelMediumEnd - LevelMediumStart, WHITE)
+  PrintAt(LevelMediumText, MediumPos, WHITE)
 
   // Hard menu option
-  CopyMemory(LevelHardStart, ScreenAddress(HardPos), LevelHardEnd - LevelHardStart)
-  FillMemory(ColorAddress(HardPos), LevelHardEnd - LevelHardStart, WHITE)
+  PrintAt(LevelHardText, HardPos, WHITE)
 
   jmp ShowBackMenuItem
 
@@ -142,16 +127,13 @@ ColorSelectMenu:
   SetMenu(MENU_COLOR_SELECT)
 
   // Color select message
-  CopyMemory(Player1ColorStart, ScreenAddress(ColorSelectPos), Player1ColorEnd - Player1ColorStart)
-  FillMemory(ColorAddress(ColorSelectPos), Player1ColorEnd - Player1ColorStart, WHITE)
+  PrintAt(Player1ColorText, ColorSelectPos, WHITE)
 
   // Black menu item
-  CopyMemory(BlackMenuStart, ScreenAddress(BlackPos), BlackMenuEnd - BlackMenuStart)
-  FillMemory(ColorAddress(BlackPos), BlackMenuEnd - BlackMenuStart, WHITE)
+  PrintAt(BlackMenuText, BlackPos, WHITE)
 
   // White menu item
-  CopyMemory(WhiteMenuStart, ScreenAddress(WhitePos), WhiteMenuEnd - WhiteMenuStart)
-  FillMemory(ColorAddress(WhitePos), WhiteMenuEnd - WhiteMenuStart, WHITE)
+  PrintAt(WhiteMenuText, WhitePos, WHITE)
 
   jmp ShowBackMenuItem
 
@@ -159,8 +141,7 @@ ColorSelectMenu:
 Display the menu item to allow navigating backwards
 */
 ShowBackMenuItem:
-  CopyMemory(BackMenuStart, ScreenAddress(BackMenuPos), BackMenuEnd - BackMenuStart)
-  FillMemory(ColorAddress(BackMenuPos), BackMenuEnd - BackMenuStart, WHITE)
+  PrintAt(BackMenuText, BackMenuPos, WHITE)
 
   rts
 
@@ -190,3 +171,4 @@ HideAboutMenu:
   SetMenu(MENU_MAIN)
 
   rts
+

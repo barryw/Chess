@@ -165,38 +165,38 @@ values stored in BoardState
 .const LOWER7 = $7f
 
 //
-// Zero Page Allocations
+// Zero Page Allocations ($02-$25, 36 bytes)
+// Note: $00-$01 = CPU port, $50-$5f = keyboard routine
 //
 
-// Addresses used for memcopy operations
-.const copy_from  = $02
-.const copy_to    = $04
-.const copy_size  = $06
+// Memory copy/fill operations
+.const copy_from  = $02   // 2 bytes: source pointer
+.const copy_to    = $04   // 2 bytes: destination pointer
+.const copy_size  = $06   // 2 bytes: byte count
+.const fill_to    = $08   // 2 bytes: destination pointer
+.const fill_size  = $0a   // 2 bytes: byte count
+.const fill_value = $0c   // 1 byte: fill value
 
-// Addresses used for memfill operations
-.const fill_to    = $08
-.const fill_size  = $0a
-.const fill_value = $0c
+// Math operations
+.const num1   = $0d       // 2 bytes: operand 1
+.const num2   = $0f       // 2 bytes: operand 2
+.const result = $11       // 2 bytes: result
 
-// Addresses used for math operations
-.const num1   = $0d
-.const num2   = $0f
-.const result = $11
+// Display pointers
+.const printvector = $13          // 2 bytes: print output location
+.const capturedvector = $15       // 2 bytes: captured pieces storage
+.const inputlocationvector = $17  // 2 bytes: user input screen location
+.const printclockvector = $19     // 2 bytes: clock display location
 
-// A 16 bit vector to the next location to print to
-.const printvector = $13
+// General purpose temp storage
+.const temp1 = $1b        // 2 bytes
+.const temp2 = $1d        // 2 bytes
 
-// A 16 bit vector to the start of the location of
-// storage that tracks captured pieces
-.const capturedvector = $15
-
-// Pointer to screen location of user input
-.const inputlocationvector = $17
-
-.const printclockvector = $19
-
-.const temp1 = $1b
-.const temp2 = $1d
+// String printing (PrintString/PrintAt)
+.const str_ptr = $1f      // 2 bytes: pointer to null-terminated string
+.const scr_ptr = $21      // 2 bytes: pointer to screen memory
+.const col_ptr = $23      // 2 bytes: pointer to color memory
+.const print_color = $25  // 1 byte: text color
 
 //
 // Keyboard Constants

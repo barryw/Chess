@@ -1,8 +1,13 @@
 *=* "String Storage"
 
 /*
-This file stores all of the strings in the game
+This file stores all of the strings in the game.
+
+Most strings are null-terminated for use with PrintAt/PrintString.
+Special cases (multi-color, fills) use the old Start/End pattern.
 */
+
+// === SPECIAL CASES: Keep old format (per-character colors or fills) ===
 
 TitleRow1Start:
   .byte $eb, $ed, $fb, $fd, $20, $f9, $f3, $f5, $f7, $f7
@@ -24,172 +29,13 @@ CopyrightStart:
   .byte $dd, $de, $df, $e4, $e1, $db, $e2, $e3, $ea, $e5, $e6, $e7, $e8, $e9
 CopyrightEnd:
 
-PlayStart:
-  .text "[P]lay Game"
-PlayEnd:
-
-AboutStart:
-  .text "[A]bout"
-AboutEnd:
-
-QuitStart:
-  .text "[Q]uit Game"
-QuitEnd:
-
-YesStart:
-  .text "[Y]es"
-YesEnd:
-
-NoStart:
-  .text "[N]o"
-NoEnd:
-
-ForfeitStart:
-  .text "[Z] Forfeit"
-ForfeitEnd:
-
-QuitConfirmationStart:
-  .text "Quit?"
-QuitConfirmationEnd:
-
-ForfeitConfirmationStart:
-  .text "Forfeit?"
-ForfeitConfirmationEnd:
-
-PlayerSelectStart:
-  .text "Player Count"
-PlayerSelectEnd:
-
-LevelSelectStart:
-  .text "Level Select"
-LevelSelectEnd:
-
-Player1ColorStart:
-  .text "Player 1 Color"
-Player1ColorEnd:
-
 EmptyRowStart:
   .fill $0e, $20
 EmptyRowEnd:
 
-PlayerStart:
-  .text "Player"
-PlayerEnd:
-
-ComputerStart:
-  .text "Computer"
-ComputerEnd:
-
-OnePlayerStart:
-  .text "[1] Player"
-OnePlayerEnd:
-
-TwoPlayerStart:
-  .text "[2] Players"
-TwoPlayerEnd:
-
-BackMenuStart:
-  .text "[B] Back"
-BackMenuEnd:
-
-LevelEasyStart:
-  .text "[E] Easy"
-LevelEasyEnd:
-
-LevelMediumStart:
-  .text "[M] Medium"
-LevelMediumEnd:
-
-LevelHardStart:
-  .text "[H] Hard"
-LevelHardEnd:
-
-BlackMenuStart:
-  .text "[1] Black"
-BlackMenuEnd:
-
-WhiteMenuStart:
-  .text "[2] White"
-WhiteMenuEnd:
-
-TurnStart:
-  .text "Turn :"
-TurnEnd:
-
-TimeStart:
-  .text "Time :"
-TimeEnd:
-
-ThinkingStart:
-  .text "Thinking"
-ThinkingEnd:
-
-MoveFromStart:
-  .text "Move From :   "
-MoveFromEnd:
-
-MoveToStart:
-  .text "Move To   :   "
-MoveToEnd:
-
-NoPieceStart:
-  .text "No piece there"
-NoPieceEnd:
-
-NotYourPieceStart:
-  .text "Not your piece"
-NotYourPieceEnd:
-
-AlreadyYoursStart:
-  .text "Already yours "
-AlreadyYoursEnd:
-
-InvalidMoveStart:
-  .text " Invalid Move "
-InvalidMoveEnd:
-
-NoMovesStart:
-  .text "No Valid Moves"
-NoMovesEnd:
-
-CheckStart:
-  .text "Check!"
-CheckEnd:
-
-MateStart:
-  .text "Mate!"
-MateEnd:
-
-CapturedStart:
-  .text "Captured"
-CapturedEnd:
 CapturedUnderlineStart:
-  .fill CapturedEnd - CapturedStart, $77
+  .fill $08, $77
 CapturedUnderlineEnd:
-
-CapturedPawnStart:
-  .text @"\$1e Pawns   X   "
-CapturedPawnEnd:
-
-CapturedKnightStart:
-  .text @"\$25 Knights X   "
-CapturedKnightEnd:
-
-CapturedBishopStart:
-  .text @"\$23 Bishops X   "
-CapturedBishopEnd:
-
-CapturedRookStart:
-  .text @"\$1f Rooks   X   "
-CapturedRookEnd:
-
-CapturedQueenStart:
-  .text @"\$22 Queens  X   "
-CapturedQueenEnd:
-
-KingInCheckStart:
-  .text "King in check"
-KingInCheckEnd:
 
 AboutTextStart:
   .byte $e0, $e0, $e0, $e0, $70
@@ -279,3 +125,170 @@ AboutTextColorEnd:
 spinnerstart:
   .byte $7c, $6c, $7b, $7e
 spinnerend:
+
+// === NULL-TERMINATED STRINGS for PrintAt ===
+
+PlayText:
+  .text "[P]lay Game"
+  .byte $00
+
+AboutMenuText:
+  .text "[A]bout"
+  .byte $00
+
+QuitText:
+  .text "[Q]uit Game"
+  .byte $00
+
+YesText:
+  .text "[Y]es"
+  .byte $00
+
+NoText:
+  .text "[N]o"
+  .byte $00
+
+ForfeitText:
+  .text "[Z] Forfeit"
+  .byte $00
+
+QuitConfirmText:
+  .text "Quit?"
+  .byte $00
+
+ForfeitConfirmText:
+  .text "Forfeit?"
+  .byte $00
+
+PlayerSelectText:
+  .text "Player Count"
+  .byte $00
+
+LevelSelectText:
+  .text "Level Select"
+  .byte $00
+
+Player1ColorText:
+  .text "Player 1 Color"
+  .byte $00
+
+PlayerText:
+  .text "Player"
+  .byte $00
+
+ComputerText:
+  .text "Computer"
+  .byte $00
+
+OnePlayerText:
+  .text "[1] Player"
+  .byte $00
+
+TwoPlayerText:
+  .text "[2] Players"
+  .byte $00
+
+ZeroPlayerText:
+  .text "[0] Computer"
+  .byte $00
+
+BackMenuText:
+  .text "[B] Back"
+  .byte $00
+
+LevelEasyText:
+  .text "[E] Easy"
+  .byte $00
+
+LevelMediumText:
+  .text "[M] Medium"
+  .byte $00
+
+LevelHardText:
+  .text "[H] Hard"
+  .byte $00
+
+BlackMenuText:
+  .text "[1] Black"
+  .byte $00
+
+WhiteMenuText:
+  .text "[2] White"
+  .byte $00
+
+TurnText:
+  .text "Turn :"
+  .byte $00
+
+TimeText:
+  .text "Time :"
+  .byte $00
+
+ThinkingText:
+  .text "Thinking"
+  .byte $00
+
+MoveFromText:
+  .text "Move From :   "
+  .byte $00
+
+MoveToText:
+  .text "Move To   :   "
+  .byte $00
+
+NoPieceText:
+  .text "No piece there"
+  .byte $00
+
+NotYourPieceText:
+  .text "Not your piece"
+  .byte $00
+
+AlreadyYoursText:
+  .text "Already yours "
+  .byte $00
+
+InvalidMoveText:
+  .text " Invalid Move "
+  .byte $00
+
+NoMovesText:
+  .text "No Valid Moves"
+  .byte $00
+
+CheckText:
+  .text "Check!"
+  .byte $00
+
+MateText:
+  .text "Mate!"
+  .byte $00
+
+CapturedText:
+  .text "Captured"
+  .byte $00
+
+CapturedPawnText:
+  .text @"\$1e Pawns   X   "
+  .byte $00
+
+CapturedKnightText:
+  .text @"\$25 Knights X   "
+  .byte $00
+
+CapturedBishopText:
+  .text @"\$23 Bishops X   "
+  .byte $00
+
+CapturedRookText:
+  .text @"\$1f Rooks   X   "
+  .byte $00
+
+CapturedQueenText:
+  .text @"\$22 Queens  X   "
+  .byte $00
+
+KingInCheckText:
+  .text "King in check"
+  .byte $00
+
