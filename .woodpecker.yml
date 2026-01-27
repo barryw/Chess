@@ -41,7 +41,7 @@ steps:
           echo "$NEW_VERSION" > .new_version
           # Generate changelog for release notes (unreleased commits since last tag)
           echo "Generating changelog..."
-          cog changelog > .changelog 2>/dev/null || echo "Release $NEW_VERSION" > .changelog
+          cog changelog 2>/dev/null | sed "s/^## Unreleased/## $NEW_VERSION/" > .changelog || echo "Release $NEW_VERSION" > .changelog
           cat .changelog
         else
           echo "No version bump needed"
