@@ -827,8 +827,8 @@ suites {
 
       jsr([PrintString], stop_on_rts = true, fail_on_brk = true)
 
-      ; First byte should be 'v' ($76)
-      assert([VersionText] == $76, "First byte should be 'v'")
+      ; First byte should be 'v' ($16 screen code)
+      assert([VersionText] == $16, "First byte should be 'v'")
 
       ; Third byte should be '.' ($2e)
       assert([VersionText] + $02 == $2e, "Third byte should be '.'")
