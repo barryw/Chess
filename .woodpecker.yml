@@ -70,12 +70,7 @@ steps:
         echo "Generating changelog..."
         CHANGELOG=$(cog changelog --at "$NEW_VERSION" 2>/dev/null || echo "Release $NEW_VERSION")
 
-        echo "Creating release via API..."
-        # Extract repo info from CI environment
-        REPO_URL="${CI_REPO_LINK}"
-        API_BASE=$(echo "$REPO_URL" | sed 's|/[^/]*/[^/]*$||')/api/v1
-
-        # Create release with artifacts
+        echo "Creating release via GitHub API..."
         RELEASE_BODY=$(cat <<EOF
         ## C64 Chess $NEW_VERSION
 
@@ -90,32 +85,33 @@ steps:
         EOF
         )
 
-        # Create the release
+        # Create the release on GitHub
         RELEASE_RESPONSE=$(curl -s -X POST \
-          -H "Authorization: token $GITEA_TOKEN" \
-          -H "Content-Type: application/json" \
-          "$API_BASE/repos/${CI_REPO}/releases" \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${CI_REPO}/releases" \
           -d "{\"tag_name\": \"$NEW_VERSION\", \"name\": \"C64 Chess $NEW_VERSION\", \"body\": $(echo "$RELEASE_BODY" | jq -Rs .)}")
 
         RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
+        UPLOAD_URL=$(echo "$RELEASE_RESPONSE" | jq -r '.upload_url' | sed 's/{?name,label}//')
         echo "Created release ID: $RELEASE_ID"
 
-        # Upload artifacts
+        # Upload artifacts to GitHub
         for FILE in C64Chess.d64 main.prg; do
           if [ -f "$FILE" ]; then
             echo "Uploading $FILE..."
             curl -s -X POST \
-              -H "Authorization: token $GITEA_TOKEN" \
+              -H "Authorization: token $GITHUB_TOKEN" \
               -H "Content-Type: application/octet-stream" \
-              "$API_BASE/repos/${CI_REPO}/releases/$RELEASE_ID/assets?name=$FILE" \
+              "${UPLOAD_URL}?name=$FILE" \
               --data-binary "@$FILE"
           fi
         done
 
         echo "Release $NEW_VERSION created successfully!"
     environment:
-      GITEA_TOKEN:
-        from_secret: gitea_token
+      GITHUB_TOKEN:
+        from_secret: github_token
     when:
       - event: push
         branch: master
