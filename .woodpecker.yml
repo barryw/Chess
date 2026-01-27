@@ -114,5 +114,5 @@ steps:
         from_secret: github_token
     when:
       - event: push
-        branch: master
+        branch: main
     depends_on: [test-move-validation, test-comprehensive]
