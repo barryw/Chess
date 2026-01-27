@@ -36,16 +36,14 @@ steps:
         git config --global user.name "Woodpecker CI"
         git config --global --add safe.directory /woodpecker/src
         # Try to bump - if no bumpable commits, it will exit gracefully
-        if cog bump --auto --dry-run 2>/dev/null; then
-          echo "Version bump detected, running update script..."
-          NEW_VERSION=$(cog bump --auto --dry-run 2>&1 | grep -oP '(?<=Bumping to )\d+\.\d+\.\d+' || echo "")
-          if [ -n "$NEW_VERSION" ]; then
-            echo "New version will be: $NEW_VERSION"
-            chmod +x scripts/update-version.sh
-            ./scripts/update-version.sh "$NEW_VERSION"
-            echo "version.asm updated:"
-            cat version.asm
-          fi
+        # cog bump --auto --dry-run outputs just the version number (e.g., "0.1.1")
+        NEW_VERSION=$(cog bump --auto --dry-run 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+        if [ -n "$NEW_VERSION" ]; then
+          echo "Version bump needed: $NEW_VERSION"
+          chmod +x scripts/update-version.sh
+          ./scripts/update-version.sh "$NEW_VERSION"
+          echo "version.asm updated:"
+          cat version.asm
         else
           echo "No version bump needed"
         fi
