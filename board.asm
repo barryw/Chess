@@ -3,33 +3,53 @@
 *=* "Board Storage"
 /*
 
-Keeps track of the complete state of the board throughout play. It starts in this initial configuration.
+0x88 Board Representation - THE SINGLE SOURCE OF TRUTH
 
-During the raster interrupts, the board is constantly redrawn using multiplexed sprites. This allows us
-to show up to 32 sprites at once.
+Index = row * 16 + col, where:
+- Valid squares: (index & $88) == 0 (columns 0-7 of each row)
+- Invalid/off-board: (index & $88) != 0 (columns 8-15, used for bounds checking)
+
+This layout enables 2-cycle off-board detection: AND #$88 / BNE offboard
+
+Row layout (128 bytes total):
+  Row 0 (rank 8): $00-$07 valid, $08-$0F invalid
+  Row 1 (rank 7): $10-$17 valid, $18-$1F invalid
+  ...
+  Row 7 (rank 1): $70-$77 valid, $78-$7F invalid
 
 */
-BoardState:
+Board88:
+  // Row 0 ($00-$0F): Black back rank + invalid padding
   .byte BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_QUEEN, BLACK_KING, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK
+  .fill 8, EMPTY_PIECE    // Invalid columns $08-$0F
+
+  // Row 1 ($10-$1F): Black pawns + invalid padding
   .byte BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN
-  .byte EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE
-  .byte EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE
-  .byte EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE
-  .byte EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE
+  .fill 8, EMPTY_PIECE    // Invalid columns $18-$1F
+
+  // Row 2 ($20-$2F): Empty + invalid padding
+  .fill 8, EMPTY_PIECE
+  .fill 8, EMPTY_PIECE
+
+  // Row 3 ($30-$3F): Empty + invalid padding
+  .fill 8, EMPTY_PIECE
+  .fill 8, EMPTY_PIECE
+
+  // Row 4 ($40-$4F): Empty + invalid padding
+  .fill 8, EMPTY_PIECE
+  .fill 8, EMPTY_PIECE
+
+  // Row 5 ($50-$5F): Empty + invalid padding
+  .fill 8, EMPTY_PIECE
+  .fill 8, EMPTY_PIECE
+
+  // Row 6 ($60-$6F): White pawns + invalid padding
   .byte WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN
+  .fill 8, EMPTY_PIECE    // Invalid columns $68-$6F
+
+  // Row 7 ($70-$7F): White back rank + invalid padding
   .byte WHITE_ROOK, WHITE_KNIGHT, WHITE_BISHOP, WHITE_QUEEN, WHITE_KING, WHITE_BISHOP, WHITE_KNIGHT, WHITE_ROOK
-
-/*
-Matrix of sprite pointers to match the state above
-*/
-BoardSprites:
-  .fill $40, $00
-
-/*
-Matrix of sprite colors to match the state above
-*/
-BoardColors:
-  .fill $40, $00
+  .fill 8, EMPTY_PIECE    // Invalid columns $78-$7F
 
 // Shows the columns along the bottom of the board
 Columns:

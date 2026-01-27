@@ -55,23 +55,47 @@ CopyMemory:
   rts
 
 /*
-Flip the board in place - swaps positions 0-31 with 63-32.
-No temporary buffer needed, just uses the stack for one byte.
+Flip the board in place for 0x88 layout.
+Swaps row 0 ($00-$07) with row 7 ($70-$77), row 1 with row 6, etc.
+Each row is 16 bytes apart in 0x88 indexing.
+NOTE: Uses temp1, temp2 for row indices - does NOT touch 'counter' (used by raster IRQ)
 */
 FlipBoard:
-  ldx #$00              // Front index (0-31)
-  ldy #$3f              // Back index (63-32)
-!loop:
-  lda BoardState, x     // Load from front
+  ldx #$00              // Top row base ($00)
+  ldy #$70              // Bottom row base ($70)
+
+!rowloop:
+  // Save row base indices
+  stx temp1
+  sty temp1 + $01
+
+  // Swap 8 valid squares in this row pair
+  lda #$08
+  sta temp2             // Use temp2 as column counter (NOT counter!)
+
+!colloop:
+  lda Board88, x        // Load from top row
   pha                   // Save on stack
-  lda BoardState, y     // Load from back
-  sta BoardState, x     // Store at front
-  pla                   // Restore front value
-  sta BoardState, y     // Store at back
-  inx                   // Move front forward
-  dey                   // Move back backward
-  cpx #$20              // Done when X reaches 32 (halfway)
-  bne !loop-
+  lda Board88, y        // Load from bottom row
+  sta Board88, x        // Store at top
+  pla                   // Restore top value
+  sta Board88, y        // Store at bottom
+  inx                   // Next column
+  iny
+  dec temp2
+  bne !colloop-
+
+  // Move to next row pair (top row +16, bottom row -16)
+  lda temp1
+  clc
+  adc #ROW_STRIDE       // Next row down (+16)
+  tax
+  lda temp1 + $01
+  sec
+  sbc #ROW_STRIDE       // Next row up (-16)
+  tay
+  cpx #$40              // Done when rows meet at middle (row 4)
+  bne !rowloop-
   rts
 
 /*
@@ -80,7 +104,7 @@ Enable the flashing of the selected piece
 FlashPieceOn:
   bfs movefromindex:!exit+
   ldx movefromindex
-  stb BoardState, x:selectedpiece
+  stb Board88, x:selectedpiece
   sef flashpiece        // Turn flashing on
 !exit:
   rts
@@ -90,7 +114,7 @@ Disable the flashing of a selected piece
 */
 FlashPieceOff:
   clf flashpiece        // Turn flashing off
-  ldx movefromindex     // Stick it back in BoardState
-  stb selectedpiece:BoardState, x
+  ldx movefromindex     // Stick it back in Board88
+  stb selectedpiece:Board88, x
 !exit:
   rts

@@ -187,7 +187,7 @@ Output: A = board index, stored in corresponding index variable
 */
 ComputeBoardOffset:
   lda movefrom + $01, x   // Get row (movefrom+1 or moveto+1)
-  mult8                   // row * 8
+  mult16                  // row * 16 (0x88 indexing)
   clc
   adc movefrom, x         // + column
   cpx #$00

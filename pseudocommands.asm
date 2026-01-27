@@ -79,6 +79,14 @@ syntax very much resembles standard 6502 instructions.
   asl
 }
 
+/* MULT16: multiply the accumulator by 16 (for 0x88 board indexing) */
+.pseudocommand mult16 {
+  asl
+  asl
+  asl
+  asl
+}
+
 /* CHK_MINE: check if the piece in the accumulator is mine */
 /* and branch to 'if_not' if it isn't */
 .pseudocommand chk_mine if_not {
@@ -88,10 +96,10 @@ syntax very much resembles standard 6502 instructions.
 }
 
 /* CHK_EMPTY: check if a square is empty and branch if it is */
-/* .x should be loaded with the index offset for a movefrom */
+/* .x should be loaded with the 0x88 index offset for a movefrom */
 /* or a moveto location */
 .pseudocommand chk_empty branch {
-  jeq BoardState, x:#EMPTY_SPR:branch
+  jeq Board88, x:#EMPTY_SPR:branch
 }
 
 /* PCOL: get the color for the piece stored in .a */

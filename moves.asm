@@ -7,7 +7,7 @@ Carry Set = 1 or more valid moves
 */
 HasValidMoves:
   ldx movefromindex
-  lda BoardState, x
+  lda Board88, x
 
   sec
 
@@ -126,9 +126,25 @@ MovePiece:
   inc blackcaptured, x
 !movepiece:
   ldx movetoindex       // Move it to the moveto location
-  stb selectedpiece:BoardState, x
+  stb selectedpiece:Board88, x
   ldx movefromindex     // Empty the movefrom location
-  stb #EMPTY_SPR:BoardState, x
+  stb #EMPTY_SPR:Board88, x
+
+  // Update king position if a king was moved
+  lda selectedpiece
+  and #LOWER7           // Strip color to get piece type
+  cmp #KING_SPR         // Was it a king?
+  bne !notking+
+  ldx movetoindex       // Get destination square
+  lda currentplayer
+  beq !updateblackking+
+  stx whitekingsq
+  jmp !notking+
+!updateblackking:
+  stx blackkingsq
+!notking:
+  // Clear en passant square (set per-move in pawn handling later)
+  stb #NO_EN_PASSANT:enpassantsq
 !exit:
   rts
 

@@ -45,12 +45,16 @@ irq:
   sta vic.SP7Y
 
   txa
-  mult8                 // We multiply the row counter by 8 to get the correct
-  tax                   // location in BoardSprites and BoardColors
+  mult16                // We multiply the row counter by 16 to get the 0x88 index
+  tax                   // X = offset into Board88 for this row
   ldy #$00
 !updatesprites:
-  stb BoardSprites, x:SPRPTR, y
-  stb BoardColors, x:vic.SP0COL, y
+  lda Board88, x        // Load piece+color directly from Board88
+  and #LOWER7           // Strip color bit for sprite pointer
+  sta SPRPTR, y         // Write sprite pointer to VIC
+  lda Board88, x        // Load again (faster than temp storage)
+  pcol                  // Extract color (0=black, 1=white)
+  sta vic.SP0COL, y     // Write sprite color to VIC
   inx
   iny
   cpy #NUM_COLS
@@ -79,7 +83,6 @@ irq:
 These get called once per frame at the end of the frame
 */
 RunServiceRoutines:
-  jsr ComputeBoard      // Recompute and draw the board
   jsr ColorCycleTitle   // Color cycle the title and make it look pretty
   jsr UpdateClock       // Update the play clock for whichever player is playing
   jsr ShowClock         // Display the play clock
@@ -100,10 +103,10 @@ FlashPiece:
   ldx movefromindex
   chk_empty !showpiece+
 !showempty:             // Flash OFF
-  stb #EMPTY_SPR:BoardState, x
+  stb #EMPTY_SPR:Board88, x
   jmp !exit+
 !showpiece:             // Flash ON
-  stb selectedpiece:BoardState, x
+  stb selectedpiece:Board88, x
 !exit:
   rts
 
@@ -174,37 +177,6 @@ ColorCycleTitle:
   ldy #$00
   jmp !paint-
 !return:
-  rts
-
-/*
-
-This will compute the entire board based on the internal representation of it in 'BoardState'. This gets called once per frame on
-the last interrupt of the screen.
-
-BoardState contains an 8x8 grid of pieces stored as a contiguous 64 bytes. Each byte represents a single square on the board and it
-contains the sprite pointer in the lower 7 bits and the color in the high bit.
-
-This routine iterates over the 64 pieces and calculates which sprite and color lives in each square. Once that's computed, it stores
-this information in 2 separate 64 byte blocks of memory called BoardSprites and BoardColors.
-
-During the raster IRQ, we quickly calculate the pieces for the row based on the variable 'current' by looking through BoardSprites and
-BoardColors. This way we only do the heavy computation once per frame, but can quickly display the sprites for each row.
-
-*/
-ComputeBoard:
-  ldx #$00
-
-!compute:
-  stb BoardState, x:currentpiece
-  and #LOWER7           // Strip high bit to remove the color information.
-                        // The remaining 7 bits are the sprite pointer
-  sta BoardSprites, x   // Set the pointer for this sprite
-  lda currentpiece
-  pcol                  // Get the piece's color
-  sta BoardColors, x
-  inx
-  cpx #BIT7             // Have we processed the entire board?
-  bne !compute-
   rts
 
 /*

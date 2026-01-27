@@ -18,8 +18,9 @@ currentkey:
   .byte $00
 
 // Store the lines where we want to trigger our raster interrupt
+// Trigger 6 lines before sprite Y (was 4) to allow for inline sprite extraction
 irqypos:
-  .byte $30, $48, $60, $78, $90, $a8, $c0, $d8
+  .byte $2e, $46, $5e, $76, $8e, $a6, $be, $d6
 
 // Store the lines where we should display our chess pieces
 spriteypos:
@@ -152,16 +153,16 @@ movefrom:
 moveto:
   .word $0000
 
-// Store the offset in BoardState for the piece to move here
+// Store the 0x88 offset in Board88 for the piece to move here
 movefromindex:
   .byte BIT8
 
-// Store the offset in BoardState for the location to move to here
+// Store the 0x88 offset in Board88 for the location to move to here
 movetoindex:
   .byte BIT8
 
 // This is a lookup table to translate row numbers into their
-// inverse. This is needed due to the way BoardState is arranged.
+// inverse. This is needed due to the way Board88 is arranged.
 // This could probably be done in code, but I'm lazy.
 rowlookup:
   .byte $07, $06, $05, $04, $03, $02, $01, $00
@@ -189,3 +190,25 @@ incheckflags:
 
 pausetimer:
   .byte $00, $00, $00
+
+//
+// Auxiliary Game State for Move Validation
+// These track derived state that's only updated on specific events
+//
+
+// 0x88 index of white king (starts at e1 = row 7 * 16 + col 4 = $74)
+whitekingsq:
+  .byte $74
+
+// 0x88 index of black king (starts at e8 = row 0 * 16 + col 4 = $04)
+blackkingsq:
+  .byte $04
+
+// Castling rights bitmap: bit 0=WK, 1=WQ, 2=BK, 3=BQ
+// All set at game start ($0f)
+castlerights:
+  .byte $0f
+
+// 0x88 index of en passant target square, $ff = none available
+enpassantsq:
+  .byte $ff

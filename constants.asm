@@ -80,7 +80,7 @@ so that we can store color information in the high bit.
 
 /*
 Add color information using the high bit of the sprite pointer. These are the
-values stored in BoardState
+values stored in Board88
 */
 .const EMPTY_PIECE  = EMPTY_SPR   + BLACK_COLOR
 .const WHITE_PAWN   = PAWN_SPR    + WHITE_COLOR
@@ -163,6 +163,32 @@ values stored in BoardState
 
 // Lower 7 bits
 .const LOWER7 = $7f
+
+//
+// 0x88 Board Constants
+//
+
+// Board size in bytes (16 columns x 8 rows)
+.const BOARD_SIZE = $80
+
+// Off-board detection mask: (index & $88) != 0 means off-board
+.const OFFBOARD_MASK = $88
+
+// Row stride in 0x88 format
+.const ROW_STRIDE = $10
+
+// No en passant available
+.const NO_EN_PASSANT = $ff
+
+//
+// Castling Rights Bitmap
+//
+
+.const CASTLE_WK = %00000001  // White kingside
+.const CASTLE_WQ = %00000010  // White queenside
+.const CASTLE_BK = %00000100  // Black kingside
+.const CASTLE_BQ = %00001000  // Black queenside
+.const CASTLE_ALL = %00001111 // All rights intact
 
 //
 // Zero Page Allocations ($02-$25, 36 bytes)
