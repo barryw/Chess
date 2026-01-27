@@ -49,10 +49,14 @@ steps:
   - name: build
     image: barrywalker71/kickassembler:latest
     commands:
+      - pwd
+      - ls -la
+      - echo "=== version.asm ==="
+      - cat version.asm
+      - echo "=== Building ==="
       - java -jar /KickAss.jar main.asm
-      - ls -la *.prg *.sym *.d64
-      - echo "Build artifacts:"
-      - cat version.asm | head -10
+      - echo "=== Build output ==="
+      - ls -la *.prg *.sym *.d64 || echo "No build artifacts found!"
     depends_on: [prepare-version]
 
   - name: test-move-validation
