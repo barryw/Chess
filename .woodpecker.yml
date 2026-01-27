@@ -21,6 +21,29 @@ steps:
       - cog --version
       - cog check --from-latest-tag || cog check || echo "No conventional commits yet - will enforce after initial tag"
 
+  # Determine version and update version.asm BEFORE build
+  - name: prepare-version
+    image: simbachain/cocogitto:latest
+    commands:
+      - |
+        git config --global --add safe.directory /woodpecker/src
+
+        # Check if bump is needed
+        NEW_VERSION=$(cog bump --auto --dry-run 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+
+        if [ -n "$NEW_VERSION" ]; then
+          echo "Version bump needed: $NEW_VERSION"
+          chmod +x scripts/update-version.sh
+          ./scripts/update-version.sh "$NEW_VERSION"
+          echo "version.asm updated:"
+          cat version.asm
+          # Save version for release step
+          echo "$NEW_VERSION" > .new_version
+        else
+          echo "No version bump needed"
+        fi
+    depends_on: [check-commits]
+
   - name: build
     image: barrywalker71/kickassembler:latest
     commands:
@@ -28,7 +51,7 @@ steps:
       - ls -la *.prg *.sym *.d64
       - echo "Build artifacts:"
       - cat version.asm | head -10
-    depends_on: [check-commits]
+    depends_on: [prepare-version]
 
   - name: test-move-validation
     image: ghcr.io/barryw/sim6502:v3.4.1
@@ -44,46 +67,42 @@ steps:
       - /app/Sim6502TestRunner -s /code/tests/comprehensive.6502
     depends_on: [build]
 
-  # Create tag and release after tests pass (master only)
+  # Create tag and release after tests pass (main only)
   - name: release
-    image: simbachain/cocogitto:latest
+    image: alpine/git
     commands:
       - |
-        echo "Checking if version bump is needed..."
-        git config --global user.email "ci@woodpecker.local"
-        git config --global user.name "Woodpecker CI"
-        git config --global --add safe.directory /woodpecker/src
+        apk add --no-cache curl jq
 
-        # Check if bump is needed
-        NEW_VERSION=$(cog bump --auto --dry-run 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
-        if [ -z "$NEW_VERSION" ]; then
-          echo "No version bump needed"
+        # Check if we have a new version to release
+        if [ ! -f .new_version ]; then
+          echo "No version bump needed, skipping release"
           exit 0
         fi
 
-        echo "Creating tag $NEW_VERSION..."
-        cog bump --auto
+        NEW_VERSION=$(cat .new_version)
+        echo "Creating release for version $NEW_VERSION"
 
-        echo "Pushing tag..."
+        # Configure git with token auth
+        git config --global user.email "ci@woodpecker.local"
+        git config --global user.name "Woodpecker CI"
+        git config --global --add safe.directory /woodpecker/src
+        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CI_REPO}.git"
+
+        # Create and push tag
+        git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
         git push origin "$NEW_VERSION"
 
-        echo "Generating changelog..."
-        CHANGELOG=$(cog changelog --at "$NEW_VERSION" 2>/dev/null || echo "Release $NEW_VERSION")
-
         echo "Creating release via GitHub API..."
-        RELEASE_BODY=$(cat <<EOF
-        ## C64 Chess $NEW_VERSION
 
-        $CHANGELOG
+        # Simple release body
+        RELEASE_BODY="## C64 Chess $NEW_VERSION
 
-        ---
-        Download the D64 disk image and load it in your favorite C64 emulator!
+Download the D64 disk image and load it in your favorite C64 emulator!
 
-        **Files:**
-        - \`C64Chess.d64\` - Disk image (use with VICE or real hardware)
-        - \`main.prg\` - Raw PRG file
-        EOF
-        )
+**Files:**
+- \`C64Chess.d64\` - Disk image (use with VICE or real hardware)
+- \`main.prg\` - Raw PRG file"
 
         # Create the release on GitHub
         RELEASE_RESPONSE=$(curl -s -X POST \
@@ -95,6 +114,12 @@ steps:
         RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
         UPLOAD_URL=$(echo "$RELEASE_RESPONSE" | jq -r '.upload_url' | sed 's/{?name,label}//')
         echo "Created release ID: $RELEASE_ID"
+
+        if [ "$RELEASE_ID" = "null" ]; then
+          echo "Failed to create release:"
+          echo "$RELEASE_RESPONSE"
+          exit 1
+        fi
 
         # Upload artifacts to GitHub
         for FILE in C64Chess.d64 main.prg; do
