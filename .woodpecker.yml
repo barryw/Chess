@@ -113,14 +113,13 @@ steps:
         fi
 
         # Upload artifacts to GitHub
-        UPLOAD_URL="https://uploads.github.com/repos/${CI_REPO}/releases/${RELEASE_ID}/assets"
         for FILE in C64Chess.d64 main.prg; do
           if [ -f "$FILE" ]; then
-            echo "Uploading $FILE to $UPLOAD_URL..."
+            echo "Uploading $FILE..."
             curl -s -X POST \
               -H "Authorization: token $GITHUB_TOKEN" \
               -H "Content-Type: application/octet-stream" \
-              "${UPLOAD_URL}?name=$FILE" \
+              "https://uploads.github.com/repos/$CI_REPO/releases/$RELEASE_ID/assets?name=$FILE" \
               --data-binary "@$FILE"
           fi
         done
