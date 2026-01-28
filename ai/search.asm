@@ -35,6 +35,11 @@ SearchDepth:
 SearchSide:
   .byte WHITE_COLOR
 
+// Quiescence search depth limiter
+.const MAX_QUIESCE_DEPTH = 6
+QuiesceDepth:
+  .byte $00
+
 //
 // MakeMove
 // Executes a move on the board, saving undo information
@@ -917,6 +922,171 @@ Evaluate:
   rts
 
 //
+// Quiescence Search
+// Continues searching captures until position is quiet
+// Prevents horizon effect (stopping search just before capture)
+// Input: $e8 = alpha, $e9 = beta
+// Output: A = score (from SearchSide perspective)
+// Clobbers: Many registers
+//
+Quiesce:
+  // Check quiescence depth limit
+  inc QuiesceDepth
+  lda QuiesceDepth
+  cmp #MAX_QUIESCE_DEPTH
+  bcc !quiesce_continue+
+  // Depth limit reached - just evaluate
+  dec QuiesceDepth
+  jsr Evaluate
+  rts
+
+!quiesce_continue:
+  // Stand pat: evaluate current position
+  // If this position is already good enough, we don't need to search captures
+  jsr Evaluate
+  sta $ea               // $ea = stand_pat score
+
+  // Beta cutoff: if stand_pat >= beta, return beta
+  // This means the position is already so good we won't improve
+  sec
+  sbc $e9               // stand_pat - beta
+  bvc !q_no_ov1+
+  eor #$80              // Overflow correction for signed compare
+!q_no_ov1:
+  bmi !q_no_beta_cut+
+  // stand_pat >= beta, return beta
+  dec QuiesceDepth
+  lda $e9
+  rts
+
+!q_no_beta_cut:
+  // Update alpha if stand_pat > alpha
+  lda $ea               // stand_pat
+  sec
+  sbc $e8               // stand_pat - alpha
+  bvc !q_no_ov2+
+  eor #$80
+!q_no_ov2:
+  bmi !q_alpha_ok+
+  beq !q_alpha_ok+
+  lda $ea
+  sta $e8               // alpha = stand_pat
+
+!q_alpha_ok:
+  // Save alpha/beta to quiescence state area
+  lda $e8
+  sta QAlpha
+  lda $e9
+  sta QBeta
+
+  // Generate captures only
+  ldx SearchSide
+  jsr GenerateCaptures
+
+  // Filter legal moves
+  jsr FilterLegalMoves
+
+  // Sort by MVV-LVA for best capture ordering
+  jsr OrderMovesMVVLVA
+
+  // If no captures, return alpha (position is quiet)
+  lda MoveCount
+  bne !q_have_captures+
+  dec QuiesceDepth
+  lda QAlpha
+  rts
+
+!q_have_captures:
+  lda #$00
+  sta QMoveIdx          // Move index
+
+!q_capture_loop:
+  lda QMoveIdx
+  cmp MoveCount
+  beq !q_return_alpha+
+
+  // Get capture move
+  tax
+  lda MoveListFrom, x
+  sta QFrom
+  lda MoveListTo, x
+  sta QTo
+
+  // Make the move
+  ldx QTo
+  lda QFrom
+  jsr MakeMove
+
+  // Recurse: -Quiesce(-beta, -alpha)
+  lda QBeta
+  eor #$ff
+  clc
+  adc #$01
+  sta $e8               // child alpha = -beta
+
+  lda QAlpha
+  eor #$ff
+  clc
+  adc #$01
+  sta $e9               // child beta = -alpha
+
+  jsr Quiesce
+
+  // Negate score
+  eor #$ff
+  clc
+  adc #$01
+  sta QScore            // QScore = -child_score
+
+  // Unmake move
+  ldx QTo
+  lda QFrom
+  jsr UnmakeMove
+
+  // Beta cutoff?
+  lda QScore
+  sec
+  sbc QBeta             // score - beta
+  bvc !q_no_ov3+
+  eor #$80
+!q_no_ov3:
+  bmi !q_no_cut+
+  // score >= beta, return beta
+  dec QuiesceDepth
+  lda QBeta
+  rts
+
+!q_no_cut:
+  // Update alpha if score > alpha
+  lda QScore
+  sec
+  sbc QAlpha            // score - alpha
+  bvc !q_no_ov4+
+  eor #$80
+!q_no_ov4:
+  bmi !q_next_cap+
+  beq !q_next_cap+
+  lda QScore
+  sta QAlpha            // alpha = score
+
+!q_next_cap:
+  inc QMoveIdx
+  jmp !q_capture_loop-
+
+!q_return_alpha:
+  dec QuiesceDepth
+  lda QAlpha
+  rts
+
+// Quiescence state storage
+QAlpha:   .byte $00
+QBeta:    .byte $00
+QFrom:    .byte $00
+QTo:      .byte $00
+QScore:   .byte $00
+QMoveIdx: .byte $00
+
+//
 // Negamax with Alpha-Beta Pruning
 // Recursive search from current position
 // Input: A = depth remaining
@@ -930,11 +1100,12 @@ Evaluate:
 // the NegamaxState array indexed by depth, since the 6502 stack is limited.
 //
 Negamax:
-  // Base case: depth == 0 -> evaluate
+  // Base case: depth == 0 -> quiescence search
   cmp #$00
   bne !search+
-  jsr Evaluate
-  rts
+  lda #$00
+  sta QuiesceDepth      // Reset quiescence depth
+  jmp Quiesce           // Tail call to quiescence
 
 !search:
   // Calculate state array offset = (SearchDepth) * 8

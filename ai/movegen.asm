@@ -924,3 +924,65 @@ OrderMovesMVVLVA:
 
 !mvvlva_done:
   rts
+
+//
+// GenerateCaptures
+// Generate only capture moves (for quiescence search)
+// Input: X = side to move color ($80=white, $00=black)
+// Output: Captures in move list, MoveCount set
+// Clobbers: A, X, Y, $f0-$fe
+//
+GenerateCaptures:
+  stx $f0               // Save side color
+
+  // Generate all pseudo-legal moves
+  jsr ClearMoveList
+  ldx $f0
+  jsr GenerateAllMoves
+
+  // Filter to only captures
+  lda #$00
+  sta $e0               // $e0 = read index
+  sta $e1               // $e1 = write index
+
+!filter_caps_loop:
+  lda $e0
+  cmp MoveCount
+  beq !filter_caps_done+
+
+  // Check if target has enemy piece
+  ldx $e0
+  lda MoveListTo, x
+  and #$7f              // Clear promotion flag
+  tay
+  lda Board88, y
+  cmp #EMPTY_PIECE
+  beq !skip_non_cap+
+
+  // Check it's enemy (not our color)
+  and #WHITE_COLOR
+  eor $f0               // XOR with our color
+  beq !skip_non_cap+    // Same color after XOR = not enemy
+
+  // It's a capture - keep it
+  ldy $e1
+  cpx $e1
+  beq !same_cap_pos+
+
+  // Copy move to write position
+  lda MoveListFrom, x
+  sta MoveListFrom, y
+  lda MoveListTo, x
+  sta MoveListTo, y
+
+!same_cap_pos:
+  inc $e1
+
+!skip_non_cap:
+  inc $e0
+  jmp !filter_caps_loop-
+
+!filter_caps_done:
+  lda $e1
+  sta MoveCount
+  rts
