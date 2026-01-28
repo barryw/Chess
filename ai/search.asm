@@ -40,6 +40,13 @@ SearchSide:
 QuiesceDepth:
   .byte $00
 
+// Time control state
+StartTimeLo:    .byte $00
+StartTimeHi:    .byte $00
+TimeBudgetLo:   .byte $00
+TimeBudgetHi:   .byte $00
+TimeUp:         .byte $00     // $01 = time expired
+
 //
 // Killer Moves
 // Store 2 killer moves per depth (16 depths max)
@@ -48,6 +55,60 @@ QuiesceDepth:
 //
 KillerMoves:
   .fill MAX_KILLER_DEPTH * 4, $00
+
+// Time budgets by difficulty level
+TimeBudgetTableLo:
+  .byte <TIME_EASY, <TIME_MEDIUM, <TIME_HARD
+
+TimeBudgetTableHi:
+  .byte >TIME_EASY, >TIME_MEDIUM, >TIME_HARD
+
+//
+// CheckTime
+// Check if time budget is exhausted
+// Uses $DC04-$DC05 (CIA Timer A) which counts down from $FFFF
+// Output: Carry set = time's up, Carry clear = continue
+// Clobbers: A, $f0-$f2
+//
+CheckTime:
+  // Read current time (low byte first for consistency)
+  lda $DC04
+  sta $f0
+  lda $DC05
+  sta $f1
+
+  // Calculate elapsed = StartTime - CurrentTime
+  // (Timer counts down, so start > current when time has passed)
+  sec
+  lda StartTimeLo
+  sbc $f0
+  sta $f2               // Elapsed low
+  lda StartTimeHi
+  sbc $f1               // Elapsed high in A
+
+  // If elapsed high byte is negative (borrow), timer wrapped - lots of time passed
+  bcc !time_up+
+
+  // Compare elapsed with budget
+  // If elapsed >= budget, time's up
+  cmp TimeBudgetHi
+  bcc !time_ok+         // Elapsed high < budget high, continue
+  bne !time_up+         // Elapsed high > budget high, time's up
+
+  // High bytes equal, compare low bytes
+  lda $f2
+  cmp TimeBudgetLo
+  bcc !time_ok+         // Elapsed < budget, continue
+
+!time_up:
+  lda #$01
+  sta TimeUp
+  sec                   // Carry set = time's up
+  rts
+
+!time_ok:
+  clc                   // Carry clear = continue
+  rts
 
 //
 // MakeMove
@@ -1519,88 +1580,99 @@ NegamaxState:
 //
 // FindBestMove
 // Main entry point for AI to find best move
-// Uses iterative deepening: searches at depth 1, then 2, etc.
-// Benefits: Always has a move ready, better move ordering in future
+// Uses time-based iterative deepening
 // Input: None (uses difficulty setting)
 // Output: BestMoveFrom/BestMoveTo contain best move
-//         A = best score from deepest search
+//         A = best score from deepest completed search
 //
 FindBestMove:
   // Initialize search
   jsr InitSearch
-
-  // Clear transposition table
+  jsr ClearKillers
   jsr TTClear
 
-  // Clear killer moves
-  jsr ClearKillers
+  // Get time budget based on difficulty
+  ldx difficulty
+  lda TimeBudgetTableLo, x
+  sta TimeBudgetLo
+  lda TimeBudgetTableHi, x
+  sta TimeBudgetHi
 
-  // Generate legal moves first to initialize BestMoveFrom/BestMoveTo
-  // with a fallback move (the first legal move found)
-  // This prevents returning an invalid move if search has issues
+  // Record start time
+  lda $DC04
+  sta StartTimeLo
+  lda $DC05
+  sta StartTimeHi
+
+  // Clear time up flag
+  lda #$00
+  sta TimeUp
+
+  // Generate legal moves for fallback
   jsr GenerateLegalMoves
 
   // Check if there are any legal moves
   lda MoveCount
-  beq !no_moves+
+  beq !no_moves_time+
 
   // Initialize BestMove to first legal move as fallback
   lda MoveListFrom
   sta BestMoveFrom
   lda MoveListTo
   sta BestMoveTo
-  jmp !have_fallback+
 
-!no_moves:
-  // No legal moves - this is checkmate or stalemate
-  // Set BestMove to $FF to indicate no move available
+  // Iterative deepening with time check
+  lda #1
+  sta IterDepth
+
+!time_iter_loop:
+  // Check time before starting new iteration
+  jsr CheckTime
+  bcs !time_done+       // Time's up, use best move found
+
+  // Set up alpha/beta window
+  lda #NEG_INFINITY
+  sta $e8
+  lda #$7F
+  sta $e9
+
+  // Search at current depth
+  lda IterDepth
+  jsr Negamax
+  sta IterScore
+
+  // Check if found mate (can stop early)
+  lda IterScore
+  cmp #MATE_SCORE - 10
+  bcs !found_mate+
+  // Also check for negative mate (being mated)
+  lda IterScore
+  cmp #<(-MATE_SCORE + 10)
+  bcc !check_max_depth+ // Not mate score
+  // If we're being mated, might as well continue searching for escape
+  jmp !check_max_depth+
+
+!found_mate:
+  jmp !time_done+       // Found forced mate, stop searching
+
+!check_max_depth:
+  // Increment depth for next iteration
+  inc IterDepth
+  lda IterDepth
+  cmp #MAX_DEPTH
+  bcs !time_done+       // Hit max depth limit
+
+  jmp !time_iter_loop-
+
+!time_done:
+  lda IterScore
+  rts
+
+!no_moves_time:
+  // No legal moves - checkmate or stalemate
   lda #$FF
   sta BestMoveFrom
   sta BestMoveTo
-  rts                       // Return early - nothing to search
-
-!have_fallback:
-  // Determine max depth from difficulty:
-  // Easy = 2, Medium = 3, Hard = 4
-  lda difficulty
-  cmp #LEVEL_EASY
-  bne !check_medium+
-  lda #2
-  jmp !start_iter+
-!check_medium:
-  cmp #LEVEL_MEDIUM
-  bne !check_hard+
-  lda #3
-  jmp !start_iter+
-!check_hard:
-  lda #4
-
-!start_iter:
-  sta MaxSearchDepth        // Store target depth
-  lda #1
-  sta IterDepth             // Start at depth 1
-
-!iter_loop:
-  // Set up alpha/beta window for this iteration
-  lda #NEG_INFINITY         // alpha = -128 (worst possible)
-  sta $e8
-  lda #$7F                  // beta = +127 (best possible)
-  sta $e9
-
-  // Run search at current depth
-  lda IterDepth
-  jsr Negamax
-  sta IterScore             // Save score for potential use
-
-  // Move to next depth
-  inc IterDepth
-  lda IterDepth
-  cmp MaxSearchDepth
-  bcc !iter_loop-           // If IterDepth < MaxSearchDepth, continue
-  beq !iter_loop-           // If IterDepth = MaxSearchDepth, do one more
-
-  // Return score from deepest search
-  lda IterScore
   rts
 
 // Iterative deepening state

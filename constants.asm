@@ -170,6 +170,11 @@ values stored in Board88
 .const LEVEL_MEDIUM = $01
 .const LEVEL_HARD   = $02
 
+// Time budgets in jiffies (1/60 second)
+.const TIME_EASY   = 180      // 3 seconds
+.const TIME_MEDIUM = 600      // 10 seconds
+.const TIME_HARD   = 1500     // 25 seconds
+
 //
 // AI Search Constants
 //
