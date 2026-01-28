@@ -24,6 +24,14 @@
 .const ISOLATED_PAWN_PENALTY = 20
 .const PASSED_PAWN_BONUS_BASE = 20
 
+//
+// King Safety Evaluation Constants
+//
+.const CASTLED_BONUS = 30         // Bonus for being on castled squares
+.const PAWN_SHIELD_BONUS = 10     // Bonus per pawn in shield
+.const OPEN_FILE_PENALTY = 25     // Penalty for open file near king
+.const KING_CENTER_PENALTY = 30   // Penalty for king in center in middlegame
+
 // Passed pawn bonus by rank (row 0 = rank 8, row 7 = rank 1)
 // White pawns advance toward row 0, black toward row 7
 PassedPawnBonus:
@@ -214,6 +222,8 @@ PstNext:
 !done:
   // Evaluate pawn structure
   jsr EvaluatePawnStructure
+  // Evaluate king safety
+  jsr EvaluateKingSafety
   rts
 
 //
@@ -682,4 +692,331 @@ CheckBlackPassed:
 
 !bp_not_passed:
   clc
+  rts
+
+//
+// EvaluateKingSafety
+// Score king safety: castling position, pawn shield, exposure
+// Adds/subtracts from EvalScore
+// Clobbers: A, X, Y, $f0-$f4
+//
+EvaluateKingSafety:
+  // Evaluate white king safety
+  lda whitekingsq
+  jsr EvaluateSingleKingSafety
+  // A = safety score (positive = safe)
+  // Add to EvalScore (good for white)
+  clc
+  adc EvalScore
+  sta EvalScore
+  lda EvalScore + 1
+  adc #$00
+  sta EvalScore + 1
+
+  // Evaluate black king safety
+  lda blackkingsq
+  jsr EvaluateSingleKingSafety
+  // A = safety score
+  // Subtract from EvalScore (good for black = bad for white)
+  sta $f0
+  sec
+  lda EvalScore
+  sbc $f0
+  sta EvalScore
+  lda EvalScore + 1
+  sbc #$00
+  sta EvalScore + 1
+
+  rts
+
+//
+// EvaluateSingleKingSafety
+// Input: A = king square (0x88)
+// Output: A = safety score (0-50 range, higher = safer)
+// Clobbers: X, Y, $f0-$f4
+//
+EvaluateSingleKingSafety:
+  sta $f0               // $f0 = king square
+  lda #$00
+  sta $f1               // $f1 = safety score accumulator
+
+  // Get file and row
+  lda $f0
+  and #$07
+  sta $f2               // $f2 = file (0-7)
+  lda $f0
+  lsr
+  lsr
+  lsr
+  lsr
+  sta $f3               // $f3 = row (0-7)
+
+  // Determine if this is white or black king
+  lda $f0
+  cmp whitekingsq
+  beq !is_white+
+  jmp EvalBlackKingSafety
+
+!is_white:
+  jmp EvalWhiteKingSafety
+
+//
+// EvalWhiteKingSafety - Helper for white king safety
+// Input: $f0=king square, $f1=score, $f2=file, $f3=row
+// Output: A = safety score
+// Clobbers: X, Y
+//
+EvalWhiteKingSafety:
+  // Check if castled (on g1 or c1 = row 7, file 6 or 2)
+  lda $f3
+  cmp #$07              // Row 7 (rank 1)?
+  beq !check_castled_file+
+  jmp !white_not_castled+
+
+!check_castled_file:
+  lda $f2
+  cmp #$06              // File g (kingside)?
+  beq !white_castled+
+  cmp #$02              // File c (queenside)?
+  beq !white_castled+
+  jmp !white_not_castled+
+
+!white_castled:
+  // King is castled - bonus
+  clc
+  lda $f1
+  adc #CASTLED_BONUS
+  sta $f1
+
+  // Check pawn shield (pawns in front of king)
+  // For kingside: check f2, g2, h2 squares
+  // For queenside: check a2, b2, c2 squares
+  lda $f2
+  cmp #$06
+  bne !white_qs_shield+
+
+  // Kingside: check $65 (f2), $66 (g2), $67 (h2)
+  lda Board88 + $65
+  and #$07
+  cmp #$01              // Pawn?
+  bne !ws1+
+  lda Board88 + $65
+  and #WHITE_COLOR
+  beq !ws1+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!ws1:
+  lda Board88 + $66
+  and #$07
+  cmp #$01
+  bne !ws2+
+  lda Board88 + $66
+  and #WHITE_COLOR
+  beq !ws2+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!ws2:
+  lda Board88 + $67
+  and #$07
+  cmp #$01
+  bne !white_done+
+  lda Board88 + $67
+  and #WHITE_COLOR
+  beq !white_done+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+  jmp !white_done+
+
+!white_qs_shield:
+  // Queenside: check $60 (a2), $61 (b2), $62 (c2)
+  lda Board88 + $60
+  and #$07
+  cmp #$01
+  bne !wqs1+
+  lda Board88 + $60
+  and #WHITE_COLOR
+  beq !wqs1+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!wqs1:
+  lda Board88 + $61
+  and #$07
+  cmp #$01
+  bne !wqs2+
+  lda Board88 + $61
+  and #WHITE_COLOR
+  beq !wqs2+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!wqs2:
+  lda Board88 + $62
+  and #$07
+  cmp #$01
+  bne !white_done+
+  lda Board88 + $62
+  and #WHITE_COLOR
+  beq !white_done+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+  jmp !white_done+
+
+!white_not_castled:
+  // King not castled - check if in center (files d-e)
+  lda $f2
+  cmp #$03              // File d?
+  beq !white_center_penalty+
+  cmp #$04              // File e?
+  bne !white_done+
+
+!white_center_penalty:
+  // King in center - penalty
+  sec
+  lda $f1
+  sbc #KING_CENTER_PENALTY
+  sta $f1
+
+!white_done:
+  lda $f1               // Return safety score
+  rts
+
+//
+// EvalBlackKingSafety - Helper for black king safety
+// Input: $f0=king square, $f1=score, $f2=file, $f3=row
+// Output: A = safety score
+// Clobbers: X, Y
+//
+EvalBlackKingSafety:
+  // Check if castled (on g8 or c8 = row 0, file 6 or 2)
+  lda $f3
+  cmp #$00              // Row 0 (rank 8)?
+  beq !check_black_castled_file+
+  jmp !black_not_castled+
+
+!check_black_castled_file:
+  lda $f2
+  cmp #$06              // File g?
+  beq !black_castled+
+  cmp #$02              // File c?
+  beq !black_castled+
+  jmp !black_not_castled+
+
+!black_castled:
+  // King is castled - bonus
+  clc
+  lda $f1
+  adc #CASTLED_BONUS
+  sta $f1
+
+  // Check pawn shield (pawns in front of king)
+  // For kingside: check f7, g7, h7 squares
+  // For queenside: check a7, b7, c7 squares
+  lda $f2
+  cmp #$06
+  bne !black_qs_shield+
+
+  // Kingside: check $15 (f7), $16 (g7), $17 (h7)
+  lda Board88 + $15
+  and #$07
+  cmp #$01
+  bne !bs1+
+  lda Board88 + $15
+  and #WHITE_COLOR
+  bne !bs1+             // Must be BLACK pawn
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!bs1:
+  lda Board88 + $16
+  and #$07
+  cmp #$01
+  bne !bs2+
+  lda Board88 + $16
+  and #WHITE_COLOR
+  bne !bs2+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!bs2:
+  lda Board88 + $17
+  and #$07
+  cmp #$01
+  bne !black_done+
+  lda Board88 + $17
+  and #WHITE_COLOR
+  bne !black_done+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+  jmp !black_done+
+
+!black_qs_shield:
+  // Queenside: check $10 (a7), $11 (b7), $12 (c7)
+  lda Board88 + $10
+  and #$07
+  cmp #$01
+  bne !bqs1+
+  lda Board88 + $10
+  and #WHITE_COLOR
+  bne !bqs1+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!bqs1:
+  lda Board88 + $11
+  and #$07
+  cmp #$01
+  bne !bqs2+
+  lda Board88 + $11
+  and #WHITE_COLOR
+  bne !bqs2+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+!bqs2:
+  lda Board88 + $12
+  and #$07
+  cmp #$01
+  bne !black_done+
+  lda Board88 + $12
+  and #WHITE_COLOR
+  bne !black_done+
+  clc
+  lda $f1
+  adc #PAWN_SHIELD_BONUS
+  sta $f1
+  jmp !black_done+
+
+!black_not_castled:
+  // King not castled - check if in center
+  lda $f2
+  cmp #$03
+  beq !black_center_penalty+
+  cmp #$04
+  bne !black_done+
+
+!black_center_penalty:
+  sec
+  lda $f1
+  sbc #KING_CENTER_PENALTY
+  sta $f1
+
+!black_done:
+  lda $f1               // Return safety score
   rts
