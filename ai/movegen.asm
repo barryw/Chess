@@ -425,3 +425,98 @@ GeneratePawnMoves:
   cmp #$04              // White done after index 3
   bne !capture_loop-
   rts
+
+//
+// Generate all pseudo-legal moves for a side
+// Input: X = side to move color ($80 = white, $00 = black)
+// Output: Moves added to move list (call ClearMoveList first!)
+// Clobbers: A, X, Y, $f0-$fe
+//
+GenerateAllMoves:
+  stx $f0               // $f0 = side to move color
+
+  // Loop through all 0x88 squares
+  lda #$00
+  sta $f1               // $f1 = current square index
+
+!gen_loop:
+  // Check if valid square (index & $88 == 0)
+  lda $f1
+  and #OFFBOARD_MASK
+  bne !gen_next_square+
+
+  // Get piece at this square
+  ldx $f1
+  lda Board88, x
+  cmp #EMPTY_PIECE
+  beq !gen_next_square+ // Empty square, skip
+
+  // Check if piece belongs to side to move
+  pha                   // Save piece value
+  and #WHITE_COLOR      // Get piece color
+  cmp $f0               // Compare with side to move
+  bne !gen_skip_piece+  // Not our piece, skip
+
+  // Our piece - determine type and generate moves
+  pla                   // Restore piece value
+  and #$07              // Get piece type (1-6)
+  cmp #$01              // Pawn?
+  beq !gen_pawn+
+  cmp #$02              // Knight?
+  beq !gen_knight+
+  cmp #$03              // Bishop?
+  beq !gen_bishop+
+  cmp #$04              // Rook?
+  beq !gen_rook+
+  cmp #$05              // Queen?
+  beq !gen_queen+
+  cmp #$06              // King?
+  beq !gen_king+
+  jmp !gen_next_square+ // Unknown piece type
+
+!gen_skip_piece:
+  pla                   // Clean up stack
+  jmp !gen_next_square+
+
+!gen_pawn:
+  lda $f1               // From square
+  ldx $f0               // Side color
+  jsr GeneratePawnMoves
+  jmp !gen_next_square+
+
+!gen_knight:
+  lda $f1               // From square
+  ldx $f0               // Side color
+  jsr GenerateKnightMoves
+  jmp !gen_next_square+
+
+!gen_bishop:
+  lda $f1               // From square
+  ldx $f0               // Side color
+  jsr GenerateBishopMoves
+  jmp !gen_next_square+
+
+!gen_rook:
+  lda $f1               // From square
+  ldx $f0               // Side color
+  jsr GenerateRookMoves
+  jmp !gen_next_square+
+
+!gen_queen:
+  lda $f1               // From square
+  ldx $f0               // Side color
+  jsr GenerateQueenMoves
+  jmp !gen_next_square+
+
+!gen_king:
+  lda $f1               // From square
+  ldx $f0               // Side color
+  jsr GenerateKingMoves
+
+!gen_next_square:
+  inc $f1               // Next square
+  lda $f1
+  cmp #BOARD_SIZE       // Done all 128 bytes?
+  bne !gen_loop-
+
+  rts

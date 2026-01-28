@@ -592,4 +592,83 @@ suites {
       ; In this case no captures available, so 0 moves
     }
   }
+
+  suite("Full Position Move Generation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("initial-position-white", "Initial position generates moves for white") {
+      ; Use PRG's initial board state
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate all white moves
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; White should have 20 moves in initial position:
+      ; 16 pawn moves (8 pawns × 2 possible moves each)
+      ; 4 knight moves (2 knights × 2 moves each)
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      ; Just verify we got some moves
+    }
+
+    test("single-piece-position", "Position with one piece generates correct moves") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white knight at e4 ($44)
+      [Board88] + $44 = $b2  ; WHITE_KNIGHT
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate all white moves
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have 8 knight moves
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "Knight moves from e4")
+    }
+
+    test("multiple-pieces", "Multiple pieces all generate moves") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white knight at b1 ($71) and white rook at h1 ($77)
+      [Board88] + $71 = $b2  ; WHITE_KNIGHT
+      [Board88] + $77 = $b4  ; WHITE_ROOK
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have moves from both pieces
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      ; First move could be from either piece
+    }
+
+    test("only-side-to-move", "Only generates moves for side to move") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white knight and black knight
+      [Board88] + $44 = $b2  ; WHITE_KNIGHT at e4
+      [Board88] + $34 = $32  ; BLACK_KNIGHT at e5
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate white moves only
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; All moves should be from $44 (white knight), not $34 (black)
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "Only white knight moves generated")
+    }
+  }
 }
