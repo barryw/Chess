@@ -478,6 +478,8 @@ ChangePlayers:
 
 !continue_game:
   jne numplayers:#ONE_PLAYER:!twoplayers+
+  // One player mode - check if it's computer's turn
+  jeq currentplayer:player1color:!twoplayers+
   // Computer's turn - find and execute best move
   jsr ComputerMove
   jmp !return+
