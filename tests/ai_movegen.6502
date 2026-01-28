@@ -1,0 +1,142 @@
+; Move List Storage Unit Tests
+; Tests move list data structures and basic operations
+;
+; NOTE: sim6502 limitation (GitHub issue #2) - peekbyte cannot read values
+; written by code. Tests use GetMove to verify AddMove works, which avoids
+; the peekbyte issue since A/Y registers are readable.
+
+suites {
+  suite("Move List Storage") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("init-clears-count", "ClearMoveList sets count to zero") {
+      ; Set count to non-zero first
+      [MoveCount] = $10
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MoveCount]) == $00, "Move count should be zero after clear")
+    }
+
+    test("clear-after-adds", "ClearMoveList resets after adding moves") {
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Add some moves (we know this works from GetMove tests)
+      a = $70
+      x = $60
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+      a = $71
+      x = $61
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; Clear
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MoveCount]) == $00, "Count should be zero after clear")
+    }
+  }
+
+  suite("Move Storage and Retrieval") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("add-and-get-first", "AddMove stores and GetMove retrieves first move") {
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Add a move (e1-e2: from=$74, to=$64)
+      a = $74
+      x = $64
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; Retrieve move 0
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; A should have 'from', Y should have 'to'
+      assert(a == $74, "From square should be $74")
+      assert(y == $64, "To square should be $64")
+    }
+
+    test("add-and-get-multiple", "Multiple moves stored and retrieved correctly") {
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Add three moves
+      a = $70
+      x = $50
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      a = $71
+      x = $51
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      a = $72
+      x = $52
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; Retrieve and verify each move
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $70, "Move 0 from should be $70")
+      assert(y == $50, "Move 0 to should be $50")
+
+      x = $01
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $71, "Move 1 from should be $71")
+      assert(y == $51, "Move 1 to should be $51")
+
+      x = $02
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $72, "Move 2 from should be $72")
+      assert(y == $52, "Move 2 to should be $52")
+    }
+
+    test("moves-independent", "Each move stored independently") {
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Add moves with distinct from/to values
+      a = $00
+      x = $77
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      a = $77
+      x = $00
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify they're stored distinctly
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $00, "Move 0 from should be $00")
+      assert(y == $77, "Move 0 to should be $77")
+
+      x = $01
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $77, "Move 1 from should be $77")
+      assert(y == $00, "Move 1 to should be $00")
+    }
+
+    test("all-squares-storable", "Can store moves from edge squares") {
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Test corner squares (0x88 corners)
+      a = $00  ; a8
+      x = $07  ; h8
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      a = $70  ; a1
+      x = $77  ; h1
+      jsr([AddMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $00, "a8 stored correctly")
+      assert(y == $07, "h8 stored correctly")
+
+      x = $01
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $70, "a1 stored correctly")
+      assert(y == $77, "h1 stored correctly")
+    }
+  }
+}
