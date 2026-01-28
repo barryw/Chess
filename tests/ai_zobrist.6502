@@ -40,4 +40,58 @@ suites {
       assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Consecutive PRNG values should differ")
     }
   }
+
+  suite("Zobrist Tables") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("init-tables-filled", "InitZobristTables fills table with values") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Check that multiple entries have different values (proves table was filled)
+      ; Store values at positions 0, 10, 100 and verify not all same
+      [Board88] = peekbyte([ZobristPieces])
+      [Board88] + $01 = peekbyte([ZobristPieces] + $0a)
+      [Board88] + $02 = peekbyte([ZobristPieces] + $64)
+
+      ; At least one pair should differ
+      ; (checking 0 vs 10 - should differ unless extremely unlucky)
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Table entries should vary")
+    }
+
+    test("init-tables-varied", "InitZobristTables produces varied values") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store first value
+      [Board88] = peekbyte([ZobristPieces])
+
+      ; Store second value (next byte in table)
+      [Board88] + $01 = peekbyte([ZobristPieces] + $01)
+
+      ; Different positions should have different values
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Different table entries should have different values")
+    }
+
+    test("init-tables-enpassant-varied", "ZobristEnPassant entries are varied") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store first two en passant values
+      [Board88] = peekbyte([ZobristEnPassant])
+      [Board88] + $01 = peekbyte([ZobristEnPassant] + $01)
+
+      ; They should differ
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "En passant entries should differ")
+    }
+
+    test("init-tables-castling-varied", "ZobristCastling entries are varied") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store first two castling values
+      [Board88] = peekbyte([ZobristCastling])
+      [Board88] + $01 = peekbyte([ZobristCastling] + $01)
+
+      ; They should differ
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Castling entries should differ")
+    }
+  }
 }
