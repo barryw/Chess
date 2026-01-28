@@ -35,6 +35,33 @@
 .const COLOR_MEMORY_OFFSET = COLOR_MEMORY - SCREEN_MEMORY
 
 //
+// Memory Configuration ($01 Processor Port)
+// Controls ROM/RAM banking for maximum memory utilization
+//
+// Bit 0 (LORAM):  0 = RAM at $A000-$BFFF, 1 = BASIC ROM
+// Bit 1 (HIRAM):  0 = RAM at $E000-$FFFF, 1 = KERNAL ROM
+// Bit 2 (CHAREN): 0 = CHAR ROM at $D000,  1 = I/O
+// (When LORAM=0 AND HIRAM=0, $D000 is always RAM regardless of CHAREN)
+//
+.const MEMORY_CONFIG_DEFAULT = $37  // BASIC + KERNAL + I/O (stock C64)
+.const MEMORY_CONFIG_NORMAL  = $34  // RAM + RAM + I/O (16KB extra!)
+.const MEMORY_CONFIG_TURBO   = $30  // ALL RAM (20KB extra, NO I/O!)
+
+//
+// Extended Memory Regions (available with MEMORY_CONFIG_NORMAL)
+//
+.const BOOK_HASH_TABLE = $5600      // Opening book hash table start
+.const BOOK_HASH_SIZE  = $4A00      // ~18.5KB for hash table ($5600-$9FFF)
+.const SWAP_BUFFER     = $A000      // 8KB swap buffer for disk loading
+.const SWAP_BUFFER_SIZE = $2000     // 8KB
+.const ENDGAME_TABLES  = $C000      // 4KB for endgame tablebases
+.const ENDGAME_SIZE    = $1000      // 4KB
+.const BOOK_ENTRIES    = $E000      // 8KB for book entry data
+.const BOOK_ENTRIES_SIZE = $2000    // 8KB
+.const TURBO_WORKSPACE = $D000      // 4KB extra during turbo mode
+.const TURBO_WORKSPACE_SIZE = $1000 // 4KB (only when I/O disabled!)
+
+//
 // Timing Constants
 //
 
@@ -151,6 +178,7 @@ values stored in Board88
 .const DRAW_SCORE     = 0      // Score for stalemate/draw
 .const NEG_INFINITY   = $80    // -128 as signed byte (worst possible)
 .const MAX_DEPTH      = 8      // Maximum search depth
+.const MAX_KILLER_DEPTH = 16   // Maximum killer move storage depth
 
 //
 // Game State Constants (returned by CheckGameState)

@@ -41,6 +41,15 @@ QuiesceDepth:
   .byte $00
 
 //
+// Killer Moves
+// Store 2 killer moves per depth (16 depths max)
+// Each killer is 2 bytes (from, to)
+// Format: [depth*4] = from1, to1, from2, to2
+//
+KillerMoves:
+  .fill MAX_KILLER_DEPTH * 4, $00
+
+//
 // MakeMove
 // Executes a move on the board, saving undo information
 //
@@ -840,6 +849,62 @@ InitSearch:
   rts
 
 //
+// ClearKillers
+// Clear all killer moves (call at start of search)
+// Clobbers: A, X
+//
+ClearKillers:
+  ldx #MAX_KILLER_DEPTH * 4 - 1
+  lda #$00
+!clear_killer_loop:
+  sta KillerMoves, x
+  dex
+  bpl !clear_killer_loop-
+  rts
+
+//
+// StoreKiller
+// Store a killer move (non-capture that caused cutoff)
+// Input: A = from square, X = to square, Y = depth
+// Clobbers: A, X, Y, $f0-$f2
+//
+StoreKiller:
+  sta $f0               // Save from
+  stx $f1               // Save to
+
+  // Calculate offset: depth * 4
+  tya
+  cmp #MAX_KILLER_DEPTH
+  bcs !killer_done+     // Depth too high, ignore
+  asl
+  asl                   // * 4
+  tay                   // Y = offset into KillerMoves
+
+  // Check if already stored as killer[0]
+  lda KillerMoves, y    // killer[depth][0].from
+  cmp $f0
+  bne !store_new_killer+
+  lda KillerMoves + 1, y
+  cmp $f1
+  beq !killer_done+     // Same move, already stored
+
+!store_new_killer:
+  // Shift killer[0] to killer[1]
+  lda KillerMoves, y
+  sta KillerMoves + 2, y
+  lda KillerMoves + 1, y
+  sta KillerMoves + 3, y
+
+  // Store new killer[0]
+  lda $f0
+  sta KillerMoves, y
+  lda $f1
+  sta KillerMoves + 1, y
+
+!killer_done:
+  rts
+
+//
 // Best move storage (set during search at root level)
 //
 BestMoveFrom:
@@ -1351,6 +1416,29 @@ Negamax:
   eor #$80
 !no_overflow3:
   bmi !not_better+          // If negative, alpha < beta (no cutoff)
+
+  // Beta cutoff! Check if this was a non-capture that caused cutoff
+  // Store as killer move for better move ordering
+  // X contains state offset
+  lda NegamaxState + 4, x   // to square
+  and #$7f                  // Clear promotion flag if present
+  tay
+  lda Board88, y
+  cmp #EMPTY_PIECE
+  bne !not_killer_cutoff+   // Was a capture, don't store
+
+  // Non-capture caused cutoff - store as killer
+  // X still has state offset
+  lda NegamaxState + 3, x   // from square
+  pha                       // Save from
+  lda NegamaxState + 4, x   // to square
+  and #$7f                  // Clear promotion flag
+  tax                       // X = to square (cleaned)
+  pla                       // A = from square
+  ldy SearchDepth
+  jsr StoreKiller
+
+!not_killer_cutoff:
   jmp !search_done+         // Cutoff! Return immediately
 
 !not_better:
@@ -1443,6 +1531,9 @@ FindBestMove:
 
   // Clear transposition table
   jsr TTClear
+
+  // Clear killer moves
+  jsr ClearKillers
 
   // Generate legal moves first to initialize BestMoveFrom/BestMoveTo
   // with a fallback move (the first legal move found)

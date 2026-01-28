@@ -923,6 +923,65 @@ OrderMovesMVVLVA:
   bne !outer_sort-      // If swapped, do another pass
 
 !mvvlva_done:
+  // After captures are sorted, try to move killer moves to front of quiet moves
+  // $e0 = number of captures (quiet moves start here)
+  lda $e0
+  sta $e6               // $e6 = start of quiet moves
+
+  // Check each quiet move against killers
+  lda $e0
+  sta $e1               // $e1 = current index
+
+!killer_reorder_loop:
+  lda $e1
+  cmp MoveCount
+  bcs !killer_done_reorder+
+
+  // Get move
+  ldx $e1
+  lda MoveListFrom, x
+  sta $e2
+  lda MoveListTo, x
+  and #$7f              // Clear promotion flag
+  sta $e3
+
+  // Check if it's a killer
+  lda $e2               // from
+  ldx $e3               // to
+  ldy SearchDepth
+  jsr IsKillerMove
+  bcc !next_killer_check+
+
+  // It's a killer - swap to front of quiet moves
+  ldx $e1
+  ldy $e6
+  cpx $e6
+  beq !advance_killer_front+
+
+  // Swap from[x] with from[y]
+  lda MoveListFrom, x
+  pha
+  lda MoveListFrom, y
+  sta MoveListFrom, x
+  pla
+  sta MoveListFrom, y
+
+  // Swap to[x] with to[y]
+  lda MoveListTo, x
+  pha
+  lda MoveListTo, y
+  sta MoveListTo, x
+  pla
+  sta MoveListTo, y
+
+!advance_killer_front:
+  inc $e6               // Advance quiet move insertion point
+
+!next_killer_check:
+  inc $e1
+  jmp !killer_reorder_loop-
+
+!killer_done_reorder:
   rts
 
 //
@@ -985,4 +1044,48 @@ GenerateCaptures:
 !filter_caps_done:
   lda $e1
   sta MoveCount
+  rts
+
+//
+// IsKillerMove
+// Check if a move matches a killer for the current depth
+// Input: A = from, X = to, Y = depth
+// Output: Carry set = is killer, Carry clear = not killer
+// Clobbers: $f0-$f2
+//
+IsKillerMove:
+  sta $f0               // from
+  stx $f1               // to
+
+  // Calculate offset: depth * 4
+  tya
+  cmp #MAX_KILLER_DEPTH
+  bcs !not_killer+
+  asl
+  asl
+  tay
+
+  // Check killer[0]
+  lda KillerMoves, y
+  cmp $f0
+  bne !check_killer_1+
+  lda KillerMoves + 1, y
+  cmp $f1
+  beq !is_killer+
+
+!check_killer_1:
+  // Check killer[1]
+  lda KillerMoves + 2, y
+  cmp $f0
+  bne !not_killer+
+  lda KillerMoves + 3, y
+  cmp $f1
+  bne !not_killer+
+
+!is_killer:
+  sec
+  rts
+
+!not_killer:
+  clc
   rts
