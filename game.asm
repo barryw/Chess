@@ -383,6 +383,7 @@ Finds best move, executes it, handles promotion, then changes players.
 */
 ComputerMove:
   jsr ShowThinking
+  sef playclockrunning   // Start the clock for computer's turn
 
   // Find the best move using AI search
   jsr FindBestMove
