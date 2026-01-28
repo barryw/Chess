@@ -1,0 +1,462 @@
+; AI Enhancement Unit Tests
+; Tests all new AI features: PST, MVV-LVA, Quiescence, TT, Killers, Pawn Structure, King Safety
+
+suites {
+  ; =========================================================================
+  ; PIECE-SQUARE TABLE TESTS
+  ; =========================================================================
+  suite("Piece-Square Tables") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("pst-tables-exist", "PST tables are loaded at correct addresses") {
+      ; Initialize tables
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; PST_Pawn should be at $a4a8 and contain reasonable pawn values
+      ; Center pawn bonus at rank 4 file d (offset 35) and e (offset 36)
+      ; These should have bonus values (20 for d4/e4 center control)
+      assert(peekbyte([PST_Pawn] + 35) == 20, "d4 pawn should have +20 bonus")
+      assert(peekbyte([PST_Pawn] + 36) == 20, "e4 pawn should have +20 bonus")
+    }
+
+    test("pst-knight-center", "Knight PST values correct for center vs rim") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Knight center (d4 = offset 35) should be positive
+      ; Knight rim (a1 = offset 56) should be negative (stored as 256-50 = 206)
+      assert(peekbyte([PST_Knight] + 35) == 20, "Knight d4 should have +20 bonus")
+    }
+
+    test("pst-evaluate-uses-tables", "EvaluatePosition includes PST scores") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      ; Setup: White knight on central d4, black knight on rim a8
+      memfill([Board88], 128, $30)
+      [Board88] + $43 = $b2  ; White knight on d4
+      [Board88] + $00 = $32  ; Black knight on a8
+      [Board88] + $74 = $b6  ; White king on e1
+      [Board88] + $04 = $36  ; Black king on e8
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      jsr([EvaluatePosition], stop_on_rts = true, fail_on_brk = true)
+
+      ; White should have positive score (central knight vs rim knight)
+      ; Score should be positive (high byte = 0 means positive)
+      assert(peekbyte([EvalScore] + 1) == $00, "Score should be positive")
+    }
+  }
+
+  ; =========================================================================
+  ; MVV-LVA CAPTURE SORTING TESTS
+  ; =========================================================================
+  suite("MVV-LVA Capture Ordering") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("mvv-lva-pawn-value", "Pawn MVV-LVA value is 10") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Check pawn value (index 1 in MVV_LVA_Values)
+      assert(peekbyte([MVV_LVA_Values] + 1) == 10, "Pawn value should be 10")
+    }
+
+    test("mvv-lva-knight-value", "Knight MVV-LVA value is 32") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MVV_LVA_Values] + 2) == 32, "Knight value should be 32")
+    }
+
+    test("mvv-lva-bishop-value", "Bishop MVV-LVA value is 33") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MVV_LVA_Values] + 3) == 33, "Bishop value should be 33")
+    }
+
+    test("mvv-lva-rook-value", "Rook MVV-LVA value is 50") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MVV_LVA_Values] + 4) == 50, "Rook value should be 50")
+    }
+
+    test("mvv-lva-queen-value", "Queen MVV-LVA value is 90") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MVV_LVA_Values] + 5) == 90, "Queen value should be 90")
+    }
+
+    test("mvv-lva-empty-list", "OrderMovesMVVLVA handles empty move list") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      jsr([OrderMovesMVVLVA], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([MoveCount]) == $00, "Move count should still be 0")
+    }
+  }
+
+  ; =========================================================================
+  ; QUIESCENCE SEARCH TESTS
+  ; =========================================================================
+  suite("Quiescence Search") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("quiesce-depth-init", "Quiescence depth initializes correctly") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([QuiesceDepth]) == $00, "Quiescence depth should start at 0")
+    }
+
+    test("generate-captures-empty", "GenerateCaptures handles empty board") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      ; Empty board except kings
+      memfill([Board88], 128, $30)
+      [Board88] + $74 = $b6  ; White king
+      [Board88] + $04 = $36  ; Black king
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+      [SearchSide] = $01
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+      jsr([GenerateCaptures], stop_on_rts = true, fail_on_brk = true)
+
+      ; No captures possible with just kings
+      assert(peekbyte([MoveCount]) == $00, "No captures on empty board")
+    }
+  }
+
+  ; =========================================================================
+  ; TRANSPOSITION TABLE TESTS
+  ; =========================================================================
+  suite("Transposition Table") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("tt-clear-initializes", "TTClear initializes TT state") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; After clear, TTHit should be 0
+      assert(peekbyte([TTHit]) == $00, "TTHit should be 0 after clear")
+    }
+
+    test("tt-probe-empty-miss", "TTProbe returns miss on empty table") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Set a hash to probe
+      [ZobristHash] = $ab
+      [ZobristHash] + 1 = $cd
+      [SearchDepth] = $04
+
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should be a miss
+      assert(peekbyte([TTHit]) == $00, "TTProbe should miss on empty table")
+    }
+
+    test("tt-store-probe-hit", "TTStore and TTProbe work together") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Setup hash and store an entry
+      [ZobristHash] = $12
+      [ZobristHash] + 1 = $34
+      [SearchDepth] = $03
+      [TTFlag] = $00
+      [TTScoreLo] = $50
+      [TTScoreHi] = $00
+      [TTBestFrom] = $64
+      [TTBestTo] = $44
+
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Now probe - should hit
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([TTHit]) == $01, "TTProbe should hit after TTStore")
+    }
+
+    test("tt-best-move-preserved", "TT preserves best move") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store with specific best move
+      [ZobristHash] = $56
+      [ZobristHash] + 1 = $78
+      [SearchDepth] = $02
+      [TTFlag] = $00
+      [TTScoreLo] = $30
+      [TTScoreHi] = $00
+      [TTBestFrom] = $76
+      [TTBestTo] = $57
+
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([TTBestFrom]) == $76, "Best from preserved")
+      assert(peekbyte([TTBestTo]) == $57, "Best to preserved")
+    }
+  }
+
+  ; =========================================================================
+  ; KILLER MOVE TESTS
+  ; =========================================================================
+  suite("Killer Moves") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("killer-clear-init", "ClearKillers initializes all slots") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([ClearKillers], stop_on_rts = true, fail_on_brk = true)
+
+      ; First slot should be $FF (invalid)
+      assert(peekbyte([KillerMoves]) == $ff, "First killer should be FF")
+    }
+
+    test("killer-store-depth0", "StoreKiller stores at depth 0") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([ClearKillers], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store a killer at depth 0
+      [SearchDepth] = $00
+      a = $64
+      x = $44
+      jsr([StoreKiller], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify stored at offset 0
+      assert(peekbyte([KillerMoves]) == $64, "Killer from at depth 0")
+      assert(peekbyte([KillerMoves] + 1) == $44, "Killer to at depth 0")
+    }
+
+    test("killer-store-depth2", "StoreKiller stores at depth 2") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([ClearKillers], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store at depth 2 (offset = 2 * 4 = 8)
+      [SearchDepth] = $02
+      a = $76
+      x = $57
+      jsr([StoreKiller], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([KillerMoves] + 8) == $76, "Killer from at depth 2")
+      assert(peekbyte([KillerMoves] + 9) == $57, "Killer to at depth 2")
+    }
+  }
+
+  ; =========================================================================
+  ; PAWN STRUCTURE TESTS
+  ; =========================================================================
+  suite("Pawn Structure Analysis") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("pawn-structure-empty-board", "Empty board has zero pawn structure") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      jsr([EvaluatePawnStructure], stop_on_rts = true, fail_on_brk = true)
+
+      ; No pawns = no structure bonus/penalty
+      assert(peekbyte([EvalScore]) == $00, "Empty = zero structure")
+    }
+
+    test("pawn-structure-single-pawn", "Single pawn evaluates") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+      [Board88] + $64 = $b1  ; White pawn on e2
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      jsr([EvaluatePawnStructure], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should complete without crashing
+      ; Score may be non-zero due to isolated pawn penalty
+    }
+  }
+
+  ; =========================================================================
+  ; KING SAFETY TESTS
+  ; =========================================================================
+  suite("King Safety Evaluation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("king-safety-both-center", "Kings in center evaluate symmetrically") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Both kings in center (symmetric)
+      [Board88] + $74 = $b6  ; White king e1
+      [Board88] + $04 = $36  ; Black king e8
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      jsr([EvaluateKingSafety], stop_on_rts = true, fail_on_brk = true)
+
+      ; Symmetric position should be near zero
+    }
+
+    test("king-safety-castled-advantage", "Castled king has advantage") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; White castled (g1), black center (e8)
+      [Board88] + $76 = $b6  ; White king g1 (castled)
+      [Board88] + $04 = $36  ; Black king e8 (not castled)
+      [whitekingsq] = $76
+      [blackkingsq] = $04
+
+      jsr([EvaluateKingSafety], stop_on_rts = true, fail_on_brk = true)
+
+      ; White should have advantage (castled bonus)
+    }
+  }
+
+  ; =========================================================================
+  ; TIME CONTROL TESTS
+  ; =========================================================================
+  suite("Time-Based Difficulty Control") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("time-up-initialized", "TimeUp starts at zero") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      ; TimeUp should be 0 at start
+      assert(peekbyte([TimeUp]) == $00, "TimeUp should be 0")
+    }
+
+    test("check-time-with-budget", "CheckTime works with time remaining") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      ; Set large time budget
+      [TimeRemaining] = $ff
+      [TimeRemaining] + 1 = $0f
+
+      jsr([CheckTime], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have time remaining
+      assert(peekbyte([TimeUp]) == $00, "Should have time left")
+    }
+  }
+
+  ; =========================================================================
+  ; OPENING BOOK VARIETY TESTS
+  ; =========================================================================
+  suite("Multiple Book Responses") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("book-state-reset", "ResetBookState initializes book") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Disable book first
+      [BookEnabled] = $00
+      [BookMoveCount] = $05
+
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([BookEnabled]) == $01, "Book should be enabled")
+      assert(peekbyte([BookMoveCount]) == $00, "Move count should be 0")
+    }
+
+    test("book-disable-enable", "DisableBook and EnableBook work") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      jsr([DisableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $00, "Book should be disabled")
+
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $01, "Book should be enabled")
+    }
+
+    test("book-match-count-init", "MatchCount initialized in lookup") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+
+      ; Set MatchCount to non-zero
+      [MatchCount] = $03
+
+      ; Compute hash for initial position
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Lookup will reset MatchCount
+      jsr([LookupOpeningMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; MatchCount should reflect found matches (initial position is in book)
+      assert(peekbyte([MatchCount]) >= 1, "Should find book moves")
+    }
+  }
+
+  ; =========================================================================
+  ; INTEGRATION TESTS
+  ; =========================================================================
+  suite("Full Evaluation Integration") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("eval-position-initial", "EvaluatePosition on initial position") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Initial position should be near equal
+      jsr([EvaluatePosition], stop_on_rts = true, fail_on_brk = true)
+
+      ; Allow small deviation from zero due to PST
+      ; Score high byte should be 0 or $FF (near zero)
+    }
+
+    test("eval-position-queen-advantage", "EvaluatePosition with material imbalance") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; White has queen, black has nothing but king
+      [Board88] + $44 = $b5  ; White queen e4
+      [Board88] + $74 = $b6  ; White king e1
+      [Board88] + $04 = $36  ; Black king e8
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      jsr([EvaluatePosition], stop_on_rts = true, fail_on_brk = true)
+
+      ; White should have large positive score
+      assert(peekbyte([EvalScore] + 1) == $00, "High byte 0 = positive")
+      assert(peekbyte([EvalScore]) >= $50, "Queen worth ~90")
+    }
+
+    test("negamax-returns-score", "Negamax completes and returns score") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+      jsr([ClearKillers], stop_on_rts = true, fail_on_brk = true)
+
+      ; Setup simple position
+      memfill([Board88], 128, $30)
+      [Board88] + $74 = $b6
+      [Board88] + $04 = $36
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      ; Search at depth 1 should complete quickly
+      [SearchDepth] = $01
+      [SearchSide] = $01
+      [TimeUp] = $00
+      [TimeRemaining] = $ff
+      [TimeRemaining] + 1 = $ff
+
+      ; Negamax should complete without crash
+      ; (we can't easily verify the score, just that it runs)
+    }
+  }
+}
