@@ -1,17 +1,5 @@
 ; Material Evaluation Unit Tests
-; Tests basic piece value counting
-;
-; NOTE: sim6502 limitation (see GitHub issue #2) - peekbyte cannot read
-; Board88+offset values written via test DSL, even though the write works
-; (proven by Zobrist hash tests). This limits our test coverage.
-;
-; We verify the evaluation code is correct through:
-; 1. Initial position test (uses PRG's board state)
-; 2. Equal material tests (differences cancel to 0)
-; 3. Hash-based proof that board changes are processed
-; 4. Code review and binary verification
-;
-; Tests requiring non-zero EvalScore reads are blocked by sim6502 issue.
+; Tests basic piece value counting and material imbalance detection
 
 suites {
   suite("Material Values") {
@@ -111,26 +99,87 @@ suites {
     load("/code/main.prg", strip_header = true)
 
     test("eval-board-modification-detected", "Evaluation processes board changes") {
-      ; We can't directly test piece values due to sim6502 peekbyte limitation,
-      ; but we can verify the evaluation runs on modified boards.
-      ; The initial position test proves the algorithm calculates correctly.
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)
 
-      ; Empty board hash
-      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
-      [screenbuffer] = peekbyte([ZobristHash])
-
-      ; Add a piece
-      [Board88] + $64 = $b1  ; WHITE_PAWN
-
-      ; Hash should change (proves piece was placed and code sees it)
-      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
-      assert(peekbyte([ZobristHash]) != peekbyte([screenbuffer]), "Board change detected via hash")
-
-      ; Evaluation runs on the modified board
+      ; Empty board - should evaluate to 0
       jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
-      ; Note: Can't directly assert EvalScore value due to sim6502 limitation
+      assert(peekbyte([EvalScore]) == $00, "Empty board has zero score")
+
+      ; Add a white pawn - white should have material advantage
+      [Board88] + $64 = $b1  ; WHITE_PAWN at e2
+
+      ; Evaluation should now show white ahead (positive score)
+      jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([EvalScore]) != $00, "Adding piece changes score")
+    }
+
+    test("eval-white-pawn-advantage", "White pawn gives positive score") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Add just one white pawn (value = 10 centipawns)
+      [Board88] + $64 = $b1  ; WHITE_PAWN at e2
+
+      jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
+
+      ; Score should be 10 ($0A) for one pawn
+      assert(peekbyte([EvalScore]) == $0a, "White pawn worth 10 centipawns")
+      assert(peekbyte([EvalScore] + $01) == $00, "High byte should be zero for small value")
+    }
+
+    test("eval-black-pawn-advantage", "Black pawn gives negative score") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Add just one black pawn
+      [Board88] + $14 = $31  ; BLACK_PAWN at e7
+
+      jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
+
+      ; Score should be -10 (two's complement: $FFF6)
+      ; Low byte = $F6, high byte = $FF
+      assert(peekbyte([EvalScore]) == $f6, "Black pawn gives negative score (low byte)")
+      assert(peekbyte([EvalScore] + $01) == $ff, "Black advantage shows in high byte")
+    }
+
+    test("eval-knight-value", "Knight worth 32 centipawns") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Add one white knight
+      [Board88] + $44 = $b2  ; WHITE_KNIGHT at e4
+
+      jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
+
+      ; Knight value = 32 ($20)
+      assert(peekbyte([EvalScore]) == $20, "White knight worth 32 centipawns")
+    }
+
+    test("eval-rook-value", "Rook worth 50 centipawns") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Add one white rook
+      [Board88] + $44 = $b4  ; WHITE_ROOK at e4
+
+      jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
+
+      ; Rook value = 50 ($32)
+      assert(peekbyte([EvalScore]) == $32, "White rook worth 50 centipawns")
+    }
+
+    test("eval-queen-value", "Queen worth 90 centipawns") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Add one white queen
+      [Board88] + $44 = $b5  ; WHITE_QUEEN at e4
+
+      jsr([EvaluateMaterial], stop_on_rts = true, fail_on_brk = true)
+
+      ; Queen value = 90 ($5A)
+      assert(peekbyte([EvalScore]) == $5a, "White queen worth 90 centipawns")
     }
   }
 }
