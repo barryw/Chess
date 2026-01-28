@@ -17,6 +17,8 @@
 // Runs 8 LFSR cycles per byte for better randomness
 //
 ZobristPRNG:
+  txa
+  pha               // Preserve X register for callers
   ldx #$08          // 8 iterations per output byte
 
 !prng_loop:
@@ -43,6 +45,10 @@ ZobristPRNG:
   // Store last result for testing
   sta ZobristLastRandom
 
+  pla
+  tax               // Restore X register
+
+  lda ZobristLastRandom  // Return random value in A
   rts
 
 //
