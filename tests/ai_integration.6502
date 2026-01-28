@@ -1,0 +1,353 @@
+; AI Integration Tests
+; Tests move generation with known chess positions
+;
+; These tests verify the complete move generation pipeline
+; using positions where the expected move count is known.
+
+suites {
+  suite("Initial Position Move Generation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("init-white-moves", "Initial position generates 20 white moves") {
+      ; The PRG file loads with standard chess initial position
+      ; White (side = $80) should have exactly 20 legal moves:
+      ; - 16 pawn moves (8 pawns x 2 squares each from starting row)
+      ; - 4 knight moves (2 knights x 2 squares each)
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate all moves for white ($80)
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify exactly 20 moves generated
+      assert(a == $14, "White should have 20 moves (0x14)")
+    }
+
+    test("init-black-moves", "Initial position generates 20 black moves") {
+      ; Black (side = $00) should also have exactly 20 legal moves:
+      ; - 16 pawn moves (8 pawns x 2 squares each from starting row)
+      ; - 4 knight moves (2 knights x 2 squares each)
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate all moves for black ($00)
+      x = $00
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify exactly 20 moves generated
+      assert(a == $14, "Black should have 20 moves (0x14)")
+    }
+  }
+
+  suite("Isolated Piece Move Counts") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("lone-knight-center", "Knight in center has 8 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white knight at e4 (0x88 index $44)
+      [Board88] + $44 = $b2  ; WHITE_KNIGHT
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Knight in center should have 8 moves
+      assert(a == $08, "Center knight should have 8 moves")
+    }
+
+    test("lone-knight-corner", "Knight in corner has 2 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white knight at a1 (0x88 index $70)
+      [Board88] + $70 = $b2  ; WHITE_KNIGHT
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Knight in corner should have 2 moves
+      assert(a == $02, "Corner knight should have 2 moves")
+    }
+
+    test("lone-rook-center", "Rook in center has 14 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white rook at e4 (0x88 index $44)
+      [Board88] + $44 = $b4  ; WHITE_ROOK
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Rook should have 14 moves (7 horizontal + 7 vertical)
+      assert(a == $0e, "Center rook should have 14 moves")
+    }
+
+    test("lone-bishop-center", "Bishop in center has 13 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white bishop at e4 (0x88 index $44)
+      [Board88] + $44 = $b3  ; WHITE_BISHOP
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Bishop at e4 diagonals: NE(4), NW(3), SE(3), SW(3) = 13 moves
+      assert(a == $0d, "Center bishop should have 13 moves")
+    }
+
+    test("lone-queen-center", "Queen in center has 27 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white queen at e4 (0x88 index $44)
+      [Board88] + $44 = $b5  ; WHITE_QUEEN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Queen = rook (14) + bishop (13) = 27 moves
+      assert(a == $1b, "Center queen should have 27 moves")
+    }
+
+    test("lone-king-center", "King in center has 8 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white king at e4 (0x88 index $44)
+      [Board88] + $44 = $b6  ; WHITE_KING
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; King in center should have 8 moves
+      assert(a == $08, "Center king should have 8 moves")
+    }
+
+    test("lone-king-corner", "King in corner has 3 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white king at a1 (0x88 index $70)
+      [Board88] + $70 = $b6  ; WHITE_KING
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; King in corner should have 3 moves
+      assert(a == $03, "Corner king should have 3 moves")
+    }
+  }
+
+  suite("Pawn Move Counts") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("white-pawn-start", "White pawn on starting rank has 2 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white pawn at e2 (0x88 index $64)
+      [Board88] + $64 = $b1  ; WHITE_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Pawn on starting rank can push 1 or 2 squares
+      assert(a == $02, "Starting pawn should have 2 moves")
+    }
+
+    test("white-pawn-advanced", "White pawn not on starting rank has 1 move") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white pawn at e4 (0x88 index $44)
+      [Board88] + $44 = $b1  ; WHITE_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Advanced pawn can only push 1 square
+      assert(a == $01, "Advanced pawn should have 1 move")
+    }
+
+    test("black-pawn-start", "Black pawn on starting rank has 2 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place black pawn at e7 (0x88 index $14)
+      [Board88] + $14 = $31  ; BLACK_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for black
+      x = $00
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Pawn on starting rank can push 1 or 2 squares
+      assert(a == $02, "Starting black pawn should have 2 moves")
+    }
+  }
+
+  suite("Blocking and Captures") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("pawn-blocked", "Blocked pawn has 0 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white pawn at e4 (0x88 index $44)
+      [Board88] + $44 = $b1  ; WHITE_PAWN
+      ; Place blocking piece at e5 (0x88 index $34)
+      [Board88] + $34 = $31  ; BLACK_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Blocked pawn cannot move
+      assert(a == $00, "Blocked pawn should have 0 moves")
+    }
+
+    test("pawn-with-captures", "Pawn with capture targets has 3 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white pawn at e4 (0x88 index $44)
+      [Board88] + $44 = $b1  ; WHITE_PAWN
+      ; Place enemy pieces for capture
+      [Board88] + $33 = $31  ; BLACK_PAWN at d5 (capture left)
+      [Board88] + $35 = $31  ; BLACK_PAWN at f5 (capture right)
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; 1 push + 2 captures = 3 moves
+      assert(a == $03, "Pawn with captures should have 3 moves")
+    }
+
+    test("rook-partially-blocked", "Rook blocked on one side") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white rook at e4 (0x88 index $44)
+      [Board88] + $44 = $b4  ; WHITE_ROOK
+      ; Place friendly piece blocking east at f4 (0x88 index $45)
+      [Board88] + $45 = $b1  ; WHITE_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Rook: 4 west + 4 north + 3 south + 0 east (blocked by pawn) = 11 rook moves
+      ; Pawn at f4 (not starting rank): 1 move
+      ; Total: 12 moves
+      assert(a == $0c, "Blocked rook + pawn should have 12 moves")
+    }
+  }
+
+  suite("Multiple Pieces") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("two-knights", "Two knights generate independent moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place white knights at b1 ($71) and g1 ($76) - starting squares
+      [Board88] + $71 = $b2  ; WHITE_KNIGHT at b1
+      [Board88] + $76 = $b2  ; WHITE_KNIGHT at g1
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Each knight on back rank has 3 legal squares
+      ; b1: a3, c3, d2 = 3 moves
+      ; g1: f3, h3, e2 = 3 moves
+      ; Total: 6 moves
+      assert(a == $06, "Two back-rank knights should have 6 moves total")
+    }
+
+    test("all-pawns-row", "8 pawns on starting rank have 16 moves") {
+      ; Clear the board
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)
+
+      ; Place all 8 white pawns on rank 2 (row 6 in 0x88)
+      [Board88] + $60 = $b1  ; a2
+      [Board88] + $61 = $b1  ; b2
+      [Board88] + $62 = $b1  ; c2
+      [Board88] + $63 = $b1  ; d2
+      [Board88] + $64 = $b1  ; e2
+      [Board88] + $65 = $b1  ; f2
+      [Board88] + $66 = $b1  ; g2
+      [Board88] + $67 = $b1  ; h2
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate moves for white
+      x = $80
+      jsr([GenerateAllMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; 8 pawns x 2 moves each = 16 moves
+      assert(a == $10, "8 starting pawns should have 16 moves")
+    }
+  }
+}

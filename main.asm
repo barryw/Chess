@@ -48,3 +48,4 @@ start:
 #import "input.asm"
 #import "game.asm"
 #import "menus.asm"
+#import "ai/ai.asm"

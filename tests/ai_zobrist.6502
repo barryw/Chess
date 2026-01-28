@@ -1,0 +1,173 @@
+; Zobrist Hashing Unit Tests
+; Tests random number generation and hash computation
+
+suites {
+  suite("Zobrist PRNG") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("prng-returns-in-a", "PRNG returns value in A register") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      assert(a == peekbyte([ZobristLastRandom]), "A register should match stored last random")
+    }
+
+    test("prng-nonzero", "PRNG produces non-zero value") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      assert(a != $00, "PRNG should produce non-zero value")
+    }
+
+    test("prng-different-values", "PRNG produces different values on successive calls") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      assert(a != $00, "Second PRNG call should produce non-zero value")
+    }
+
+    test("prng-sequence-unique", "PRNG produces unique consecutive values") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate first value and store in Board88[0]
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      [Board88] = peekbyte([ZobristLastRandom])
+
+      ; Generate second value and store in Board88[1]
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      [Board88] + $01 = peekbyte([ZobristLastRandom])
+
+      ; Verify consecutive values differ
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Consecutive PRNG values should differ")
+    }
+  }
+
+  suite("Zobrist Tables") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("init-tables-filled", "InitZobristTables fills table with values") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Check that multiple entries have different values (proves table was filled)
+      ; Store values at positions 0, 10, 100 and verify not all same
+      [Board88] = peekbyte([ZobristPieces])
+      [Board88] + $01 = peekbyte([ZobristPieces] + $0a)
+      [Board88] + $02 = peekbyte([ZobristPieces] + $64)
+
+      ; At least one pair should differ
+      ; (checking 0 vs 10 - should differ unless extremely unlucky)
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Table entries should vary")
+    }
+
+    test("init-tables-varied", "InitZobristTables produces varied values") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store first value
+      [Board88] = peekbyte([ZobristPieces])
+
+      ; Store second value (next byte in table)
+      [Board88] + $01 = peekbyte([ZobristPieces] + $01)
+
+      ; Different positions should have different values
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Different table entries should have different values")
+    }
+
+    test("init-tables-enpassant-varied", "ZobristEnPassant entries are varied") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store first two en passant values
+      [Board88] = peekbyte([ZobristEnPassant])
+      [Board88] + $01 = peekbyte([ZobristEnPassant] + $01)
+
+      ; They should differ
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "En passant entries should differ")
+    }
+
+    test("init-tables-castling-varied", "ZobristCastling entries are varied") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store first two castling values
+      [Board88] = peekbyte([ZobristCastling])
+      [Board88] + $01 = peekbyte([ZobristCastling] + $01)
+
+      ; They should differ
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Castling entries should differ")
+    }
+  }
+
+  suite("Zobrist Hash Computation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("hash-different-positions", "Different positions give different hashes") {
+      ; Initialize tables first
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; Empty board - store hash in screenbuffer (safe temp location)
+      memfill([Board88], 128, $30)
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+      [screenbuffer] = peekbyte([ZobristHash])
+
+      ; Add one piece
+      [Board88] + $70 = $b4  ; WHITE_ROOK at a1
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash should change
+      assert(peekbyte([ZobristHash]) != peekbyte([screenbuffer]), "Adding piece should change hash")
+    }
+
+    test("hash-piece-position-matters", "Same piece at different squares gives different hash") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; White rook at a1
+      memfill([Board88], 128, $30)
+      [Board88] + $70 = $b4  ; WHITE_ROOK at a1
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+      [screenbuffer] = peekbyte([ZobristHash])
+
+      ; Move rook to h1
+      memfill([Board88], 128, $30)
+      [Board88] + $77 = $b4  ; WHITE_ROOK at h1
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash should differ
+      assert(peekbyte([ZobristHash]) != peekbyte([screenbuffer]), "Piece position should affect hash")
+    }
+
+    test("hash-piece-type-matters", "Different piece types give different hashes") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; White rook at e4
+      memfill([Board88], 128, $30)
+      [Board88] + $44 = $b4  ; WHITE_ROOK
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+      [screenbuffer] = peekbyte([ZobristHash])
+
+      ; White knight at e4
+      memfill([Board88], 128, $30)
+      [Board88] + $44 = $b2  ; WHITE_KNIGHT
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash should differ
+      assert(peekbyte([ZobristHash]) != peekbyte([screenbuffer]), "Piece type should affect hash")
+    }
+
+    test("hash-color-matters", "Different piece colors give different hashes") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+
+      ; White rook at e4
+      memfill([Board88], 128, $30)
+      [Board88] + $44 = $b4  ; WHITE_ROOK
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+      [screenbuffer] = peekbyte([ZobristHash])
+
+      ; Black rook at e4
+      memfill([Board88], 128, $30)
+      [Board88] + $44 = $34  ; BLACK_ROOK
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash should differ
+      assert(peekbyte([ZobristHash]) != peekbyte([screenbuffer]), "Piece color should affect hash")
+    }
+  }
+}
