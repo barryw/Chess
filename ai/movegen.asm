@@ -62,4 +62,52 @@ GetMove:
   ldy MoveListTo, x     // Y = to square
   rts
 
-// Move generation routines will be added here in subsequent tasks
+//
+// Generate knight moves from a square
+// Input: A = from square (0x88 index)
+//        X = side to move color ($80 = white, $00 = black)
+// Clobbers: A, X, Y, $f7-$fa
+//
+GenerateKnightMoves:
+  sta $f7               // $f7 = from square
+  stx $f8               // $f8 = our color
+  lda #$00
+  sta $f9               // $f9 = offset index
+
+!knight_loop:
+  ldx $f9               // X = offset index
+  lda $f7               // Start with from square
+  clc
+  adc KnightOffsets, x  // Add knight offset
+  sta $fa               // $fa = target square
+
+  // Check if target is on board
+  and #OFFBOARD_MASK
+  bne !knight_next+     // Off board, skip
+
+  // Check what's on target square
+  ldx $fa
+  lda Board88, x
+
+  // If empty, add move
+  cmp #EMPTY_PIECE
+  beq !add_knight_move+
+
+  // Check if enemy piece (can capture)
+  and #WHITE_COLOR      // Get piece color
+  cmp $f8               // Compare with our color
+  beq !knight_next+     // Same color = can't capture, skip
+
+  // Enemy piece - can capture
+!add_knight_move:
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
+
+!knight_next:
+  inc $f9               // Next offset
+  lda $f9
+  cmp #$08              // 8 knight offsets
+  bne !knight_loop-
+
+  rts
