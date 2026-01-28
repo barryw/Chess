@@ -111,3 +111,121 @@ GenerateKnightMoves:
   bne !knight_loop-
 
   rts
+
+//
+// Generate sliding moves in given directions
+// Input: A = from square (0x88 index)
+//        X = side to move color ($80 = white, $00 = black)
+//        Y = number of directions
+//        $fd/$fe = pointer to direction table (set before calling)
+// Clobbers: A, X, Y, $f7-$fe
+//
+// This is a helper used by rook, bishop, queen generators
+// Uses $fd/$fe as zero-page pointer for indirect indexed addressing
+//
+
+GenerateSlidingMoves:
+  sta $f7               // $f7 = from square
+  stx $f8               // $f8 = our color
+  sty $fb               // $fb = number of directions
+  lda #$00
+  sta $f9               // $f9 = direction index
+
+!direction_loop:
+  // Get direction offset
+  ldy $f9
+  lda ($fd), y          // $fd/$fe = direction table pointer
+  sta $fa               // $fa = direction offset
+
+  // Start sliding from the from square (reset each direction)
+  lda $f7
+  sta $fc               // $fc = current square
+
+!slide_loop:
+  // Move one step in direction
+  lda $fc
+  clc
+  adc $fa               // Add direction offset
+  sta $fc               // $fc = new target square
+
+  // Check if on board
+  and #OFFBOARD_MASK
+  bne !next_direction+  // Off board, try next direction
+
+  // Check what's on target square
+  ldx $fc
+  lda Board88, x
+
+  // If empty, add move and continue sliding
+  cmp #EMPTY_PIECE
+  beq !add_slide_move+
+
+  // Not empty - check if enemy piece
+  and #WHITE_COLOR      // Get piece color
+  cmp $f8               // Compare with our color
+  beq !next_direction+  // Same color = blocked, next direction
+
+  // Enemy piece - add capture move, then stop
+  lda $f7               // A = from
+  ldx $fc               // X = to
+  jsr AddMove
+  jmp !next_direction+
+
+!add_slide_move:
+  lda $f7               // A = from
+  ldx $fc               // X = to
+  jsr AddMove
+  jmp !slide_loop-      // Continue sliding
+
+!next_direction:
+  inc $f9               // Next direction
+  lda $f9
+  cmp $fb               // Done all directions?
+  bne !direction_loop-
+
+  rts
+
+//
+// Generate rook moves (orthogonal sliding)
+// Input: A = from square, X = side color
+// Clobbers: A, X, Y, $f7-$fe
+//
+GenerateRookMoves:
+  pha                   // Save from square
+  lda #<OrthogonalOffsets
+  sta $fd               // Direction pointer low byte
+  lda #>OrthogonalOffsets
+  sta $fe               // Direction pointer high byte
+  pla                   // Restore from square
+  ldy #$04              // 4 orthogonal directions
+  jmp GenerateSlidingMoves
+
+//
+// Generate bishop moves (diagonal sliding)
+// Input: A = from square, X = side color
+// Clobbers: A, X, Y, $f7-$fe
+//
+GenerateBishopMoves:
+  pha                   // Save from square
+  lda #<DiagonalOffsets
+  sta $fd               // Direction pointer low byte
+  lda #>DiagonalOffsets
+  sta $fe               // Direction pointer high byte
+  pla                   // Restore from square
+  ldy #$04              // 4 diagonal directions
+  jmp GenerateSlidingMoves
+
+//
+// Generate queen moves (all 8 directions sliding)
+// Input: A = from square, X = side color
+// Clobbers: A, X, Y, $f7-$fe
+//
+GenerateQueenMoves:
+  pha                   // Save from square
+  lda #<AllDirectionOffsets
+  sta $fd               // Direction pointer low byte
+  lda #>AllDirectionOffsets
+  sta $fe               // Direction pointer high byte
+  pla                   // Restore from square
+  ldy #$08              // 8 directions
+  jmp GenerateSlidingMoves
