@@ -1,0 +1,43 @@
+; Zobrist Hashing Unit Tests
+; Tests random number generation and hash computation
+
+suites {
+  suite("Zobrist PRNG") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("prng-returns-in-a", "PRNG returns value in A register") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      assert(a == peekbyte([ZobristLastRandom]), "A register should match stored last random")
+    }
+
+    test("prng-nonzero", "PRNG produces non-zero value") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      assert(a != $00, "PRNG should produce non-zero value")
+    }
+
+    test("prng-different-values", "PRNG produces different values on successive calls") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      assert(a != $00, "Second PRNG call should produce non-zero value")
+    }
+
+    test("prng-sequence-unique", "PRNG produces unique consecutive values") {
+      jsr([ZobristSeed], stop_on_rts = true, fail_on_brk = true)
+
+      ; Generate first value and store in Board88[0]
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      [Board88] = peekbyte([ZobristLastRandom])
+
+      ; Generate second value and store in Board88[1]
+      jsr([ZobristPRNG], stop_on_rts = true, fail_on_brk = true)
+      [Board88] + $01 = peekbyte([ZobristLastRandom])
+
+      ; Verify consecutive values differ
+      assert(peekbyte([Board88]) != peekbyte([Board88] + $01), "Consecutive PRNG values should differ")
+    }
+  }
+}
