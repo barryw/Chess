@@ -19,11 +19,94 @@ ShowThinking:
 
 /*
 Hide the "Thinking" message when the computer is ready to move
+Also clears the depth and best move display lines
 */
 HideThinking:
   FillMemory(ColorAddress(ThinkingPos), $08, BLACK)
+  FillMemory(ColorAddress(ThinkingDepthPos), $0e, BLACK)
+  FillMemory(ColorAddress(ThinkingBestPos), $0e, BLACK)
   lda #TIMER_SPINNER
   jsr DisableTimer
+  rts
+
+/*
+Update the thinking display showing current search depth and best move found.
+Call this after each completed iteration in iterative deepening.
+
+Uses: IterDepth (current depth), BestMoveFrom, BestMoveTo
+Clobbers: A, X, Y, temp1, temp2
+*/
+UpdateThinkingDisplay:
+  // Display "Depth: X"
+  PrintAt(ThinkingDepthText, ThinkingDepthPos, WHITE)
+
+  // Print depth as single digit (1-8)
+  lda IterDepth
+  clc
+  adc #$30              // Convert to ASCII digit
+  sta ScreenAddress(ThinkingDepthPos) + 7  // After "Depth: "
+  lda #WHITE
+  sta ColorAddress(ThinkingDepthPos) + 7
+
+  // Display "Best:  " prefix
+  PrintAt(ThinkingBestText, ThinkingBestPos, WHITE)
+
+  // Convert BestMoveFrom to algebraic (e.g., "e2")
+  lda BestMoveFrom
+  jsr SquareToAlgebraic
+  // A = file char, X = rank char
+  sta ScreenAddress(ThinkingBestPos) + 7   // File letter (a-h)
+  stx ScreenAddress(ThinkingBestPos) + 8   // Rank digit (1-8)
+  lda #WHITE
+  sta ColorAddress(ThinkingBestPos) + 7
+  sta ColorAddress(ThinkingBestPos) + 8
+
+  // Display "-" separator
+  lda #'-'
+  sta ScreenAddress(ThinkingBestPos) + 9
+  lda #WHITE
+  sta ColorAddress(ThinkingBestPos) + 9
+
+  // Convert BestMoveTo to algebraic
+  lda BestMoveTo
+  and #$7f              // Clear promotion flag if present
+  jsr SquareToAlgebraic
+  sta ScreenAddress(ThinkingBestPos) + 10  // File letter
+  stx ScreenAddress(ThinkingBestPos) + 11  // Rank digit
+  lda #WHITE
+  sta ColorAddress(ThinkingBestPos) + 10
+  sta ColorAddress(ThinkingBestPos) + 11
+
+  rts
+
+/*
+Convert a 0x88 square index to algebraic notation characters.
+Input: A = 0x88 square index
+Output: A = file char ('a'-'h')
+        X = rank char ('1'-'8')
+Clobbers: temp1
+*/
+SquareToAlgebraic:
+  sta temp1             // Save square
+
+  // Extract file (column) = square & $07
+  and #$07
+  clc
+  adc #'a'              // Convert 0-7 to 'a'-'h'
+  pha                   // Save file char
+
+  // Extract rank = 8 - (square >> 4)
+  lda temp1
+  lsr
+  lsr
+  lsr
+  lsr                   // square >> 4 = row 0-7
+  eor #$07              // Invert: 0->7, 7->0
+  clc
+  adc #'1'              // Convert to '1'-'8'
+  tax                   // Rank in X
+
+  pla                   // File in A
   rts
 
 /*

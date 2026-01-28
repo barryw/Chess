@@ -98,8 +98,12 @@
 .var MovePos = ScreenPos($1a, ThinkingPos.y)
 .var CursorPos = ScreenPos($26, ThinkingPos.y)
 
+// AI thinking display - shows depth and best move during search
+.var ThinkingDepthPos = ScreenPos($1c, $08)
+.var ThinkingBestPos = ScreenPos($1c, $09)
+
 // The location to display movement errors
-.var ErrorPos = ScreenPos($1a, ThinkingPos.y + $02)
+.var ErrorPos = ScreenPos($1a, ThinkingPos.y + $03)
 
 // Version display - lower right corner
 .var VersionPos = ScreenPos($24, $18)

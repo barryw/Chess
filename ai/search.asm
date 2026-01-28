@@ -1641,6 +1641,9 @@ FindBestMove:
   jsr Negamax
   sta IterScore
 
+  // Update thinking display with current depth and best move
+  jsr UpdateThinkingDisplay
+
   // Check if found mate (can stop early)
   lda IterScore
   cmp #MATE_SCORE - 10

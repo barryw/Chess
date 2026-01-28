@@ -228,6 +228,14 @@ ThinkingText:
   .text "Thinking"
   .byte $00
 
+ThinkingDepthText:
+  .text "Depth: "
+  .byte $00
+
+ThinkingBestText:
+  .text "Best:  "
+  .byte $00
+
 MoveFromText:
   .text "Move From :   "
   .byte $00
