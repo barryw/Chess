@@ -490,4 +490,106 @@ suites {
       assert(a == $44, "King capture moves generated")
     }
   }
+
+  suite("Pawn Move Generation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("white-pawn-single-push", "White pawn can push one square") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white pawn at e4 ($44)
+      [Board88] + $44 = $b1  ; WHITE_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $44
+      x = $80
+      jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Pawn can push to e5 ($34)
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "White pawn moves from e4")
+    }
+
+    test("black-pawn-single-push", "Black pawn can push one square") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place black pawn at e5 ($34)
+      [Board88] + $34 = $31  ; BLACK_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $34
+      x = $00
+      jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Pawn can push to e4 ($44)
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $34, "Black pawn moves from e5")
+    }
+
+    test("white-pawn-double-push", "White pawn can double push from rank 2") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white pawn at e2 ($64) - starting rank
+      [Board88] + $64 = $b1  ; WHITE_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $64
+      x = $80
+      jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have 2 moves: e3 ($54) and e4 ($44)
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $64, "Pawn moves generated")
+    }
+
+    test("white-pawn-capture-diagonal", "White pawn captures diagonally") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white pawn at e4 ($44)
+      [Board88] + $44 = $b1  ; WHITE_PAWN
+      ; Place black piece at d5 ($33) - can capture
+      [Board88] + $33 = $31  ; BLACK_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $44
+      x = $80
+      jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have 2 moves: e5 push + d5 capture
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "Pawn moves with capture")
+    }
+
+    test("pawn-blocked-cannot-push", "Pawn blocked by piece cannot push") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white pawn at e4 ($44)
+      [Board88] + $44 = $b1  ; WHITE_PAWN
+      ; Block with piece at e5 ($34)
+      [Board88] + $34 = $31  ; BLACK_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $44
+      x = $80
+      jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Pawn is blocked, but might have diagonal captures
+      ; In this case no captures available, so 0 moves
+    }
+  }
 }

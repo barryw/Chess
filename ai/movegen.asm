@@ -279,3 +279,149 @@ GenerateKingMoves:
   bne !king_loop-
 
   rts
+
+//
+// Generate pawn moves
+// Input: A = from square, X = side color ($80 = white, $00 = black)
+// Note: Does NOT handle en passant or promotion flags
+// Clobbers: A, X, Y, $f7-$fb
+//
+.const WHITE_PAWN_PUSH = $f0    // -16 (north)
+.const BLACK_PAWN_PUSH = $10    // +16 (south)
+.const WHITE_START_ROW = $60    // Row 6 (rank 2)
+.const BLACK_START_ROW = $10    // Row 1 (rank 7)
+
+GeneratePawnMoves:
+  sta $f7               // $f7 = from square
+  stx $f8               // $f8 = our color
+
+  // Determine push direction based on color
+  lda $f8
+  bne !white_pawn+
+
+  // Black pawn - pushes south
+  lda #BLACK_PAWN_PUSH
+  sta $f9               // $f9 = push direction
+  lda #BLACK_START_ROW
+  sta $fb               // $fb = start row base
+  jmp !generate_pawn_pushes+
+
+!white_pawn:
+  // White pawn - pushes north
+  lda #WHITE_PAWN_PUSH
+  sta $f9               // $f9 = push direction
+  lda #WHITE_START_ROW
+  sta $fb               // $fb = start row base
+
+!generate_pawn_pushes:
+  // Single push
+  lda $f7
+  clc
+  adc $f9               // Add push direction
+  sta $fa               // $fa = target square
+
+  // Check if on board
+  and #OFFBOARD_MASK
+  bne !pawn_captures+   // Off board, skip to captures
+
+  // Check if empty (pawns can only push to empty squares)
+  ldx $fa
+  lda Board88, x
+  cmp #EMPTY_PIECE
+  bne !pawn_captures+   // Blocked, skip to captures
+
+  // Add single push move
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
+
+  // Check for double push (from start row)
+  lda $f7
+  and #$70              // Get row (high nibble)
+  cmp $fb               // Compare with start row
+  bne !pawn_captures+   // Not on start row, skip double push
+
+  // Double push - add another step
+  lda $fa               // Current target (after single push)
+  clc
+  adc $f9               // Add push direction again
+  sta $fa               // $fa = double push target
+
+  // Check if on board
+  and #OFFBOARD_MASK
+  bne !pawn_captures+   // Off board
+
+  // Check if empty
+  ldx $fa
+  lda Board88, x
+  cmp #EMPTY_PIECE
+  bne !pawn_captures+   // Blocked
+
+  // Add double push move
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
+
+!pawn_captures:
+  // Generate capture moves
+  // White captures: NW (-17=$ef), NE (-15=$f1)
+  // Black captures: SW (+15=$0f), SE (+17=$11)
+  // Use PawnCaptureOffsets table: [Black SW, Black SE, White NW, White NE]
+
+  // Determine capture offset base
+  lda $f8               // Our color
+  beq !black_captures+
+  lda #$02              // White offset index = 2
+  jmp !capture_loop_start+
+!black_captures:
+  lda #$00              // Black offset index = 0
+
+!capture_loop_start:
+  sta $fb               // $fb = capture offset index
+
+!capture_loop:
+  ldx $fb
+  lda PawnCaptureOffsets, x
+  sta $fa               // $fa = capture direction
+
+  lda $f7
+  clc
+  adc $fa               // Target capture square
+  sta $fa
+
+  // Check if on board
+  and #OFFBOARD_MASK
+  bne !next_capture+
+
+  // Check if enemy piece (must be enemy to capture)
+  ldx $fa
+  lda Board88, x
+  cmp #EMPTY_PIECE
+  beq !next_capture+    // Empty - pawns can't move diagonally to empty
+
+  // Check if enemy
+  and #WHITE_COLOR
+  cmp $f8
+  beq !next_capture+    // Same color - can't capture own piece
+
+  // Enemy piece - add capture move
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
+
+!next_capture:
+  inc $fb               // Next capture direction
+  lda $fb
+  // Check if done (white: 2,3 -> done at 4; black: 0,1 -> done at 2)
+  lda $f8
+  bne !white_capture_check+
+  lda $fb
+  cmp #$02              // Black done after index 1
+  bne !capture_loop-
+  rts
+
+!white_capture_check:
+  lda $fb
+  cmp #$04              // White done after index 3
+  bne !capture_loop-
+  rts
