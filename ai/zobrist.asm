@@ -6,44 +6,40 @@
 *=* "AI Zobrist"
 
 //
-// 32-bit xorshift PRNG
-// State stored in $fb-$fe (zero page for speed)
+// 16-bit Galois LFSR PRNG
+// State stored in $fb-$fc (zero page for speed)
 // Returns 8-bit result in A, advances state
 //
-// Algorithm: state ^= state << 13; state ^= state >> 17; state ^= state << 5
-// Simplified for 6502: we do byte-level operations
+// Uses polynomial x^16 + x^14 + x^13 + x^11 + 1
+// Period: 65535 (2^16 - 1)
+// Taps: bits 16, 14, 13, 11 -> feedback mask $B400
 //
 ZobristPRNG:
-  // xorshift32 simplified for 6502
-  // We'll use a simpler LFSR approach that's fast on 6502
-  // 32-bit state in $fb-$fe
+  // Galois LFSR: if LSB is 1, shift right and XOR with tap mask
+  // if LSB is 0, just shift right
 
-  // Shift left, XOR back
+  // Save original LSB (bit 0 of $fb) for feedback decision
   lda $fb
-  asl
-  eor $fb
-  sta $fb
+  and #$01          // Isolate LSB
+  pha               // Save on stack
 
+  // 16-bit right shift: high byte first, then low byte
+  lsr $fc           // Shift high byte right, bit 0 -> carry, 0 -> bit 7
+  ror $fb           // Shift low byte right, carry -> bit 7, bit 0 -> carry
+
+  // Check saved LSB for feedback
+  pla               // Restore LSB
+  beq !nofeedback+  // If LSB was 0, skip XOR
+
+  // XOR with feedback polynomial $B400
+  // Only need to XOR high byte since low byte of $B400 is $00
   lda $fc
-  rol
-  eor $fc
+  eor #$B4          // XOR with high byte of polynomial
   sta $fc
 
-  lda $fd
-  rol
-  eor $fd
-  sta $fd
-
-  lda $fe
-  rol
-  eor $fe
-  sta $fe
-
-  // Mix bytes for output
+!nofeedback:
+  // Return low byte as output (good distribution)
   lda $fb
-  eor $fc
-  eor $fd
-  eor $fe
 
   // Store last result for testing
   sta ZobristLastRandom
@@ -51,18 +47,15 @@ ZobristPRNG:
   rts
 
 //
-// Seed the PRNG with a fixed value
+// Seed the PRNG with a fixed non-zero value
 // Call once at startup
+// IMPORTANT: LFSR must never be all zeros!
 //
 ZobristSeed:
-  lda #$12
+  lda #$CE
   sta $fb
-  lda #$34
+  lda #$A7
   sta $fc
-  lda #$56
-  sta $fd
-  lda #$78
-  sta $fe
   rts
 
 // Storage for last random value (for testing)
