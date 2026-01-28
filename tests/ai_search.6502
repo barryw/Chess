@@ -479,6 +479,8 @@ suites {
       [Board88] + $04 = $34    ; Black rook on e8
       [whitekingsq] = $74
       [blackkingsq] = $ff
+      [castlerights] = 0       ; No castling
+      [enpassantsq] = $ff      ; No en passant
 
       jsr([GenerateLegalMoves], stop_on_rts = true, fail_on_brk = true)
 

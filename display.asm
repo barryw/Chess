@@ -10,8 +10,11 @@ when the computer is determining its best move.
 ShowThinking:
   FillMemory(ScreenAddress(InteractionLinePos), $0e, $20)
   PrintAt(ThinkingText, ThinkingPos, WHITE)
-  Enable(spinnerenabled)
+  lda #TIMER_SPINNER
+  jsr EnableTimer
   Disable(showcursor)
+  lda #TIMER_FLASH_CURSOR
+  jsr DisableTimer
   rts
 
 /*
@@ -19,7 +22,8 @@ Hide the "Thinking" message when the computer is ready to move
 */
 HideThinking:
   FillMemory(ColorAddress(ThinkingPos), $08, BLACK)
-  Disable(spinnerenabled)
+  lda #TIMER_SPINNER
+  jsr DisableTimer
   rts
 
 /*
@@ -119,11 +123,13 @@ UpdateCurrentPlayer:
   jeq player1color:currentplayer:!playersturn+
 
 !computersturn:
+  FillMemory(ScreenAddress(TurnValuePos), $08, $20)  // Clear the turn value area
   PrintAt(ComputerText, TurnValuePos, WHITE)
   jsr ShowThinking      // Enable the spinner to show that the computer is thinking
   jmp !return+
 
 !playersturn:
+  FillMemory(ScreenAddress(TurnValuePos), $08, $20)  // Clear the turn value area
   PrintAt(PlayerText, TurnValuePos, WHITE)
   jsr HideThinking      // If it's the players turn, disable the spinner
 
@@ -141,6 +147,8 @@ DisplayMoveFromPrompt:
   jsr ResetInput
 
   Enable(showcursor)
+  lda #TIMER_FLASH_CURSOR
+  jsr EnableTimer
 
   rts
 
@@ -156,6 +164,8 @@ DisplayMoveToPrompt:
   jsr ResetInput
 
   Enable(showcursor)
+  lda #TIMER_FLASH_CURSOR
+  jsr EnableTimer
 
   rts
 

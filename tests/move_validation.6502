@@ -203,7 +203,7 @@ suites {
       assert([movetoisvalid] == $80, "Move should be valid even during flash off")
 
       ; Board88 should now have the piece restored
-      assert([Board88] + $71 == $b2, "Piece should be restored to Board88")
+      assert(peekbyte([Board88] + $71) == $b2, "Piece should be restored to Board88")
     }
 
     test("validate-knight-illegal", "Knight cannot move straight", tags = "validate,knight") {

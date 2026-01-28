@@ -48,6 +48,18 @@ MakeMove:
   sta $f0               // $f0 = from square
   stx $f1               // $f1 = to square
 
+  // Check for knight promotion flag (bit 7 of to square)
+  lda #$00
+  sta $f5               // $f5 = promotion type (0 = none/queen, $80 = knight)
+  txa
+  and #$80
+  beq !no_promo_flag+
+  sta $f5               // Save knight promotion flag
+  txa
+  and #$7f              // Clear bit 7 for actual to square
+  sta $f1               // Update $f1 with corrected to square
+!no_promo_flag:
+
   // Calculate undo stack pointer: UndoStack + SearchDepth * 6
   lda SearchDepth
   asl                   // * 2
@@ -270,6 +282,52 @@ MakeMove:
   // No double push - clear en passant
   lda #NO_EN_PASSANT
   sta enpassantsq
+  // Fall through to check promotion
+
+!check_promotion:
+  // Check if pawn reaches promotion rank
+  // White promotes on row 0 ($00-$07), Black on row 7 ($70-$77)
+  lda $f3               // Moving piece (pawn)
+  and #WHITE_COLOR
+  bne !check_white_promo+
+
+  // Black pawn - check if to square is row 7
+  lda $f1
+  and #$70
+  cmp #$70
+  bne !do_basic_move+   // Not promotion rank
+  jmp !do_promotion+
+
+!check_white_promo:
+  // White pawn - check if to square is row 0
+  lda $f1
+  and #$70
+  cmp #$00
+  bne !do_basic_move+   // Not promotion rank
+
+!do_promotion:
+  // Set promotion flag in undo info
+  lda UndoStack + 3, x
+  ora #UNDO_FLAG_PROMOTION
+  sta UndoStack + 3, x
+
+  // Determine promotion piece: $f5 = $80 means knight, else queen
+  lda $f5
+  bne !promote_knight+
+
+  // Queen promotion - change $f3 to queen of same color
+  lda $f3               // Pawn
+  and #WHITE_COLOR      // Get color
+  ora #QUEEN_SPR        // Add queen sprite
+  sta $f3
+  jmp !do_basic_move+
+
+!promote_knight:
+  // Knight promotion
+  lda $f3               // Pawn
+  and #WHITE_COLOR      // Get color
+  ora #KNIGHT_SPR       // Add knight sprite
+  sta $f3
   jmp !do_basic_move+
 
 !not_pawn_move:
@@ -382,6 +440,11 @@ UnmakeMove:
   sta $f0               // $f0 = from square (piece returns here)
   stx $f1               // $f1 = to square (was destination)
 
+  // Clear knight promotion flag if set (bit 7)
+  txa
+  and #$7f              // Mask off bit 7
+  sta $f1               // Use corrected to square
+
   // Decrement search depth first
   dec SearchDepth
 
@@ -404,8 +467,21 @@ UnmakeMove:
   lda Board88, y
   sta $f3               // $f3 = moving piece
 
+  // Check if this was a promotion
+  lda UndoStack + 3, x  // flags
+  and #UNDO_FLAG_PROMOTION
+  beq !not_promotion_undo+
+
+  // Was promotion - convert piece back to pawn
+  lda $f3               // Promoted piece (queen or knight)
+  and #WHITE_COLOR      // Keep color
+  ora #PAWN_SPR         // Change to pawn
+  sta $f3
+
+!not_promotion_undo:
   // Put the piece back on from square
   ldy $f0
+  lda $f3
   sta Board88, y
 
   // Check flags for special moves
@@ -528,6 +604,97 @@ IsSearchKingInCheck:
   rts
 
 //
+// IsCastlingMove
+// Check if a move is a castling move (king moving 2 squares)
+// Input: $e2 = from square, $e3 = to square (cleaned)
+// Output: Carry set = is castling, Carry clear = not castling
+// Clobbers: A
+//
+IsCastlingMove:
+  // Check if from square is a king starting position
+  lda $e2
+  cmp #$74              // White king e1?
+  beq !check_castle_dist+
+  cmp #$04              // Black king e8?
+  bne !not_castle+
+
+!check_castle_dist:
+  // King on starting square - check if moving 2 squares
+  lda $e3
+  sec
+  sbc $e2               // to - from
+  cmp #$02              // Kingside (e1->g1 or e8->g8)?
+  beq !is_castle+
+  cmp #$fe              // Queenside (e1->c1 or e8->c8)? (-2 = $fe)
+  beq !is_castle+
+
+!not_castle:
+  clc                   // Clear carry = not castling
+  rts
+
+!is_castle:
+  sec                   // Set carry = is castling
+  rts
+
+//
+// CheckCastlingLegal
+// Additional checks for castling legality (king not in check, doesn't pass through check)
+// Input: $e2 = from (king's square), $e3 = to (cleaned)
+// Output: Carry set = castling illegal, Carry clear = legal
+// Clobbers: A, X, Y, attack_sq, attack_color
+//
+CheckCastlingLegal:
+  // First check: King must not be in check currently
+  lda $e2               // King's current square
+  sta attack_sq
+
+  // Determine attacker color (opposite of SearchSide)
+  lda SearchSide
+  beq !white_attacks_castle+
+  lda #BLACKS_TURN      // SearchSide is white, black attacks
+  jmp !check_start_sq+
+!white_attacks_castle:
+  lda #WHITES_TURN      // SearchSide is black, white attacks
+
+!check_start_sq:
+  sta attack_color
+  jsr IsSquareAttacked
+  bcs !castle_illegal+  // King in check - can't castle
+
+  // Second check: Intermediate square must not be attacked
+  // Kingside: intermediate = from + 1, Queenside: intermediate = from - 1
+  lda $e3
+  sec
+  sbc $e2               // to - from
+  cmp #$02              // Kingside?
+  bne !queenside_intermediate+
+
+  // Kingside - intermediate is from + 1
+  lda $e2
+  clc
+  adc #$01
+  jmp !check_intermediate+
+
+!queenside_intermediate:
+  // Queenside - intermediate is from - 1
+  lda $e2
+  sec
+  sbc #$01
+
+!check_intermediate:
+  sta attack_sq         // Intermediate square to check
+  jsr IsSquareAttacked
+  bcs !castle_illegal+  // Intermediate attacked - can't castle
+
+  // All checks passed
+  clc
+  rts
+
+!castle_illegal:
+  sec
+  rts
+
+//
 // FilterLegalMoves
 // Filter the move list to contain only legal moves
 // Call after GenerateAllMoves to remove moves that leave king in check
@@ -561,11 +728,24 @@ FilterLegalMoves:
   lda MoveListFrom, x
   sta $e2               // $e2 = from square
   lda MoveListTo, x
-  sta $e3               // $e3 = to square
+  and #$7f              // Mask off promotion flag for comparison
+  sta $e3               // $e3 = to square (cleaned)
+  lda MoveListTo, x
+  sta $e4               // $e4 = original to square (with flags)
 
+  // Check if this is a castling move (king moving 2 squares)
+  // Castling: from $74->$76 or $74->$72 (white), $04->$06 or $04->$02 (black)
+  jsr IsCastlingMove
+  bcc !not_castling+
+
+  // This is castling - check extra conditions
+  jsr CheckCastlingLegal
+  bcs !skip_illegal+    // Carry set = castling illegal
+
+!not_castling:
   // Make the move
   lda $e2
-  ldx $e3
+  ldx $e4               // Use original to (with promotion flag)
   jsr MakeMove
 
   // Check if this leaves our king in check
@@ -574,7 +754,7 @@ FilterLegalMoves:
 
   // Unmake the move
   lda $e2
-  ldx $e3
+  ldx $e4               // Use original to (with promotion flag)
   jsr UnmakeMove
 
   // Check result
@@ -1047,6 +1227,31 @@ FindBestMove:
   // Initialize search
   jsr InitSearch
 
+  // Generate legal moves first to initialize BestMoveFrom/BestMoveTo
+  // with a fallback move (the first legal move found)
+  // This prevents returning an invalid move if search has issues
+  jsr GenerateLegalMoves
+
+  // Check if there are any legal moves
+  lda MoveCount
+  beq !no_moves+
+
+  // Initialize BestMove to first legal move as fallback
+  lda MoveListFrom
+  sta BestMoveFrom
+  lda MoveListTo
+  sta BestMoveTo
+  jmp !have_fallback+
+
+!no_moves:
+  // No legal moves - this is checkmate or stalemate
+  // Set BestMove to $FF to indicate no move available
+  lda #$FF
+  sta BestMoveFrom
+  sta BestMoveTo
+  rts                       // Return early - nothing to search
+
+!have_fallback:
   // Determine max depth from difficulty:
   // Easy = 2, Medium = 3, Hard = 4
   lda difficulty

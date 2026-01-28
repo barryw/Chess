@@ -105,7 +105,8 @@ FlashPieceOn:
   bfs movefromindex:!exit+
   ldx movefromindex
   stb Board88, x:selectedpiece
-  sef flashpiece        // Turn flashing on
+  lda #TIMER_FLASH_PIECE
+  jsr EnableTimer
 !exit:
   rts
 
@@ -113,7 +114,8 @@ FlashPieceOn:
 Disable the flashing of a selected piece
 */
 FlashPieceOff:
-  clf flashpiece        // Turn flashing off
+  lda #TIMER_FLASH_PIECE
+  jsr DisableTimer
   ldx movefromindex     // Stick it back in Board88
   stb selectedpiece:Board88, x
 !exit:

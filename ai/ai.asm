@@ -7,3 +7,4 @@
 #import "movegen.asm"
 #import "eval.asm"
 #import "search.asm"
+#import "rules.asm"

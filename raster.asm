@@ -83,7 +83,7 @@ irq:
 These get called once per frame at the end of the frame
 */
 RunServiceRoutines:
-  jsr ColorCycleTitle   // Color cycle the title and make it look pretty
+  jsr UpdateTimers      // Process timer callbacks (runs at 60Hz)
   jsr UpdateClock       // Update the play clock for whichever player is playing
   jsr ShowClock         // Display the play clock
   jsr ShowSpinner       // Show the spinner if required
@@ -94,49 +94,43 @@ RunServiceRoutines:
 
 /*
 If the player has selected a piece, flash it
+Called by timer library at PIECE_FLASH_SPEED intervals (when enabled)
 */
-FlashPiece:
-  bfc flashpiece:!exit+
-  dec pieceflashtimer
-  bpl !exit+
-  stb #PIECE_FLASH_SPEED:pieceflashtimer
+FlashPieceCallback:
   ldx movefromindex
   chk_empty !showpiece+
 !showempty:             // Flash OFF
   stb #EMPTY_SPR:Board88, x
-  jmp !exit+
+  rts
 !showpiece:             // Flash ON
   stb selectedpiece:Board88, x
-!exit:
+  rts
+
+// Legacy wrapper - still called from RunServiceRoutines but does nothing now
+FlashPiece:
   rts
 
 /*
 Flash the cursor indicating that we're waiting on human input
+Called by timer library at CURSOR_FLASH_SPEED intervals (when enabled)
 */
-FlashCursor:
-  lda showcursor
-  beq !return+
-  dec cursorflashtimer
-  bne !return+
-  stb #CURSOR_FLASH_SPEED:cursorflashtimer
+FlashCursorCallback:
   StoreWord(inputlocationvector, ScreenAddress(CursorPos))
   ldy cursorxpos
   lda (inputlocationvector),y
   eor #ENABLE
   sta (inputlocationvector),y
+  rts
 
-!return:
+// Legacy wrapper - still called from RunServiceRoutines but does nothing now
+FlashCursor:
   rts
 
 /*
 Display an indeterminate progress bar spinner when the computer is "Thinking"
+Called by timer library at THINKING_SPINNER_SPEED intervals (when enabled)
 */
-ShowSpinner:
-  lda spinnerenabled
-  beq !return+
-  dec spinnertiming
-  bne !return+
-  stb #THINKING_SPINNER_SPEED:spinnertiming
+SpinnerCallback:
   ldx spinnercurrent
   cpx #spinnerend - spinnerstart
   bne !spin+
@@ -146,17 +140,17 @@ ShowSpinner:
   stb spinnerstart, x:ScreenAddress(SpinnerPos)
   stb #$01:ColorAddress(SpinnerPos)
   inc spinnercurrent
-!return:
+  rts
+
+// Legacy wrapper - still called from RunServiceRoutines but does nothing now
+ShowSpinner:
   rts
 
 /*
-Color cycle the title
+Color cycle the title (timer callback version)
+Called by timer library at TITLE_COLOR_SCROLL_SPEED intervals
 */
 ColorCycleTitle:
-  dec colorcycletiming
-  bne !return+
-  stb #TITLE_COLOR_SCROLL_SPEED:colorcycletiming
-
   ldx #$00
   inc colorcycleposition
   ldy colorcycleposition

@@ -278,18 +278,130 @@ GenerateKingMoves:
   cmp #$08              // 8 king directions
   bne !king_loop-
 
+  // Fall through to castling generation
+  jmp GenerateCastlingMoves
+
+//
+// Generate castling moves (called from GenerateKingMoves)
+// Uses $f7 = king's current square, $f8 = our color
+// Checks castling rights, empty squares between king and rook
+// Note: Does NOT check if king passes through check (legal filter handles that)
+//
+GenerateCastlingMoves:
+  lda $f8               // Our color
+  bne !white_castle+
+
+!black_castle:
+  // Black castling - king must be on e8 ($04)
+  lda $f7
+  cmp #$04
+  beq !black_king_ok+
+  jmp !castle_done+
+!black_king_ok:
+
+  // Check black kingside (bit 2)
+  lda castlerights
+  and #%00000100
+  beq !black_queenside+
+
+  // Check f8 ($05) and g8 ($06) are empty
+  lda Board88 + $05
+  cmp #EMPTY_PIECE
+  bne !black_queenside+
+  lda Board88 + $06
+  cmp #EMPTY_PIECE
+  bne !black_queenside+
+
+  // Add black kingside castle: e8 ($04) -> g8 ($06)
+  lda #$04
+  ldx #$06
+  jsr AddMove
+
+!black_queenside:
+  // Check black queenside (bit 3)
+  lda castlerights
+  and #%00001000
+  beq !castle_done+
+
+  // Check b8 ($01), c8 ($02), d8 ($03) are empty
+  lda Board88 + $01
+  cmp #EMPTY_PIECE
+  bne !castle_done+
+  lda Board88 + $02
+  cmp #EMPTY_PIECE
+  bne !castle_done+
+  lda Board88 + $03
+  cmp #EMPTY_PIECE
+  bne !castle_done+
+
+  // Add black queenside castle: e8 ($04) -> c8 ($02)
+  lda #$04
+  ldx #$02
+  jsr AddMove
+  rts
+
+!white_castle:
+  // White castling - king must be on e1 ($74)
+  lda $f7
+  cmp #$74
+  bne !castle_done+
+
+  // Check white kingside (bit 0)
+  lda castlerights
+  and #%00000001
+  beq !white_queenside+
+
+  // Check f1 ($75) and g1 ($76) are empty
+  lda Board88 + $75
+  cmp #EMPTY_PIECE
+  bne !white_queenside+
+  lda Board88 + $76
+  cmp #EMPTY_PIECE
+  bne !white_queenside+
+
+  // Add white kingside castle: e1 ($74) -> g1 ($76)
+  lda #$74
+  ldx #$76
+  jsr AddMove
+
+!white_queenside:
+  // Check white queenside (bit 1)
+  lda castlerights
+  and #%00000010
+  beq !castle_done+
+
+  // Check b1 ($71), c1 ($72), d1 ($73) are empty
+  lda Board88 + $71
+  cmp #EMPTY_PIECE
+  bne !castle_done+
+  lda Board88 + $72
+  cmp #EMPTY_PIECE
+  bne !castle_done+
+  lda Board88 + $73
+  cmp #EMPTY_PIECE
+  bne !castle_done+
+
+  // Add white queenside castle: e1 ($74) -> c1 ($72)
+  lda #$74
+  ldx #$72
+  jsr AddMove
+
+!castle_done:
   rts
 
 //
 // Generate pawn moves
 // Input: A = from square, X = side color ($80 = white, $00 = black)
-// Note: Does NOT handle en passant or promotion flags
+// Note: Now handles en passant captures
 // Clobbers: A, X, Y, $f7-$fb
 //
 .const WHITE_PAWN_PUSH = $f0    // -16 (north)
 .const BLACK_PAWN_PUSH = $10    // +16 (south)
 .const WHITE_START_ROW = $60    // Row 6 (rank 2)
 .const BLACK_START_ROW = $10    // Row 1 (rank 7)
+.const PROMO_FLAG_KNIGHT = $80  // Bit 7 set = Knight promotion (vs Queen)
+.const WHITE_PROMO_ROW = $00    // Row 0 (rank 8) - white promotes here
+.const BLACK_PROMO_ROW = $70    // Row 7 (rank 1) - black promotes here
 
 GeneratePawnMoves:
   sta $f7               // $f7 = from square
@@ -330,10 +442,8 @@ GeneratePawnMoves:
   cmp #EMPTY_PIECE
   bne !pawn_captures+   // Blocked, skip to captures
 
-  // Add single push move
-  lda $f7               // A = from
-  ldx $fa               // X = to
-  jsr AddMove
+  // Add single push move - check for promotion first
+  jsr AddPawnMoveWithPromotion
 
   // Check for double push (from start row)
   lda $f7
@@ -393,21 +503,27 @@ GeneratePawnMoves:
   and #OFFBOARD_MASK
   bne !next_capture+
 
-  // Check if enemy piece (must be enemy to capture)
+  // Check if enemy piece or en passant square
   ldx $fa
   lda Board88, x
   cmp #EMPTY_PIECE
-  beq !next_capture+    // Empty - pawns can't move diagonally to empty
+  bne !check_enemy+
 
+  // Empty square - check if it's en passant target
+  lda $fa
+  cmp enpassantsq
+  bne !next_capture+    // Not en passant square, skip
+  jmp !add_capture+     // Is en passant - add the move
+
+!check_enemy:
   // Check if enemy
   and #WHITE_COLOR
   cmp $f8
   beq !next_capture+    // Same color - can't capture own piece
 
-  // Enemy piece - add capture move
-  lda $f7               // A = from
-  ldx $fa               // X = to
-  jsr AddMove
+!add_capture:
+  // Enemy piece or en passant - add capture move with promotion check
+  jsr AddPawnMoveWithPromotion
 
 !next_capture:
   inc $fb               // Next capture direction
@@ -424,6 +540,53 @@ GeneratePawnMoves:
   lda $fb
   cmp #$04              // White done after index 3
   bne !capture_loop-
+  rts
+
+//
+// AddPawnMoveWithPromotion - Add pawn move, generating both Q and N if promoting
+// Uses $f7 = from square, $f8 = our color, $fa = to square
+// Checks if to square is on promotion rank and adds both promotion variants
+// Clobbers: A, X
+//
+AddPawnMoveWithPromotion:
+  // Determine promotion row based on color
+  lda $f8               // Our color
+  bne !check_white_promo+
+
+  // Black pawn - promotes on row 7 ($70)
+  lda $fa               // to square
+  and #$70              // Get row nibble
+  cmp #BLACK_PROMO_ROW
+  beq !is_promotion+
+  jmp !normal_pawn_move+
+
+!check_white_promo:
+  // White pawn - promotes on row 0 ($00)
+  lda $fa               // to square
+  and #$70              // Get row nibble
+  cmp #WHITE_PROMO_ROW
+  bne !normal_pawn_move+
+
+!is_promotion:
+  // Add Queen promotion (to square as-is, bit 7 clear)
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
+
+  // Add Knight promotion (to square with bit 7 set)
+  lda $f7               // A = from
+  lda $fa
+  ora #PROMO_FLAG_KNIGHT
+  tax                   // X = to | $80
+  lda $f7               // A = from
+  jsr AddMove
+  rts
+
+!normal_pawn_move:
+  // Not a promotion - add regular move
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
   rts
 
 //
