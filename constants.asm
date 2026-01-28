@@ -153,6 +153,17 @@ values stored in Board88
 .const MAX_DEPTH      = 8      // Maximum search depth
 
 //
+// Game State Constants (returned by CheckGameState)
+//
+.const GAME_NORMAL           = $00  // Not in check, has moves
+.const GAME_CHECK            = $01  // In check, has moves
+.const GAME_CHECKMATE        = $02  // In check, no moves
+.const GAME_STALEMATE        = $03  // Not in check, no moves
+.const GAME_DRAW_50_MOVE     = $04  // 50-move rule draw
+.const GAME_DRAW_REPETITION  = $05  // Threefold repetition draw
+.const GAME_DRAW_INSUFFICIENT = $06 // Insufficient material draw
+
+//
 // Menu Constants
 //
 
@@ -256,6 +267,36 @@ values stored in Board88
 // Note: $e8-$ef are used by AI search functions (see below)
 .const search_alpha = $2c // 1 byte: alpha bound for current call
 .const search_beta = $2d  // 1 byte: beta bound for current call
+
+// Timer library registers ($30-$37)
+// Used by CreateTimer, UpdateTimers, EnDisTimer
+.label r0  = $30
+.label r0L = $30
+.label r0H = $31
+.label r1  = $32
+.label r1L = $32
+.label r1H = $33
+.label r2  = $34
+.label r2L = $34
+.label r2H = $35
+.label r3  = $36
+.label r3L = $36
+.label r3H = $37
+
+//
+// Timer Library Constants
+//
+.const MAX_TIMERS = 8
+.const TIMER_STRUCT_SIZE = 8
+.const TIMER_STRUCT_BYTES = MAX_TIMERS * TIMER_STRUCT_SIZE  // 64 bytes
+.const TIMER_SINGLE_SHOT = 0
+.const TIMER_CONTINUOUS = 1
+
+// Timer IDs (for easy reference)
+.const TIMER_FLASH_PIECE = 0
+.const TIMER_FLASH_CURSOR = 1
+.const TIMER_SPINNER = 2
+.const TIMER_COLOR_CYCLE = 3
 
 //
 // Extended Zero Page Allocations ($e6-$fe)

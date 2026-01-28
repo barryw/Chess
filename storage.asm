@@ -214,6 +214,29 @@ enpassantsq:
   .byte $ff
 
 //
+// Draw Detection State
+//
+
+// Halfmove clock for 50-move rule
+// Reset on pawn move or capture, draw when reaches 100
+HalfmoveClock:
+  .byte $00
+
+// Full move number (increments after Black's move)
+FullmoveNumber:
+  .word $0001
+
+// Position history for threefold repetition detection
+// Stores 16-bit Zobrist hashes for each position
+.const MAX_HISTORY = 200
+PositionHistoryLo:
+  .fill MAX_HISTORY, $00
+PositionHistoryHi:
+  .fill MAX_HISTORY, $00
+HistoryCount:
+  .byte $00
+
+//
 // Direction Offset Tables for Move Validation
 // These are 0x88 offsets (signed bytes)
 //
@@ -292,3 +315,16 @@ BlackPieceCount:
 // Temp storage for piece list operations
 piecelist_idx:
   .byte $00
+
+//
+// Timer Library Storage
+// 8 timers × 8 bytes each = 64 bytes
+// Structure per timer:
+//   +0: enabled (0=disabled, 1=enabled)
+//   +1: mode (0=single-shot, 1=continuous)
+//   +2,+3: current countdown value (16-bit)
+//   +4,+5: reload frequency (16-bit, 60=1 second)
+//   +6,+7: callback address (16-bit)
+//
+c64lib_timers:
+  .fill TIMER_STRUCT_BYTES, $00

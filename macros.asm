@@ -130,3 +130,16 @@ Sets a flag indicating which input selection we're working on
   lda #selection
   sta inputselection
 }
+
+/*
+Fill memory with an immediate value
+Usage: FillMI(value, address, size)
+*/
+.macro FillMI(value, address, size) {
+  lda #value
+  ldx #size
+!loop:
+  dex
+  sta address, x
+  bne !loop-
+}

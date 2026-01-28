@@ -15,6 +15,8 @@ BasicUpstart2(start)
 *=* "Main"
 
 start:
+  jsr ClearTimers
+  jsr SetupTimers
   jsr SetupSprites
   jsr SetupScreen
   jsr SetupCharacters
@@ -48,4 +50,5 @@ start:
 #import "input.asm"
 #import "game.asm"
 #import "menus.asm"
+#import "timers.asm"
 #import "ai/ai.asm"

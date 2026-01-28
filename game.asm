@@ -388,9 +388,19 @@ ComputerMove:
   // Find the best move using AI search
   jsr FindBestMove
 
-  // Set up move variables from AI result
+  // Check if no move was found (checkmate/stalemate - shouldn't happen
+  // as CheckGameState should have caught this, but defensive check)
   lda BestMoveFrom
-  sta movefromindex
+  cmp #$FF
+  bne !have_move+
+  // No valid move - this is an error state, just change players
+  // (the game state check will handle checkmate/stalemate display)
+  jsr HideThinking
+  jmp ChangePlayers
+
+!have_move:
+  // Set up move variables from AI result
+  sta movefromindex      // A already has BestMoveFrom
   lda BestMoveTo
   sta movetoindex
 
