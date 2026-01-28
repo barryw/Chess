@@ -405,4 +405,89 @@ suites {
       assert(a == $44, "Moves from queen square")
     }
   }
+
+  suite("King Move Generation") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("king-center-empty-board", "King in center generates 8 moves on empty board") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white king at e4 ($44)
+      [Board88] + $44 = $b6  ; WHITE_KING
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $44
+      x = $80
+      jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; King at e4 can move to all 8 adjacent squares
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "King moves from e4")
+    }
+
+    test("king-corner-limited", "King in corner generates 3 moves") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white king at a1 ($70)
+      [Board88] + $70 = $b6  ; WHITE_KING
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $70
+      x = $80
+      jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; From a1, king can go to a2 ($60), b1 ($71), b2 ($61) - 3 moves
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $70, "King moves from a1")
+    }
+
+    test("king-blocked-by-own", "King cannot move to own piece square") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white king at e4 ($44)
+      [Board88] + $44 = $b6  ; WHITE_KING
+      ; Block adjacent square with white pawn at e5 ($34)
+      [Board88] + $34 = $b1  ; WHITE_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $44
+      x = $80
+      jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have 7 moves (8 - 1 blocked)
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "King moves generated")
+    }
+
+    test("king-can-capture-enemy", "King can capture adjacent enemy piece") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      memfill([Board88], 128, $30)  ; Empty board
+
+      ; Place white king at e4 ($44)
+      [Board88] + $44 = $b6  ; WHITE_KING
+      ; Place black pawn at e5 ($34) - king can capture
+      [Board88] + $34 = $31  ; BLACK_PAWN
+
+      jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
+
+      a = $44
+      x = $80
+      jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should have 8 moves - capture allowed
+      x = $00
+      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
+      assert(a == $44, "King capture moves generated")
+    }
+  }
 }

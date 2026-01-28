@@ -229,3 +229,53 @@ GenerateQueenMoves:
   pla                   // Restore from square
   ldy #$08              // 8 directions
   jmp GenerateSlidingMoves
+
+//
+// Generate king moves (one square in any direction)
+// Input: A = from square, X = side color
+// Note: Does NOT check for moving into check - that's done at legality level
+// Clobbers: A, X, Y, $f7-$fa
+//
+GenerateKingMoves:
+  sta $f7               // $f7 = from square
+  stx $f8               // $f8 = our color
+  lda #$00
+  sta $f9               // $f9 = direction index
+
+!king_loop:
+  ldx $f9               // X = direction index
+  lda $f7               // Start with from square
+  clc
+  adc AllDirectionOffsets, x  // Add direction offset
+  sta $fa               // $fa = target square
+
+  // Check if target is on board
+  and #OFFBOARD_MASK
+  bne !king_next+       // Off board, skip
+
+  // Check what's on target square
+  ldx $fa
+  lda Board88, x
+
+  // If empty, add move
+  cmp #EMPTY_PIECE
+  beq !add_king_move+
+
+  // Check if enemy piece (can capture)
+  and #WHITE_COLOR      // Get piece color
+  cmp $f8               // Compare with our color
+  beq !king_next+       // Same color = can't capture, skip
+
+  // Enemy piece - can capture
+!add_king_move:
+  lda $f7               // A = from
+  ldx $fa               // X = to
+  jsr AddMove
+
+!king_next:
+  inc $f9               // Next direction
+  lda $f9
+  cmp #$08              // 8 king directions
+  bne !king_loop-
+
+  rts
