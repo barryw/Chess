@@ -519,4 +519,5 @@ GenerateAllMoves:
   cmp #BOARD_SIZE       // Done all 128 bytes?
   bne !gen_loop-
 
+  lda MoveCount         // Return move count in A
   rts
