@@ -864,10 +864,10 @@ BestMoveTo:
 // Returns score from perspective of SearchSide
 // Positive = good for SearchSide, negative = bad
 // Output: A = score (signed 8-bit, clamped to -120..+120)
-// Clobbers: Uses EvaluateMaterial temps
+// Clobbers: Uses EvaluatePosition temps
 //
 Evaluate:
-  jsr EvaluateMaterial
+  jsr EvaluatePosition
 
   // EvalScore is 16-bit, positive = white advantage
   // Convert to 8-bit from perspective of SearchSide

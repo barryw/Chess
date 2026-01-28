@@ -109,3 +109,161 @@ EvaluateMaterial:
   bne !squareloop-
 
   rts
+
+//
+// EvaluatePosition
+// Full evaluation: material + piece-square tables
+// Result in EvalScore (16-bit signed)
+// Clobbers: A, X, Y, $f0-$f6
+//
+EvaluatePosition:
+  // Start with material evaluation
+  jsr EvaluateMaterial
+
+  // Now add PST bonuses
+  ldx #$00              // Board index
+
+PstLoop:
+  // Check if valid square
+  txa
+  and #OFFBOARD_MASK
+  bne PstNext
+
+  // Get piece at square
+  lda Board88, x
+  cmp #EMPTY_PIECE
+  beq PstNext
+
+  // Save board index
+  stx $f0
+
+  // Get piece type and color
+  pha
+  and #WHITE_COLOR
+  sta $f1               // $f1 = color ($80=white, $00=black)
+  pla
+  and #$07              // Piece type (1-6)
+  sta $f2               // $f2 = piece type
+
+  // Get PST pointer for this piece type
+  tay
+  lda PST_Table_Lo, y
+  sta $f3
+  lda PST_Table_Hi, y
+  sta $f4               // $f3/$f4 = PST pointer
+
+  // Convert 0x88 square to 0-63 index
+  // sq64 = (row * 8) + col = ((sq >> 4) * 8) + (sq & 7)
+  lda $f0
+  and #$07              // Column (0-7)
+  sta $f5
+  lda $f0
+  lsr
+  lsr
+  lsr
+  lsr                   // Row (0-7)
+  asl
+  asl
+  asl                   // Row * 8
+  ora $f5               // + column = 0-63
+  sta $f5               // $f5 = square index 0-63
+
+  // For black pieces, mirror the square (XOR with $38 = flip rank)
+  lda $f1
+  beq !mirror+
+  jmp !lookup+
+!mirror:
+  lda $f5
+  eor #$38              // Mirror for black
+  sta $f5
+
+!lookup:
+  // Look up PST value
+  ldy $f5
+  lda ($f3), y          // A = PST value (signed byte)
+  sta $f6               // Save PST value
+
+  // Call appropriate helper based on color
+  lda $f1
+  beq PstBlackPiece
+  jmp PstWhitePiece
+
+PstNext:
+  inx
+  cpx #BOARD_SIZE
+  beq !done+
+  jmp PstLoop
+!done:
+  rts
+
+//
+// PstWhitePiece - Add PST value for white piece
+// Input: $f6 = signed PST value
+// Modifies: A
+//
+PstWhitePiece:
+  lda $f6
+  bmi !negative+
+  // Positive PST value - add it
+  clc
+  lda EvalScore
+  adc $f6
+  sta EvalScore
+  lda EvalScore + 1
+  adc #$00
+  sta EvalScore + 1
+  ldx $f0
+  jmp PstNext
+
+!negative:
+  // Negative PST value - subtract its absolute value
+  lda $f6
+  eor #$ff
+  clc
+  adc #$01              // Negate to get positive
+  sta $f6
+  sec
+  lda EvalScore
+  sbc $f6
+  sta EvalScore
+  lda EvalScore + 1
+  sbc #$00
+  sta EvalScore + 1
+  ldx $f0
+  jmp PstNext
+
+//
+// PstBlackPiece - Subtract PST value for black piece
+// Input: $f6 = signed PST value
+// Modifies: A
+//
+PstBlackPiece:
+  lda $f6
+  bmi !negative+
+  // Positive PST value - subtract it
+  sec
+  lda EvalScore
+  sbc $f6
+  sta EvalScore
+  lda EvalScore + 1
+  sbc #$00
+  sta EvalScore + 1
+  ldx $f0
+  jmp PstNext
+
+!negative:
+  // Negative PST value - subtracting negative = adding positive
+  lda $f6
+  eor #$ff
+  clc
+  adc #$01              // Negate to get positive
+  sta $f6
+  clc
+  lda EvalScore
+  adc $f6
+  sta EvalScore
+  lda EvalScore + 1
+  adc #$00
+  sta EvalScore + 1
+  ldx $f0
+  jmp PstNext
