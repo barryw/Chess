@@ -29,12 +29,34 @@ DisableSprites:
   rts
 
 /*
-Turn on the custom characters
+Turn on the custom characters and maximize RAM
+Bank out BASIC ROM ($A000-$BFFF) and KERNAL ROM ($E000-$FFFF)
+$34 = %00110100: LORAM=0, HIRAM=0, CHAREN=1
+  - $A000-$BFFF: RAM (8KB) - was BASIC ROM
+  - $D000-$DFFF: I/O (VIC/SID/CIA accessible)
+  - $E000-$FFFF: RAM (8KB) - was KERNAL ROM
 */
 SetupCharacters:
   stb #$1d:vic.VMCSB
-  stb #$35:$01
+  stb #MEMORY_CONFIG_NORMAL:$01
 
+  rts
+
+/*
+Enter turbo mode - ALL RAM including $D000-$DFFF
+WARNING: No I/O access! No screen, no sound, no keyboard!
+Use only during computation bursts, restore quickly.
+$30 = %00110000: All RAM, no I/O
+*/
+EnterTurboMode:
+  stb #MEMORY_CONFIG_TURBO:$01
+  rts
+
+/*
+Exit turbo mode - restore I/O access
+*/
+ExitTurboMode:
+  stb #MEMORY_CONFIG_NORMAL:$01
   rts
 
 /*
