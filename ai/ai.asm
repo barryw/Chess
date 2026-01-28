@@ -7,5 +7,6 @@
 #import "pst.asm"
 #import "movegen.asm"
 #import "eval.asm"
+#import "tt.asm"
 #import "search.asm"
 #import "rules.asm"

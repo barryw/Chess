@@ -1125,6 +1125,26 @@ Negamax:
   lda $e9
   sta NegamaxState + 7, x   // [offset+7] = beta
 
+  // Probe transposition table
+  jsr ComputeZobristHash
+
+  // Probe TT with current depth requirement
+  lda NegamaxState + 5, x   // depth remaining
+  jsr TTProbe
+
+  lda TTHit
+  beq !tt_miss+
+
+  // TT hit - check if we can use the score directly
+  lda TTFlag
+  cmp #TT_FLAG_EXACT
+  bne !tt_miss+
+
+  // Exact score - return immediately (no need to search)
+  lda TTScoreLo             // Return 8-bit score
+  rts
+
+!tt_miss:
   // Generate legal moves for current side
   jsr GenerateLegalMoves
 
@@ -1363,6 +1383,33 @@ Negamax:
   asl
   tax
 
+  // Store result in transposition table
+  // First, set up the score (8-bit to 16-bit with sign extension)
+  lda NegamaxState + 1, x   // best score
+  sta TTScoreLo
+  lda #$00
+  sta TTScoreHi             // Assume positive
+  lda NegamaxState + 1, x
+  bpl !tt_pos_score+
+  lda #$ff
+  sta TTScoreHi             // Negative score, extend sign
+!tt_pos_score:
+
+  // Compute hash for storage
+  jsr ComputeZobristHash
+
+  // Store in TT
+  lda NegamaxState + 5, x   // depth
+  ldx #TT_FLAG_EXACT        // For now, always mark as exact
+  jsr TTStore
+
+  // Recalculate state offset (TTStore clobbered X)
+  lda SearchDepth
+  asl
+  asl
+  asl
+  tax
+
   // Return best score
   lda NegamaxState + 1, x
   rts
@@ -1393,6 +1440,9 @@ NegamaxState:
 FindBestMove:
   // Initialize search
   jsr InitSearch
+
+  // Clear transposition table
+  jsr TTClear
 
   // Generate legal moves first to initialize BestMoveFrom/BestMoveTo
   // with a fallback move (the first legal move found)
