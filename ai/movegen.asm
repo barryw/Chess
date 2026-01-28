@@ -521,3 +521,70 @@ GenerateAllMoves:
 
   lda MoveCount         // Return move count in A
   rts
+
+//
+// OrderMoves - Partition captures to front of move list
+// Captures are better moves to try first for alpha-beta pruning
+//
+// Input: MoveListFrom/MoveListTo populated, MoveCount set
+//        X = enemy color ($00 = black pieces are enemy, $80 = white pieces are enemy)
+// Output: Move list reordered with captures first
+// Clobbers: A, X, Y, $ec-$ef
+//
+OrderMoves:
+  stx $ec               // $ec = enemy color
+
+  lda #$00
+  sta $ed               // $ed = write pointer (where next capture goes)
+
+  ldy #$00              // Y = read pointer
+
+!order_loop:
+  cpy MoveCount
+  beq !order_done+      // Done all moves?
+
+  // Check if move at Y is a capture (target has enemy piece)
+  lda MoveListTo, y     // Get target square
+  tax
+  lda Board88, x        // Get piece on target
+  cmp #EMPTY_PIECE
+  beq !not_capture+     // Empty = not a capture
+
+  // Check if it's an enemy piece
+  and #WHITE_COLOR      // Get color bit
+  cmp $ec               // Compare with enemy color
+  bne !not_capture+     // Not enemy = not a capture
+
+  // It's a capture - swap move at Y with move at $ed (write pointer)
+  ldx $ed               // X = write pointer
+  cpx $ed               // Compare indices (Y already loaded)
+  // Actually need: cpy $ed
+  sty $ef               // Save Y
+  cpy $ed
+  beq !just_advance+    // Same index, no need to swap
+
+  // Swap MoveListFrom[Y] with MoveListFrom[$ed]
+  lda MoveListFrom, y
+  sta $ee               // temp = from[Y]
+  lda MoveListFrom, x
+  sta MoveListFrom, y   // from[Y] = from[X]
+  lda $ee
+  sta MoveListFrom, x   // from[X] = temp
+
+  // Swap MoveListTo[Y] with MoveListTo[$ed]
+  lda MoveListTo, y
+  sta $ee               // temp = to[Y]
+  lda MoveListTo, x
+  sta MoveListTo, y     // to[Y] = to[X]
+  lda $ee
+  sta MoveListTo, x     // to[X] = temp
+
+!just_advance:
+  inc $ed               // Advance write pointer
+
+!not_capture:
+  iny                   // Next read position
+  jmp !order_loop-
+
+!order_done:
+  rts

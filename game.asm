@@ -366,7 +366,8 @@ StartGame:
 !oneplayer:
   jeq currentplayer:player1color:!playersturn+
 !computersturn:
-  jsr ShowThinking
+  // Computer moves first - execute AI move
+  jsr ComputerMove
   jmp !exit+
 
 !playersturn:
@@ -375,6 +376,46 @@ StartGame:
 
 !exit:
   rts
+
+/*
+Execute computer's move. Called when it's the AI's turn.
+Finds best move, executes it, handles promotion, then changes players.
+*/
+ComputerMove:
+  jsr ShowThinking
+
+  // Find the best move using AI search
+  jsr FindBestMove
+
+  // Set up move variables from AI result
+  lda BestMoveFrom
+  sta movefromindex
+  lda BestMoveTo
+  sta movetoindex
+
+  // Load the piece being moved into selectedpiece
+  ldx movefromindex
+  lda Board88, x
+  sta selectedpiece
+
+  // Execute the move
+  jsr MovePiece
+
+  // Hide the thinking indicator
+  jsr HideThinking
+
+  // Check if pawn promotion is needed
+  lda promotionsq
+  cmp #$ff                // $ff = no promotion
+  beq !no_promotion+
+
+  // AI auto-promotes to queen
+  lda #QUEEN_SPR
+  jmp DoPromotion         // DoPromotion handles color and calls ChangePlayers
+
+!no_promotion:
+  // No promotion - switch back to human player
+  jmp ChangePlayers
 
 /*
 Swap the board and swap players. This is called after a player has
@@ -437,7 +478,8 @@ ChangePlayers:
 
 !continue_game:
   jne numplayers:#ONE_PLAYER:!twoplayers+
-  jsr ShowThinking
+  // Computer's turn - find and execute best move
+  jsr ComputerMove
   jmp !return+
 !twoplayers:
   jsr DisplayMoveFromPrompt

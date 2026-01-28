@@ -6,3 +6,4 @@
 #import "zobrist.asm"
 #import "movegen.asm"
 #import "eval.asm"
+#import "search.asm"

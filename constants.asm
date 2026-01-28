@@ -96,6 +96,15 @@ values stored in Board88
 .const WHITE_QUEEN  = QUEEN_SPR   + WHITE_COLOR
 .const BLACK_QUEEN  = QUEEN_SPR   + BLACK_COLOR
 
+// Piece type constants (lower 7 bits, used for type checks)
+// These equal piece_value & $7F - EMPTY_SPR
+.const PAWN_TYPE   = $01
+.const KNIGHT_TYPE = $02
+.const BISHOP_TYPE = $03
+.const ROOK_TYPE   = $04
+.const QUEEN_TYPE  = $05
+.const KING_TYPE   = $06
+
 //
 // Player and Game Constants
 //
@@ -133,6 +142,15 @@ values stored in Board88
 .const LEVEL_EASY   = $00
 .const LEVEL_MEDIUM = $01
 .const LEVEL_HARD   = $02
+
+//
+// AI Search Constants
+//
+
+.const MATE_SCORE     = 120    // Score for checkmate (+120 = we win, -120 = we lose)
+.const DRAW_SCORE     = 0      // Score for stalemate/draw
+.const NEG_INFINITY   = $80    // -128 as signed byte (worst possible)
+.const MAX_DEPTH      = 8      // Maximum search depth
 
 //
 // Menu Constants
@@ -233,6 +251,26 @@ values stored in Board88
 .const ray_dir = $29      // 1 byte: current ray direction offset
 .const ray_sq = $2a       // 1 byte: current square in ray traversal
 .const piece_type = $2b   // 1 byte: piece type being validated
+
+// AI Search temps (used by Negamax alpha-beta)
+// Note: $e8-$ef are used by AI search functions (see below)
+.const search_alpha = $2c // 1 byte: alpha bound for current call
+.const search_beta = $2d  // 1 byte: beta bound for current call
+
+//
+// Extended Zero Page Allocations ($e6-$fe)
+// Used by AI search and move generation
+//
+// AI Search (Negamax and related):
+// $e8 = negamax alpha parameter (passed to recursive calls)
+// $e9 = negamax beta parameter (passed to recursive calls)
+// $eb = current move score (negated child result)
+//
+// MakeMove/UnmakeMove:
+// $f0-$f5 = temp storage for move processing
+//
+// Move Generation:
+// $f7-$fa = temp storage for piece movement
 
 //
 // Pawn Direction Constants (for move validation)
