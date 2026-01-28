@@ -26,6 +26,21 @@ MoveListFrom:
 MoveListTo:
   .fill MAX_MOVES, $00
 
+// MVV-LVA piece values for capture scoring
+// Score = Victim * 8 - Attacker (approximates Victim * 10 - Attacker)
+MVV_LVA_Values:
+  .byte 0               // 0: empty
+  .byte 10              // 1: pawn
+  .byte 32              // 2: knight
+  .byte 33              // 3: bishop
+  .byte 50              // 4: rook
+  .byte 90              // 5: queen
+  .byte 0               // 6: king
+
+// Score storage for MVV-LVA sorting (one per move)
+MoveScores:
+  .fill MAX_MOVES, $00
+
 //
 // Clear move list
 // Resets count to zero
@@ -750,4 +765,162 @@ OrderMoves:
   jmp !order_loop-
 
 !order_done:
+  rts
+
+//
+// OrderMovesMVVLVA - Sort captures by Most Valuable Victim - Least Valuable Attacker
+// Captures sorted to front, ordered by MVV-LVA score descending
+// Non-captures remain after captures in original order
+//
+// Input: MoveListFrom/MoveListTo populated, MoveCount set
+// Output: Move list reordered with best captures first
+// Clobbers: A, X, Y, $e0-$e7
+//
+OrderMovesMVVLVA:
+  // First pass: score all captures, partition to front
+  lda #$00
+  sta $e0               // $e0 = write index (captures)
+  sta $e1               // $e1 = read index
+
+!score_loop:
+  lda $e1
+  cmp MoveCount
+  beq !sort_captures+
+
+  // Get target square
+  ldx $e1
+  lda MoveListTo, x
+  and #$7f              // Clear promotion flag if present
+  tay
+  lda Board88, y        // Piece on target
+  cmp #EMPTY_PIECE
+  beq !not_capture_mvv+
+
+  // It's a capture - calculate MVV-LVA score
+  and #$07              // Victim type
+  tay
+  lda MVV_LVA_Values, y
+  asl
+  asl
+  asl                   // Victim * 8 (approximates *10)
+  sta $e2               // Victim score
+
+  // Get attacker type
+  ldx $e1
+  lda MoveListFrom, x
+  tay
+  lda Board88, y
+  and #$07              // Attacker type
+  tay
+  lda MVV_LVA_Values, y
+  sta $e3               // Attacker value
+
+  // Score = victim*8 - attacker
+  lda $e2
+  sec
+  sbc $e3
+  ldx $e1
+  sta MoveScores, x     // Store score for this move
+
+  // Swap capture to write position
+  ldy $e0
+  cpx $e0
+  beq !same_pos_mvv+
+
+  // Swap from[x] with from[y]
+  lda MoveListFrom, x
+  pha
+  lda MoveListFrom, y
+  sta MoveListFrom, x
+  pla
+  sta MoveListFrom, y
+
+  // Swap to[x] with to[y]
+  lda MoveListTo, x
+  pha
+  lda MoveListTo, y
+  sta MoveListTo, x
+  pla
+  sta MoveListTo, y
+
+  // Swap scores[x] with scores[y]
+  lda MoveScores, x
+  pha
+  lda MoveScores, y
+  sta MoveScores, x
+  pla
+  sta MoveScores, y
+
+!same_pos_mvv:
+  inc $e0               // Advance write pointer
+
+!not_capture_mvv:
+  inc $e1
+  jmp !score_loop-
+
+!sort_captures:
+  // $e0 = number of captures
+  // Now bubble sort captures by score (descending)
+  lda $e0
+  cmp #$02
+  bcc !mvvlva_done+     // 0 or 1 captures, no sort needed
+
+  sta $e4               // $e4 = capture count
+
+!outer_sort:
+  lda #$00
+  sta $e5               // $e5 = swapped flag
+
+  lda #$00
+  sta $e1               // $e1 = index
+
+!inner_sort:
+  lda $e1
+  clc
+  adc #$01
+  cmp $e4
+  bcs !check_swapped+   // Done inner loop
+
+  // Compare scores[i] with scores[i+1]
+  ldx $e1
+  lda MoveScores, x
+  ldy $e1
+  iny
+  cmp MoveScores, y
+  bcs !no_swap_mvv+     // scores[i] >= scores[i+1], no swap
+
+  // Swap moves at i and i+1
+  lda MoveListFrom, x
+  pha
+  lda MoveListFrom, y
+  sta MoveListFrom, x
+  pla
+  sta MoveListFrom, y
+
+  lda MoveListTo, x
+  pha
+  lda MoveListTo, y
+  sta MoveListTo, x
+  pla
+  sta MoveListTo, y
+
+  lda MoveScores, x
+  pha
+  lda MoveScores, y
+  sta MoveScores, x
+  pla
+  sta MoveScores, y
+
+  lda #$01
+  sta $e5               // Set swapped flag
+
+!no_swap_mvv:
+  inc $e1
+  jmp !inner_sort-
+
+!check_swapped:
+  lda $e5
+  bne !outer_sort-      // If swapped, do another pass
+
+!mvvlva_done:
   rts

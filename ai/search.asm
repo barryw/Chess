@@ -808,12 +808,8 @@ GenerateLegalMoves:
   // Filter out illegal moves
   jsr FilterLegalMoves
 
-  // Order moves: captures first (improves alpha-beta pruning)
-  // Enemy color = opposite of SearchSide
-  lda SearchSide
-  eor #WHITE_COLOR      // Flip color bit
-  tax                   // X = enemy color
-  jsr OrderMoves
+  // Order moves: captures first with MVV-LVA scoring (improves alpha-beta pruning)
+  jsr OrderMovesMVVLVA
 
   lda MoveCount
   rts
