@@ -955,5 +955,32 @@ suites {
       assert(peekbyte([BestMoveFrom]) == $44, "Best move from should be e4 ($44)")
       assert(peekbyte([BestMoveTo]) == $23, "Best move to should be d6 ($23)")
     }
+
+    test("fallback-initialization", "FindBestMove initializes to first legal move as fallback") {
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      [currentplayer] = 1       ; White to move
+      [difficulty] = 1          ; Easy (depth 2)
+
+      ; Set BestMove to $00 (the bug case - uninitialized from previous search)
+      [BestMoveFrom] = $00
+      [BestMoveTo] = $00
+
+      ; Simple position: White king and rook, black king
+      ; White should have many legal moves
+      memfill([Board88], 128, $30)
+      [Board88] + $74 = $b6    ; White king on e1
+      [Board88] + $77 = $b4    ; White rook on h1
+      [Board88] + $04 = $36    ; Black king on e8
+      [whitekingsq] = $74
+      [blackkingsq] = $04
+
+      jsr([FindBestMove], stop_on_rts = true, fail_on_brk = true)
+
+      ; BestMove should NOT be $00 (the original from a8 which is empty)
+      ; It should be a valid move for white
+      assert(peekbyte([BestMoveFrom]) != $00, "BestMoveFrom should not be $00 (uninitialized)")
+      assert(peekbyte([BestMoveTo]) != $00, "BestMoveTo should not be $00 (uninitialized)")
+    }
+
   }
 }

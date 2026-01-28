@@ -1,9 +1,5 @@
 ; Move List Storage Unit Tests
 ; Tests move list data structures and basic operations
-;
-; NOTE: sim6502 limitation (GitHub issue #2) - peekbyte cannot read values
-; written by code. Tests use GetMove to verify AddMove works, which avoids
-; the peekbyte issue since A/Y registers are readable.
 
 suites {
   suite("Move List Storage") {
@@ -159,17 +155,12 @@ suites {
       jsr([GenerateKnightMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; Should have 8 moves (knight in center has all 8 directions free)
-      ; We verify by checking the moves themselves
       ; From e4 ($44), knight can go to:
       ;   d2 ($62), f2 ($66), c3 ($52), g3 ($56), c5 ($32), g5 ($36), d6 ($22), f6 ($26)
-
-      ; Check a few moves exist by retrieving them
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "Move 0 should be from $44")
+      assert(peekbyte([MoveCount]) == $08, "Knight in center should have 8 moves")
     }
 
-    test("knight-corner-limited", "Knight in corner generates fewer moves") {
+    test("knight-corner-limited", "Knight in corner generates 2 moves") {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
@@ -184,14 +175,7 @@ suites {
       jsr([GenerateKnightMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; From a1 ($70), knight can only go to b3 ($51) and c2 ($62)
-      ; Only 2 moves should be generated
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $70, "Move should be from a1")
-
-      x = $01
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $70, "Second move should also be from a1")
+      assert(peekbyte([MoveCount]) == $02, "Knight in corner should have 2 moves")
     }
 
     test("knight-blocked-by-own-piece", "Knight cannot capture own pieces") {
@@ -200,8 +184,9 @@ suites {
 
       ; Place white knight at e4 ($44)
       [Board88] + $44 = $b2  ; WHITE_KNIGHT
-      ; Block one destination with white pawn at d6 ($22)
-      [Board88] + $22 = $b1  ; WHITE_PAWN
+      ; Block one destination with white pawn at d6 ($23)
+      ; (knight offset -$21 from $44 = $23)
+      [Board88] + $23 = $b1  ; WHITE_PAWN
 
       jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
 
@@ -209,9 +194,8 @@ suites {
       x = $80
       jsr([GenerateKnightMoves], stop_on_rts = true, fail_on_brk = true)
 
-      ; Should have 7 moves (8 - 1 blocked)
-      ; We can't easily count without peekbyte on MoveCount, but
-      ; the move to d6 ($22) should NOT be in the list
+      ; Should have 7 moves (8 - 1 blocked by own pawn)
+      assert(peekbyte([MoveCount]) == $07, "Knight blocked by own piece has 7 moves")
     }
 
     test("knight-can-capture-enemy", "Knight can capture enemy pieces") {
@@ -220,8 +204,9 @@ suites {
 
       ; Place white knight at e4 ($44)
       [Board88] + $44 = $b2  ; WHITE_KNIGHT
-      ; Place black pawn at d6 ($22) - knight should be able to capture
-      [Board88] + $22 = $31  ; BLACK_PAWN
+      ; Place black pawn at d6 ($23) - knight should be able to capture
+      ; (knight offset -$21 from $44 = $23)
+      [Board88] + $23 = $31  ; BLACK_PAWN
 
       jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
 
@@ -230,12 +215,10 @@ suites {
       jsr([GenerateKnightMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; Should still have 8 moves - capture is allowed
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "Moves generated from knight square")
+      assert(peekbyte([MoveCount]) == $08, "Knight can capture, still has 8 moves")
     }
 
-    test("black-knight-moves", "Black knight move generation works") {
+    test("black-knight-moves", "Black knight in center generates 8 moves") {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
@@ -249,9 +232,8 @@ suites {
       x = $00
       jsr([GenerateKnightMoves], stop_on_rts = true, fail_on_brk = true)
 
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $34, "Black knight moves from e5")
+      ; Black knight in center should also have 8 moves
+      assert(peekbyte([MoveCount]) == $08, "Black knight in center has 8 moves")
     }
   }
 
@@ -277,7 +259,7 @@ suites {
       ; Just verify A register has expected from square or zero
     }
 
-    test("rook-simple-slide", "Rook generates at least one sliding move") {
+    test("rook-simple-slide", "Rook in center generates 14 moves") {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
@@ -290,10 +272,8 @@ suites {
       x = $80
       jsr([GenerateRookMoves], stop_on_rts = true, fail_on_brk = true)
 
-      ; Rook at e4 can reach: e1-e8 (7 squares), a4-h4 (7 squares) = 14 moves
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "Moves generated from rook square")
+      ; Rook at e4 can reach: e1-e3,e5-e8 (7 squares), a4-d4,f4-h4 (7 squares) = 14 moves
+      assert(peekbyte([MoveCount]) == $0e, "Rook in center has 14 moves")
     }
 
     test("rook-blocked-by-own", "Rook stops before own piece") {
@@ -424,9 +404,7 @@ suites {
       jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; King at e4 can move to all 8 adjacent squares
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "King moves from e4")
+      assert(peekbyte([MoveCount]) == $08, "King in center has 8 moves")
     }
 
     test("king-corner-limited", "King in corner generates 3 moves") {
@@ -443,9 +421,7 @@ suites {
       jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; From a1, king can go to a2 ($60), b1 ($71), b2 ($61) - 3 moves
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $70, "King moves from a1")
+      assert(peekbyte([MoveCount]) == $03, "King in corner has 3 moves")
     }
 
     test("king-blocked-by-own", "King cannot move to own piece square") {
@@ -463,10 +439,8 @@ suites {
       x = $80
       jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
 
-      ; Should have 7 moves (8 - 1 blocked)
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "King moves generated")
+      ; Should have 7 moves (8 - 1 blocked by own pawn)
+      assert(peekbyte([MoveCount]) == $07, "King blocked by own piece has 7 moves")
     }
 
     test("king-can-capture-enemy", "King can capture adjacent enemy piece") {
@@ -485,9 +459,7 @@ suites {
       jsr([GenerateKingMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; Should have 8 moves - capture allowed
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "King capture moves generated")
+      assert(peekbyte([MoveCount]) == $08, "King can capture, still has 8 moves")
     }
   }
 
@@ -499,7 +471,7 @@ suites {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
-      ; Place white pawn at e4 ($44)
+      ; Place white pawn at e4 ($44) - not on starting rank
       [Board88] + $44 = $b1  ; WHITE_PAWN
 
       jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
@@ -508,17 +480,15 @@ suites {
       x = $80
       jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
 
-      ; Pawn can push to e5 ($34)
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "White pawn moves from e4")
+      ; Pawn can only push to e5 ($34) - not on starting rank
+      assert(peekbyte([MoveCount]) == $01, "White pawn not on start rank has 1 move")
     }
 
     test("black-pawn-single-push", "Black pawn can push one square") {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
-      ; Place black pawn at e5 ($34)
+      ; Place black pawn at e5 ($34) - not on starting rank
       [Board88] + $34 = $31  ; BLACK_PAWN
 
       jsr([ClearMoveList], stop_on_rts = true, fail_on_brk = true)
@@ -527,10 +497,8 @@ suites {
       x = $00
       jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
 
-      ; Pawn can push to e4 ($44)
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $34, "Black pawn moves from e5")
+      ; Pawn can push to e4 ($44) - not on starting rank
+      assert(peekbyte([MoveCount]) == $01, "Black pawn not on start rank has 1 move")
     }
 
     test("white-pawn-double-push", "White pawn can double push from rank 2") {
@@ -547,16 +515,14 @@ suites {
       jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; Should have 2 moves: e3 ($54) and e4 ($44)
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $64, "Pawn moves generated")
+      assert(peekbyte([MoveCount]) == $02, "White pawn on start rank has 2 moves")
     }
 
     test("white-pawn-capture-diagonal", "White pawn captures diagonally") {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
-      ; Place white pawn at e4 ($44)
+      ; Place white pawn at e4 ($44) - not on start rank
       [Board88] + $44 = $b1  ; WHITE_PAWN
       ; Place black piece at d5 ($33) - can capture
       [Board88] + $33 = $31  ; BLACK_PAWN
@@ -568,16 +534,14 @@ suites {
       jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
 
       ; Should have 2 moves: e5 push + d5 capture
-      x = $00
-      jsr([GetMove], stop_on_rts = true, fail_on_brk = true)
-      assert(a == $44, "Pawn moves with capture")
+      assert(peekbyte([MoveCount]) == $02, "Pawn has push and capture = 2 moves")
     }
 
     test("pawn-blocked-cannot-push", "Pawn blocked by piece cannot push") {
       jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
       memfill([Board88], 128, $30)  ; Empty board
 
-      ; Place white pawn at e4 ($44)
+      ; Place white pawn at e4 ($44) - not on start rank
       [Board88] + $44 = $b1  ; WHITE_PAWN
       ; Block with piece at e5 ($34)
       [Board88] + $34 = $31  ; BLACK_PAWN
@@ -588,8 +552,8 @@ suites {
       x = $80
       jsr([GeneratePawnMoves], stop_on_rts = true, fail_on_brk = true)
 
-      ; Pawn is blocked, but might have diagonal captures
-      ; In this case no captures available, so 0 moves
+      ; Pawn is blocked and no diagonal captures available, so 0 moves
+      assert(peekbyte([MoveCount]) == $00, "Blocked pawn with no captures has 0 moves")
     }
   }
 
