@@ -4,6 +4,7 @@
 // Includes all AI-related code
 
 #import "zobrist.asm"
+#import "pst.asm"
 #import "movegen.asm"
 #import "eval.asm"
 #import "search.asm"
