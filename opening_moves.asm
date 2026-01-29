@@ -66,6 +66,12 @@ MatchBuffer:
 // Clobbers: A, X, Y, temp1, temp2
 //
 LookupOpeningMove:
+  // Bank out BASIC ROM to access book data in $A000+ area
+  lda $01
+  sta BookSavedMemConfig  // Save current memory config
+  lda #MEMORY_CONFIG_NORMAL
+  sta $01                 // Bank out BASIC, keep I/O
+
   // Initialize match count
   lda #$00
   sta MatchCount
@@ -268,7 +274,7 @@ LookupOpeningMove:
   pla                   // A = from square
   inc BookMoveCount
   sec                   // Carry set = found
-  rts
+  jmp !restore_exit+
 
 !use_first:
   // Use first (only) match
@@ -276,11 +282,25 @@ LookupOpeningMove:
   ldy MatchBuffer + 1   // Y = to square
   inc BookMoveCount
   sec                   // Carry set = found
-  rts
+  jmp !restore_exit+
 
 !not_found:
   clc               // Carry clear = not found
+
+!restore_exit:
+  // Restore memory configuration before returning
+  pha               // Save A (return value)
+  php               // Save flags (carry)
+  sty BookSavedY    // Save Y (can't push - need stack clean)
+  lda BookSavedMemConfig
+  sta $01           // Restore memory config
+  ldy BookSavedY    // Restore Y
+  plp               // Restore flags
+  pla               // Restore A
   rts
+
+BookSavedMemConfig: .byte $35
+BookSavedY:         .byte $00
 
 //
 // ModByMatchCount

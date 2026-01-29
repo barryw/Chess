@@ -29,16 +29,13 @@ DisableSprites:
   rts
 
 /*
-Turn on the custom characters and maximize RAM
-Bank out BASIC ROM ($A000-$BFFF) and KERNAL ROM ($E000-$FFFF)
-$34 = %00110100: LORAM=0, HIRAM=0, CHAREN=1
-  - $A000-$BFFF: RAM (8KB) - was BASIC ROM
-  - $D000-$DFFF: I/O (VIC/SID/CIA accessible)
-  - $E000-$FFFF: RAM (8KB) - was KERNAL ROM
+Turn on the custom characters
+NOTE: Using $35 keeps BASIC ROM visible at $A000-$BFFF.
+For book data in that area, we'll bank BASIC out when needed.
 */
 SetupCharacters:
   stb #$1d:vic.VMCSB
-  stb #MEMORY_CONFIG_NORMAL:$01
+  stb #$35:$01
 
   rts
 
