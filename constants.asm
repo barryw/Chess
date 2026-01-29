@@ -38,10 +38,10 @@
 // Memory Configuration ($01 Processor Port)
 // Controls ROM/RAM banking for maximum memory utilization
 //
-// Bit 0 (LORAM):  0 = RAM at $A000-$BFFF, 1 = BASIC ROM
-// Bit 1 (HIRAM):  0 = RAM at $E000-$FFFF, 1 = KERNAL ROM
-// Bit 2 (CHAREN): 0 = CHAR ROM at $D000,  1 = I/O
-// (When LORAM=0 AND HIRAM=0, $D000 is always RAM regardless of CHAREN)
+// Bit 0 (LORAM):  Affects BASIC visibility (only when HIRAM=1)
+// Bit 1 (HIRAM):  0 = RAM at $E000-$FFFF AND $A000-$BFFF, 1 = KERNAL ROM
+// Bit 2 (CHAREN): 0 = CHAR ROM at $D000, 1 = I/O
+// NOTE: When HIRAM=0, BOTH BASIC and KERNAL are banked out regardless of LORAM
 //
 .const MEMORY_CONFIG_DEFAULT = $37  // BASIC + KERNAL + I/O (stock C64)
 .const MEMORY_CONFIG_NORMAL  = $34  // RAM + RAM + I/O (16KB extra!)

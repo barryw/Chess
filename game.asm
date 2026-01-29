@@ -386,6 +386,7 @@ ComputerMove:
   sef playclockrunning   // Start the clock for computer's turn
 
   // Find the best move using AI search
+  // NOTE: With $35 (HIRAM=0), $A000-$BFFF is already RAM, so AI code is accessible
   jsr FindBestMove
 
   // Check if no move was found (checkmate/stalemate - shouldn't happen

@@ -30,8 +30,8 @@ DisableSprites:
 
 /*
 Turn on the custom characters
-NOTE: Using $35 keeps BASIC ROM visible at $A000-$BFFF.
-For book data in that area, we'll bank BASIC out when needed.
+NOTE: $35 (HIRAM=0) banks out BOTH BASIC and KERNAL ROM.
+$A000-$BFFF and $E000-$FFFF are RAM, $D000-$DFFF is I/O.
 */
 SetupCharacters:
   stb #$1d:vic.VMCSB
