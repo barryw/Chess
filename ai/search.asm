@@ -1586,6 +1586,11 @@ NegamaxState:
 //         A = best score from deepest completed search
 //
 FindBestMove:
+  // Bank out BASIC ROM to access UndoStack/TT in $A000-$BFFF area
+  // Without this, reads from that area return BASIC ROM garbage!
+  lda #MEMORY_CONFIG_NORMAL
+  sta $01
+
   // Initialize search
   jsr InitSearch
   jsr ClearKillers
@@ -1668,6 +1673,9 @@ FindBestMove:
   jmp !time_iter_loop-
 
 !time_done:
+  // Restore memory config before returning
+  lda #$35
+  sta $01
   lda IterScore
   rts
 
@@ -1676,6 +1684,9 @@ FindBestMove:
   lda #$FF
   sta BestMoveFrom
   sta BestMoveTo
+  // Restore memory config before returning
+  lda #$35
+  sta $01
   rts
 
 // Iterative deepening state
