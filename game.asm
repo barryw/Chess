@@ -358,6 +358,7 @@ Handle8Key:
 The main game loop
 */
 StartGame:
+  jsr ResetBookState      // Reset opening book for new game
   jsr ShowGameMenu
 
 !playgame:

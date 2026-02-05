@@ -1599,6 +1599,23 @@ FindBestMove:
 
   // Initialize search
   jsr InitSearch
+
+  // Try opening book first - much faster than searching
+  // Compute hash for current position
+  jsr ComputeZobristHash
+
+  // Look up in opening book
+  jsr LookupOpeningMove
+  bcc !no_book_move+
+
+  // Book move found! A = from, Y = to
+  sta BestMoveFrom
+  sty BestMoveTo
+  lda #$00                 // Return score 0 (book moves are pre-evaluated)
+  rts
+
+!no_book_move:
+  // Not in book - do normal search
   jsr ClearKillers
   jsr TTClear
 
