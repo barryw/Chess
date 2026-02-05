@@ -59,18 +59,25 @@ steps:
     depends_on: [prepare-version]
 
   - name: test-move-validation
-    image: ghcr.io/barryw/sim6502:v3.4.2
+    image: ghcr.io/barryw/sim6502:v3.9.0
     commands:
       - ln -sf $CI_WORKSPACE /code
       - /app/Sim6502TestRunner -s /code/tests/move_validation.6502
     depends_on: [build]
 
-  - name: test-comprehensive
-    image: ghcr.io/barryw/sim6502:v3.4.2
+  - name: test-tt
+    image: ghcr.io/barryw/sim6502:v3.9.0
     commands:
       - ln -sf $CI_WORKSPACE /code
-      - /app/Sim6502TestRunner -s /code/tests/comprehensive.6502
-    depends_on: [test-move-validation]
+      - /app/Sim6502TestRunner -s /code/tests/ai_tt.6502
+    depends_on: [build]
+
+  - name: test-zobrist
+    image: ghcr.io/barryw/sim6502:v3.9.0
+    commands:
+      - ln -sf $CI_WORKSPACE /code
+      - /app/Sim6502TestRunner -s /code/tests/ai_zobrist.6502
+    depends_on: [build]
 
   # Create tag and release after tests pass (main only)
   - name: release
@@ -140,4 +147,4 @@ steps:
     when:
       - event: push
         branch: main
-    depends_on: [test-move-validation, test-comprehensive]
+    depends_on: [test-move-validation, test-tt, test-zobrist]

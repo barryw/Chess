@@ -1,0 +1,401 @@
+; Tests for Transposition Table Module
+; Tests TTClear, TTProbe, TTStore operations
+;
+; TT is located at $C000-$CFFF (4KB = 512 entries x 8 bytes)
+; Entry format: hash_lo, hash_hi, depth, flag, score_lo, score_hi, from, to
+
+suites {
+  suite("TTClear") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("clears-tt-region", "TTClear zeros $C000-$C100 (first 256 bytes)") {
+      ; First, write non-zero data to TT region
+      memfill($C000, 256, $AA)
+
+      ; Verify it's non-zero
+      assert(peekbyte($C000) == $AA, "Pre-check: $C000 should be $AA")
+      assert(peekbyte($C0FF) == $AA, "Pre-check: $C0FF should be $AA")
+
+      ; Call TTClear
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify it's zeroed
+      assert(peekbyte($C000) == $00, "$C000 should be cleared")
+      assert(peekbyte($C001) == $00, "$C001 should be cleared")
+      assert(peekbyte($C0FF) == $00, "$C0FF should be cleared")
+      assert(peekbyte($C100) == $00, "$C100 should be cleared")
+    }
+
+    test("clears-full-4kb", "TTClear zeros all 4KB ($C000-$CFFF)") {
+      ; Fill entire TT region with pattern
+      memfill($C000, $1000, $55)
+
+      ; Call TTClear
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Check boundaries and middle
+      assert(peekbyte($C000) == $00, "Start of TT ($C000) should be cleared")
+      assert(peekbyte($C800) == $00, "Middle of TT ($C800) should be cleared")
+      assert(peekbyte($CFFF) == $00, "End of TT ($CFFF) should be cleared")
+    }
+
+    test("does-not-clear-before", "TTClear does not affect memory before $C000") {
+      ; Write marker before TT region
+      memfill($BFFC, 4, $AA)
+
+      ; Call TTClear
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify marker is intact
+      assert(peekbyte($BFFF) == $AA, "Memory before TT ($BFFF) should be untouched")
+    }
+  }
+
+  suite("TTStore Basic") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("stores-entry", "TTStore writes entry to TT") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Set up a known hash (directly set ZobristHash)
+      [ZobristHash] = $00
+      [ZobristHash] + 1 = $00
+
+      ; Set up score
+      [TTScoreLo] = $10
+      [TTScoreHi] = $00
+
+      ; Set up best move
+      [BestMoveFrom] = $64   ; e2
+      [BestMoveTo] = $44     ; e4
+
+      ; Store entry: A=depth, X=flag
+      a = $03                 ; depth 3
+      x = $00                 ; flag EXACT
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify entry at $C000 (index 0, offset 0)
+      ; Entry format: hash_lo, hash_hi, depth, flag, score_lo, score_hi, from, to
+      assert(peekbyte($C000) == $00, "Hash low should be $00")
+      assert(peekbyte($C001) == $00, "Hash high should be $00")
+      assert(peekbyte($C002) == $03, "Depth should be $03")
+      assert(peekbyte($C003) == $00, "Flag should be EXACT ($00)")
+      assert(peekbyte($C004) == $10, "Score low should be $10")
+      assert(peekbyte($C005) == $00, "Score high should be $00")
+      assert(peekbyte($C006) == $64, "From should be $64 (e2)")
+      assert(peekbyte($C007) == $44, "To should be $44 (e4)")
+    }
+
+    test("stores-different-hash", "TTStore writes to different slot for different hash") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash = $0001 -> index 1 -> offset 8
+      [ZobristHash] = $01
+      [ZobristHash] + 1 = $00
+
+      [TTScoreLo] = $20
+      [TTScoreHi] = $00
+      [BestMoveFrom] = $76   ; g1
+      [BestMoveTo] = $55     ; f3
+
+      a = $02                 ; depth 2
+      x = $01                 ; flag ALPHA
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify entry at $C008 (index 1, offset 8)
+      assert(peekbyte($C008) == $01, "Hash low should be $01")
+      assert(peekbyte($C009) == $00, "Hash high should be $00")
+      assert(peekbyte($C00A) == $02, "Depth should be $02")
+      assert(peekbyte($C00B) == $01, "Flag should be ALPHA ($01)")
+    }
+  }
+
+  suite("TTProbe Basic") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("probe-miss-empty", "TTProbe returns miss for empty table") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash for initial position
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Probe with depth 1
+      a = $01
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should be a miss
+      assert(peekbyte([TTHit]) == $00, "Should be miss (TTHit = $00)")
+    }
+
+    test("probe-hit-after-store", "TTProbe returns hit after TTStore") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash for initial position
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store an entry
+      [TTScoreLo] = $15
+      [TTScoreHi] = $00
+      [BestMoveFrom] = $64
+      [BestMoveTo] = $44
+      a = $03                 ; depth 3
+      x = $00                 ; flag EXACT
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Re-compute hash (TTStore may have modified it)
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Probe with depth <= stored depth
+      a = $02                 ; require depth 2 (stored 3)
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should be a hit
+      assert(peekbyte([TTHit]) == $01, "Should be hit (TTHit = $01)")
+      assert(peekbyte([TTScoreLo]) == $15, "Score low should be retrieved")
+      assert(peekbyte([TTBestFrom]) == $64, "BestFrom should be retrieved")
+      assert(peekbyte([TTBestTo]) == $44, "BestTo should be retrieved")
+    }
+
+    test("probe-miss-insufficient-depth", "TTProbe returns miss if entry depth < required") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store entry with depth 2
+      [TTScoreLo] = $10
+      [TTScoreHi] = $00
+      [BestMoveFrom] = $64
+      [BestMoveTo] = $44
+      a = $02                 ; depth 2
+      x = $00
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Re-compute hash
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Probe requiring depth 4 (> stored depth 2)
+      a = $04
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should be miss (insufficient depth)
+      assert(peekbyte([TTHit]) == $00, "Should be miss due to insufficient depth")
+    }
+  }
+
+  suite("TT Hash Index") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("index-uses-9-bits", "Hash index uses 9 bits (512 entries)") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash = $01FF -> index = $1FF = 511 -> offset = 511*8 = $FF8
+      ; Entry address = $C000 + $FF8 = $CFF8
+      [ZobristHash] = $FF
+      [ZobristHash] + 1 = $01
+
+      [TTScoreLo] = $AA
+      [TTScoreHi] = $BB
+      [BestMoveFrom] = $00
+      [BestMoveTo] = $77
+
+      a = $01
+      x = $02                 ; BETA flag
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify entry at $CFF8 (last valid entry)
+      assert(peekbyte($CFF8) == $FF, "Hash low at last entry")
+      assert(peekbyte($CFF9) == $01, "Hash high at last entry")
+      assert(peekbyte($CFFA) == $01, "Depth at last entry")
+      assert(peekbyte($CFFB) == $02, "Flag at last entry (BETA)")
+    }
+
+    test("index-wraps-at-512", "Hash index wraps at 512 (only low 9 bits used)") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash = $0200 -> index = 0 (bit 9 is ignored, only bits 0-8 matter)
+      ; With AND #$01, only bit 8 of high byte is used
+      ; $0200 & $01FF = $0000 -> index 0 -> offset 0 -> $C000
+      [ZobristHash] = $00
+      [ZobristHash] + 1 = $02   ; Bit 9 set, should wrap to index 0
+
+      [TTScoreLo] = $CC
+      [TTScoreHi] = $DD
+      [BestMoveFrom] = $11
+      [BestMoveTo] = $22
+
+      a = $05
+      x = $00
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should be at $C000 (wrapped)
+      assert(peekbyte($C000) == $00, "Hash low should be at $C000 (wrapped)")
+      assert(peekbyte($C001) == $02, "Hash high at $C001")
+    }
+  }
+
+  suite("ComputeZobristHash Register Behavior") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("hash-produces-value", "ComputeZobristHash produces a hash value") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      ; Clear hash first
+      [ZobristHash] = $00
+      [ZobristHash] + 1 = $00
+
+      ; Call hash computation
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Hash should be non-zero for initial position (many pieces on board)
+      ; Sum both bytes - for initial position this won't be zero
+      assert(peekbyte([ZobristHash]) + peekbyte([ZobristHash] + 1) != $00, "Hash should be non-zero")
+    }
+
+    test("hash-consistent", "ComputeZobristHash produces consistent results") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash first time
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Save result to safe locations (screenbuffer is safe storage area)
+      [screenbuffer] = peekbyte([ZobristHash])
+      [screenbuffer] + 1 = peekbyte([ZobristHash] + 1)
+
+      ; Compute again (same position)
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Should get same result
+      assert(peekbyte([ZobristHash]) == peekbyte([screenbuffer]), "Hash low should be consistent")
+      assert(peekbyte([ZobristHash] + 1) == peekbyte([screenbuffer] + 1), "Hash high should be consistent")
+    }
+  }
+
+  suite("TT Store and Probe Roundtrip") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("roundtrip-exact", "Store EXACT entry, probe returns same data") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash for position
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store specific values
+      [TTScoreLo] = $2A
+      [TTScoreHi] = $01
+      [BestMoveFrom] = $64
+      [BestMoveTo] = $44
+      a = $04                 ; depth 4
+      x = $00                 ; EXACT
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Re-compute hash (same position)
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Probe with matching depth
+      a = $04
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify all retrieved values match
+      assert(peekbyte([TTHit]) == $01, "Should hit")
+      assert(peekbyte([TTFlag]) == $00, "Flag should be EXACT")
+      assert(peekbyte([TTDepth]) == $04, "Depth should be 4")
+      assert(peekbyte([TTScoreLo]) == $2A, "Score low should match")
+      assert(peekbyte([TTScoreHi]) == $01, "Score high should match")
+      assert(peekbyte([TTBestFrom]) == $64, "BestFrom should match")
+      assert(peekbyte([TTBestTo]) == $44, "BestTo should match")
+    }
+
+    test("roundtrip-alpha", "Store ALPHA entry, probe returns same data") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store ALPHA (fail-low) entry
+      [TTScoreLo] = $80       ; -128 (worst score)
+      [TTScoreHi] = $FF
+      [BestMoveFrom] = $FF    ; No best move for alpha cutoff
+      [BestMoveTo] = $FF
+      a = $02                 ; depth 2
+      x = $01                 ; ALPHA
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Re-compute and probe
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+      a = $01
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify
+      assert(peekbyte([TTHit]) == $01, "Should hit")
+      assert(peekbyte([TTFlag]) == $01, "Flag should be ALPHA")
+    }
+
+    test("roundtrip-beta", "Store BETA entry, probe returns same data") {
+      ; Initialize
+      jsr([InitZobristTables], stop_on_rts = true, fail_on_brk = true)
+      jsr([InitSearch], stop_on_rts = true, fail_on_brk = true)
+      jsr([TTClear], stop_on_rts = true, fail_on_brk = true)
+
+      ; Compute hash
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store BETA (fail-high) entry
+      [TTScoreLo] = $7F       ; 127 (best score)
+      [TTScoreHi] = $00
+      [BestMoveFrom] = $44
+      [BestMoveTo] = $23
+      a = $03                 ; depth 3
+      x = $02                 ; BETA
+      jsr([TTStore], stop_on_rts = true, fail_on_brk = true)
+
+      ; Re-compute and probe
+      jsr([ComputeZobristHash], stop_on_rts = true, fail_on_brk = true)
+      a = $02
+      jsr([TTProbe], stop_on_rts = true, fail_on_brk = true)
+
+      ; Verify
+      assert(peekbyte([TTHit]) == $01, "Should hit")
+      assert(peekbyte([TTFlag]) == $02, "Flag should be BETA")
+      assert(peekbyte([TTBestFrom]) == $44, "BestFrom should match")
+      assert(peekbyte([TTBestTo]) == $23, "BestTo should match")
+    }
+  }
+}
