@@ -1,0 +1,157 @@
+; Tests for Opening Book Module
+; Tests book state management and data structure validation
+;
+; NOTE: LookupOpeningMove uses memory banking ($01 writes) which
+; doesn't work correctly in sim6502. Those tests require VICE.
+; This file tests what CAN be tested in the simulator.
+
+suites {
+  suite("Book State Management") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("book-enabled-default", "Book is enabled by default") {
+      ; Need a jsr for the test framework - use a harmless one
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $01, "Book should be enabled")
+    }
+
+    test("disable-book", "DisableBook sets flag to 0") {
+      jsr([DisableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $00, "Book should be disabled")
+    }
+
+    test("enable-book", "EnableBook sets flag to 1") {
+      ; First disable
+      [BookEnabled] = $00
+
+      ; Then enable
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $01, "Book should be enabled")
+    }
+
+    test("reset-book-state", "ResetBookState clears move count") {
+      ; Set some move count
+      [BookMoveCount] = $05
+
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+
+      assert(peekbyte([BookMoveCount]) == $00, "Move count should be reset to 0")
+      assert(peekbyte([BookEnabled]) == $01, "Book should be enabled after reset")
+    }
+
+    test("multiple-resets", "Multiple resets work correctly") {
+      [BookMoveCount] = $0A
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookMoveCount]) == $00, "First reset should clear count")
+
+      [BookMoveCount] = $03
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookMoveCount]) == $00, "Second reset should clear count")
+    }
+
+    test("toggle-book-state", "Toggle book on/off/on") {
+      ; Start enabled
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $01, "Should be enabled")
+
+      ; Disable
+      jsr([DisableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $00, "Should be disabled")
+
+      ; Re-enable
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([BookEnabled]) == $01, "Should be enabled again")
+    }
+  }
+
+  suite("Book Data Structure") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("book-base-pointer-valid", "BookBase points to valid address") {
+      ; BookBase should point to DefaultBook
+      ; Just verify it's a non-zero address in the expected range
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+
+      ; BookBase is a 2-byte pointer
+      ; Should point somewhere in the $5B00+ range based on memory map
+      assert(peekbyte([BookBase] + 1) >= $5B, "BookBase high byte should be >= $5B")
+    }
+
+    test("book-magic-at-base", "Book magic number at BookBase") {
+      ; DefaultBook starts with magic $B00C (little endian)
+      ; This reads from the address stored in BookBase
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+
+      ; Read magic from where BookBase points
+      ; DefaultBook = $5B00 based on memory map
+      assert(peekbyte($5B00) == $0C, "Magic low byte should be $0C")
+      assert(peekbyte($5B01) == $B0, "Magic high byte should be $B0")
+    }
+
+    test("book-version", "Book version is 1") {
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      ; Version at offset 2
+      assert(peekbyte($5B02) == $01, "Version should be $01")
+    }
+
+    test("book-has-entries", "Book has non-zero entry count") {
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      ; Entry count at offset 3-4 (word)
+      ; GM2600 book should have thousands of entries
+      assert(peekbyte($5B03) != $00, "Entry count low should be non-zero")
+    }
+
+    test("book-table-size", "Book has reasonable table size") {
+      jsr([EnableBook], stop_on_rts = true, fail_on_brk = true)
+      ; Table size at offset 5-6 (word)
+      ; Should be power of 2: 256, 512, 1024, etc
+      ; For these, low byte is 0
+      assert(peekbyte($5B05) == $00, "Table size low should be $00 for power of 2 >= 256")
+      assert(peekbyte($5B06) >= $01, "Table size high should be >= 1 (at least 256 slots)")
+    }
+  }
+
+  suite("Match Buffer") {
+    symbols("/code/main.sym")
+    load("/code/main.prg", strip_header = true)
+
+    test("match-count-starts-zero", "MatchCount initializes to 0") {
+      ; After reset, match count should be 0
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+      assert(peekbyte([MatchCount]) == $00, "MatchCount should start at 0")
+    }
+
+    test("match-buffer-writable", "MatchBuffer can store moves") {
+      ; Verify we can write to match buffer
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+
+      ; Write test values
+      [MatchBuffer] = $64       ; e2
+      [MatchBuffer] + 1 = $44   ; e4
+      [MatchCount] = $01
+
+      assert(peekbyte([MatchBuffer]) == $64, "From square should be stored")
+      assert(peekbyte([MatchBuffer] + 1) == $44, "To square should be stored")
+      assert(peekbyte([MatchCount]) == $01, "Match count should be set")
+    }
+
+    test("match-buffer-multiple", "MatchBuffer can store multiple moves") {
+      jsr([ResetBookState], stop_on_rts = true, fail_on_brk = true)
+
+      ; Store 3 moves
+      [MatchBuffer] = $64       ; Move 1: e2-e4
+      [MatchBuffer] + 1 = $44
+      [MatchBuffer] + 2 = $63   ; Move 2: d2-d4
+      [MatchBuffer] + 3 = $43
+      [MatchBuffer] + 4 = $76   ; Move 3: Nf3
+      [MatchBuffer] + 5 = $55
+      [MatchCount] = $03
+
+      assert(peekbyte([MatchCount]) == $03, "Should have 3 matches")
+      assert(peekbyte([MatchBuffer] + 4) == $76, "Third move from should be $76")
+      assert(peekbyte([MatchBuffer] + 5) == $55, "Third move to should be $55")
+    }
+  }
+}

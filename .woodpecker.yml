@@ -79,6 +79,13 @@ steps:
       - /app/Sim6502TestRunner -s /code/tests/ai_zobrist.6502
     depends_on: [build]
 
+  - name: test-book
+    image: ghcr.io/barryw/sim6502:v3.9.0
+    commands:
+      - ln -sf $CI_WORKSPACE /code
+      - /app/Sim6502TestRunner -s /code/tests/ai_book.6502
+    depends_on: [build]
+
   # Create tag and release after tests pass (main only)
   - name: release
     image: alpine/git
@@ -147,4 +154,4 @@ steps:
     when:
       - event: push
         branch: main
-    depends_on: [test-move-validation, test-tt, test-zobrist]
+    depends_on: [test-move-validation, test-tt, test-zobrist, test-book]
