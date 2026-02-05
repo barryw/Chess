@@ -71,32 +71,27 @@ TimeBudgetTableHi:
 // Clobbers: A, $f0-$f2
 //
 CheckTime:
-  // Read current time (low byte first for consistency)
-  lda $DC04
-  sta $f0
-  lda $DC05
-  sta $f1
-
-  // Calculate elapsed = StartTime - CurrentTime
-  // (Timer counts down, so start > current when time has passed)
+  // Read elapsed jiffies from CIA Timer B ($DC06/$DC07)
+  // Timer B is configured in FindBestMove to count Timer A underflows
+  // (each underflow = 1 jiffy = 1/60th second)
+  // Timer counts DOWN from $FFFF, so elapsed = $FFFF - current
   sec
-  lda StartTimeLo
-  sbc $f0
-  sta $f2               // Elapsed low
-  lda StartTimeHi
-  sbc $f1               // Elapsed high in A
+  lda #$FF
+  sbc $DC06
+  sta $f0               // Elapsed low
+  lda #$FF
+  sbc $DC07
+  sta $f1               // Elapsed high
 
-  // If elapsed high byte is negative (borrow), timer wrapped - lots of time passed
-  bcc !time_up+
-
-  // Compare elapsed with budget
+  // Compare elapsed jiffies with budget
   // If elapsed >= budget, time's up
+  lda $f1
   cmp TimeBudgetHi
   bcc !time_ok+         // Elapsed high < budget high, continue
   bne !time_up+         // Elapsed high > budget high, time's up
 
   // High bytes equal, compare low bytes
-  lda $f2
+  lda $f0
   cmp TimeBudgetLo
   bcc !time_ok+         // Elapsed < budget, continue
 
@@ -1254,6 +1249,13 @@ Negamax:
   // Probe transposition table
   jsr ComputeZobristHash
 
+  // Recalculate state offset (ComputeZobristHash clobbers X)
+  lda SearchDepth
+  asl
+  asl
+  asl
+  tax
+
   // Probe TT with current depth requirement
   lda NegamaxState + 5, x   // depth remaining
   jsr TTProbe
@@ -1547,6 +1549,13 @@ Negamax:
   // Compute hash for storage
   jsr ComputeZobristHash
 
+  // Recalculate state offset (ComputeZobristHash clobbers X)
+  lda SearchDepth
+  asl
+  asl
+  asl
+  tax
+
   // Store in TT
   lda NegamaxState + 5, x   // depth
   ldx #TT_FLAG_EXACT        // For now, always mark as exact
@@ -1600,11 +1609,29 @@ FindBestMove:
   lda TimeBudgetTableHi, x
   sta TimeBudgetHi
 
-  // Record start time
-  lda $DC04
-  sta StartTimeLo
-  lda $DC05
-  sta StartTimeHi
+  // Configure CIA Timer B to count Timer A underflows (jiffy counter)
+  // This gives us an elapsed jiffy count we can read from $DC06/$DC07
+  // Step 1: Stop Timer B and set it to count Timer A underflows
+  lda $DC0F
+  and #%11000000         // Preserve TOD alarm bit and others
+  ora #%01000000         // Bit 6 = count Timer A underflows (not system clock)
+  sta $DC0F              // Write control but don't start yet
+
+  // Step 2: Load Timer B with $FFFF (count up from 0 effectively)
+  // Timer B counts DOWN from latch value. We want to read elapsed,
+  // so load with 0 and read how far it's gone... no, we load $FFFF
+  // and compute elapsed = $FFFF - current. Actually simpler:
+  // Load 0 into latch, force-load, then let it count underflows.
+  // But CIA timers count DOWN. So we load $FFFF as start value.
+  lda #$FF
+  sta $DC06              // Timer B low latch
+  sta $DC07              // Timer B high latch (also loads timer)
+
+  // Step 3: Start Timer B
+  lda $DC0F
+  and #%11000000
+  ora #%01000001         // Bit 0 = start, Bit 6 = count TA underflows
+  sta $DC0F
 
   // Clear time up flag
   lda #$00

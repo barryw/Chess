@@ -46,15 +46,14 @@ irq:
 
   txa
   mult16                // We multiply the row counter by 16 to get the 0x88 index
-  tax                   // X = offset into Board88 for this row
+  tax                   // X = offset into BoardSprites/BoardColors for this row
   ldy #$00
+
 !updatesprites:
-  lda Board88, x        // Load piece+color directly from Board88
-  and #LOWER7           // Strip color bit for sprite pointer
-  sta SPRPTR, y         // Write sprite pointer to VIC
-  lda Board88, x        // Load again (faster than temp storage)
-  pcol                  // Extract color (0=black, 1=white)
-  sta vic.SP0COL, y     // Write sprite color to VIC
+  lda BoardSprites, x   // Read pre-computed sprite pointer
+  sta SPRPTR, y         // Write to VIC
+  lda BoardColors, x    // Read pre-computed color
+  sta vic.SP0COL, y     // Write to VIC
   inx
   iny
   cpy #NUM_COLS
@@ -83,6 +82,7 @@ irq:
 These get called once per frame at the end of the frame
 */
 RunServiceRoutines:
+  jsr ComputeBoard      // Sync Board88 → BoardSprites/BoardColors for display
   jsr UpdateTimers      // Process timer callbacks (runs at 60Hz)
   jsr UpdateClock       // Update the play clock for whichever player is playing
   jsr ShowClock         // Display the play clock
@@ -90,6 +90,39 @@ RunServiceRoutines:
   jsr FlashCursor       // Flash the cursor if it's on-screen
   jsr FlashPiece        // If a piece has been selected to move, flash it
 
+  rts
+
+/*
+Sync Board88 to display arrays (BoardSprites/BoardColors)
+Called once per frame to decouple display from game logic.
+This allows AI to modify Board88 freely during search.
+Only processes 64 valid squares (skips 0x88 padding columns).
+*/
+ComputeBoard:
+  ldx #$00              // Start at row 0, col 0
+
+!row_loop:
+  ldy #$08              // 8 valid columns per row
+
+!col_loop:
+  lda Board88, x
+  sta currentpiece      // Save piece+color (zero page = fast)
+  and #LOWER7           // Strip color bit
+  sta BoardSprites, x
+  lda currentpiece      // Restore piece+color (3 cycles vs 4 for pla)
+  pcol                  // Extract color
+  sta BoardColors, x
+  inx
+  dey
+  bne !col_loop-
+
+  // Skip 8 invalid columns (0x88 padding)
+  txa
+  clc
+  adc #$08
+  tax
+  cpx #BOARD_SIZE
+  bcc !row_loop-
   rts
 
 /*

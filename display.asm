@@ -23,8 +23,8 @@ Also clears the depth and best move display lines
 */
 HideThinking:
   FillMemory(ColorAddress(ThinkingPos), $08, BLACK)
-  FillMemory(ColorAddress(ThinkingDepthPos), $0e, BLACK)
-  FillMemory(ColorAddress(ThinkingBestPos), $0e, BLACK)
+  FillMemory(ColorAddress(ThinkingDepthPos), $0c, BLACK)  // 12 chars max (col 28+12=40)
+  FillMemory(ColorAddress(ThinkingBestPos), $0c, BLACK)   // 12 chars max (col 28+12=40)
   lda #TIMER_SPINNER
   jsr DisableTimer
   rts

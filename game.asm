@@ -387,6 +387,8 @@ ComputerMove:
 
   // Find the best move using AI search
   // NOTE: With $35 (HIRAM=0), $A000-$BFFF is already RAM, so AI code is accessible
+  // Display is decoupled from Board88 via BoardSprites/BoardColors arrays,
+  // so AI can modify Board88 freely during search
   jsr FindBestMove
 
   // Check if no move was found (checkmate/stalemate - shouldn't happen

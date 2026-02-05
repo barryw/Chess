@@ -54,8 +54,7 @@
 .const BOOK_HASH_SIZE  = $4A00      // ~18.5KB for hash table ($5600-$9FFF)
 .const SWAP_BUFFER     = $A000      // 8KB swap buffer for disk loading
 .const SWAP_BUFFER_SIZE = $2000     // 8KB
-.const ENDGAME_TABLES  = $C000      // 4KB for endgame tablebases
-.const ENDGAME_SIZE    = $1000      // 4KB
+// $C000-$CFFF reserved for Transposition Table (see ai/tt.asm)
 .const BOOK_ENTRIES    = $E000      // 8KB for book entry data
 .const BOOK_ENTRIES_SIZE = $2000    // 8KB
 .const TURBO_WORKSPACE = $D000      // 4KB extra during turbo mode

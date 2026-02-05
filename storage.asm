@@ -129,6 +129,15 @@ colorbuffer:
 showcursor:
   .byte $00
 
+// Display arrays - raster IRQ reads from these, not Board88
+// Synced once per frame by ComputeBoard in RunServiceRoutines
+// This decouples display from game logic (AI can modify Board88 freely)
+BoardSprites:
+  .fill 128, EMPTY_SPR
+
+BoardColors:
+  .fill 128, $00
+
 // The x position for the cursor. Can only be 0 or 1
 cursorxpos:
   .byte $00
